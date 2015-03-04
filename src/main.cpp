@@ -9,8 +9,8 @@
 #include "opencv2/imgproc.hpp"
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
-#include "include/hist.h"
-#include "include/particle_filter.h"
+#include "../include/hist.h"
+#include "../include/particle_filter.h"
 //C
 #include <stdio.h>
 //C++

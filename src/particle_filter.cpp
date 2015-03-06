@@ -156,9 +156,9 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
 void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
 {
     weights[time_stamp].resize(n_particles);
-    //Eigen::VectorXd alpha,counts;
-    //cv2eigen(reference_hist,alpha);
-    //Polya pl=Polya(alpha);
+    Eigen::VectorXd alpha,counts;
+    cv2eigen(reference_hist,alpha);
+    Polya pl=Polya(alpha);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];

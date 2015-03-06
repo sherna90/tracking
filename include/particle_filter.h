@@ -1,5 +1,4 @@
 #ifndef PARTICLE_FILTER
-#define PARTICLE_FILTER
 
 #include "opencv2/core.hpp"
 #include <opencv2/highgui.hpp>
@@ -13,7 +12,6 @@
 #define TRANS_X_STD 0.5
 #define TRANS_Y_STD 1.0
 #define TRANS_S_STD 0.01
-
 #define POS_STD 1.0
 #define VEL_STD 0.01
 #define SCALE_STD 0.1

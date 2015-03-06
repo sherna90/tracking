@@ -3,7 +3,7 @@
  * @brief color histogram handling
  * @author Sergio Hernandez
  */
- #include "../include/hist.h"
+ #include "../include/hist.hpp"
 
 using namespace cv;
 using namespace std;

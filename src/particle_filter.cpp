@@ -3,7 +3,7 @@
  * @brief particle filter
  * @author Sergio Hernandez
  */
- #include "../include/particle_filter.h"
+ #include "../include/particle_filter.hpp"
 
 
 particle_filter::particle_filter(int _n_particles) {
@@ -157,8 +157,10 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
 {
     weights[time_stamp].resize(n_particles);
     Eigen::VectorXd alpha,counts;
-    cv2eigen(reference_hist,alpha);
-    Polya pl=Polya(alpha);
+    alpha=Eigen::VectorXd::Ones(10);
+    //Eigen::Map<VectorXd> alpha( &reference_hist.data() ); 
+    //cv2eigen(reference_hist,alpha);
+    dirichlet polya(alpha);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];

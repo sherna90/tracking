@@ -1,21 +1,21 @@
-#include "../include/dirichlet.h"
+#include "../include/dirichlet.hpp"
 
-Polya::Polya(int n){
+dirichlet::dirichlet(int n){
      alpha=VectorXd::Ones(n);
      meanprecision();
 }
 
-Polya::Polya(VectorXd a){
+dirichlet::dirichlet(VectorXd a){
     setAlpha(a);
 }
 
 
-void Polya::setAlpha(VectorXd a){
+void dirichlet::setAlpha(VectorXd a){
     alpha=a;
     meanprecision();
 }
 
-double Polya::log_likelihood(VectorXd counts){
+double dirichlet::log_likelihood(VectorXd counts){
     VectorXd log_counts=VectorXd::Zero(counts.size());
     VectorXd log_alpha=VectorXd::Zero(alpha.size());
     VectorXd log_alpha_counts=VectorXd::Zero(alpha.size());
@@ -32,12 +32,12 @@ double Polya::log_likelihood(VectorXd counts){
     return loglike;
 }
 
-void Polya::meanprecision(){
+void dirichlet::meanprecision(){
     s= alpha.sum();
     m= (1.0f/s)*alpha;
 }
 
-void Polya::dirichlet_moment_match(MatrixXd proportions, MatrixXd weigths){
+void dirichlet::dirichlet_moment_match(MatrixXd proportions, MatrixXd weigths){
     VectorXd a;
     VectorXd m2;
     VectorXd aok,m2ok;
@@ -66,7 +66,7 @@ void Polya::dirichlet_moment_match(MatrixXd proportions, MatrixXd weigths){
     
 }
 
-void Polya::polya_moment_match(MatrixXd counts){
+void dirichlet::dirichlet_moment_match(MatrixXd counts){
     MatrixXd norm_sum = counts.rowwise().sum();
     
     for(int i=0;i<counts.rows();i++){
@@ -79,7 +79,7 @@ void Polya::polya_moment_match(MatrixXd counts){
     dirichlet_moment_match(counts,norm_sum);
 }
 
-void Polya::fit_fixedPoint(MatrixXd counts,int maxIter,double tol){ //incomplete
+void dirichlet::fit_fixedPoint(MatrixXd counts,int maxIter,double tol){ //incomplete
     int train=counts.rows();
     int D=counts.cols();
     int iter=0;
@@ -97,8 +97,8 @@ void Polya::fit_fixedPoint(MatrixXd counts,int maxIter,double tol){ //incomplete
          }
     }
 
-    //alpha = array(polya_moment_match(counts)).flatten()
-    polya_moment_match(counts);
+    //alpha = array(dirichlet_moment_match(counts)).flatten()
+    dirichlet_moment_match(counts);
     c = MatrixXd::Zero(train,D);
     d = VectorXd::Zero(train);
 

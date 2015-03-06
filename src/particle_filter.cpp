@@ -153,6 +153,25 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
     resample();
 }
 
+void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
+{
+    weights[time_stamp].resize(n_particles);
+    //Eigen::VectorXd alpha,counts;
+    //cv2eigen(reference_hist,alpha);
+    //Polya pl=Polya(alpha);
+    for (int i=0;i<n_particles;i++){
+        Mat part_hist,part_roi,part_hog;
+        particle state=states[time_stamp][i];
+        Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
+        part_roi=image(boundingBox);
+        calc_hist_hsv(part_roi,part_hist);
+        //cv2eigen(part_hist,counts);
+        //double prob = pl.log_likelihood(counts);
+        //weights[time_stamp].at(i)=weights[time_stamp-1][i]*exp(prob);
+    }
+    resample();
+}
+
 void particle_filter::resample(){
     vector<float> cumulative_sum(n_particles);
     vector<float> normalized_weights(n_particles);

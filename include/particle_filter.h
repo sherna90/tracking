@@ -2,9 +2,11 @@
 #define PARTICLE_FILTER
 
 #include "opencv2/core.hpp"
-#include <opencv2/core/ocl.hpp>
 #include <opencv2/highgui.hpp>
+#include <Eigen/Dense>
+#include <opencv2/core/eigen.hpp>
 #include "hist.h"
+#include "dirichlet.h"
 #include <time.h>
 #include <vector>
 
@@ -48,6 +50,7 @@ public:
     Rect estimate(Mat& image,bool draw);
     void predict(Size im_size);
     void update(Mat& image,Mat& reference_hist);
+    void update_dirichlet(Mat& image,Mat& reference_hist);
     void update(Mat& image,Mat& reference_hist,Mat& reference_hog);
     float getESS();
     

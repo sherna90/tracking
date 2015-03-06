@@ -193,21 +193,6 @@ void App::updateGroundTruth(Mat frame,string str,bool draw=false){
 
 Rect App::intersect(Rect r1, Rect r2) 
 { 
-/*    Rect intersection; 
-    // find overlapping region 
-    intersection.x = (r1.x < r2.x) ? r2.x : r1.x; 
-    intersection.y = (r1.y < r2.y) ? r2.y : r1.y; 
-    intersection.width = (r1.x + r1.width < r2.x + r2.width) ? 
-        r1.x + r1.width : r2.x + r2.width; 
-    intersection.width -= intersection.x; 
-    intersection.height = (r1.y + r1.height < r2.y + r2.height) ? 
-        r1.y + r1.height : r2.y + r2.height; 
-    intersection.height -= intersection.y; 
-
-    // check for non-overlapping regions 
-    if ((intersection.width <= 0) || (intersection.height <= 0)) { 
-        intersection = Rect(0, 0, 0, 0); 
-    } */
     return r1 | r2; 
 }
 

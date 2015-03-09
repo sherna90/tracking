@@ -157,9 +157,12 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
 {
     weights[time_stamp].resize(n_particles);
     Eigen::VectorXd alpha,counts;
-    alpha=Eigen::VectorXd::Ones(10);
-    //Eigen::Map<VectorXd> alpha( &reference_hist.data() ); 
-    cv2eigen(reference_hist,alpha);
+    alpha.setOnes(reference_hist.total());
+    for(int h=0;h<H_BINS;h++)
+        for( int s = 0; s < S_BINS; s++ )
+        {
+            alpha[h*S_BINS+s] = reference_hist.at<double>(h, s);
+        }
     dirichlet polya(alpha);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
@@ -167,9 +170,14 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
         part_roi=image(boundingBox);
         calc_hist_hsv(part_roi,part_hist);
-        //cv2eigen(part_hist,counts);
-        //double prob = pl.log_likelihood(counts);
-        //weights[time_stamp].at(i)=weights[time_stamp-1][i]*exp(prob);
+        counts.setOnes(part_hist.total());
+        for(int h=0;h<H_BINS;h++)
+            for( int s = 0; s < S_BINS; s++ )
+            {
+                counts[h*S_BINS+s] = part_hist.at<double>(h, s);
+            }
+        double prob = polya.log_likelihood(counts);
+        weights[time_stamp].at(i)=weights[time_stamp-1][i]*exp(prob);
     }
     resample();
 }

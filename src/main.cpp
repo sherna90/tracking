@@ -76,7 +76,7 @@ App::App(string _firstFrameFilename, string _gtFilename){
 void App::run(){
     current_frame = imread(firstFrameFilename);
     ifstream groundtruth; 
-    groundtruth.open(gtFilename);
+    groundtruth.open(gtFilename,ifstream::in);
     string current_filename(firstFrameFilename),current_gt;
     if(current_frame.empty()){
         //error in opening the first image
@@ -102,8 +102,8 @@ void App::run(){
         {
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict(Size(current_frame.cols,current_frame.rows));
-            filter.update(current_frame,reference_hist,reference_hog);
-            //filter.update(current_frame,reference_hist);
+            //filter.update(current_frame,reference_hist,reference_hog);
+            filter.update_dirichlet(current_frame,reference_hist);
             filter.draw_particles(current_frame); 
             estimate=filter.estimate(current_frame,true); 
             intersection=ground_truth & estimate;

@@ -3,7 +3,7 @@
  * @brief texture histogram handling
  * @author Sergio Hernandez
  */
- #include "include/hog.h"
+ #include "../include/hog.hpp"
 
 using namespace cv;
 using namespace std;
@@ -11,7 +11,7 @@ using namespace std;
 void calc_hog(Mat& image)
 {
     int num_persons=0;
-    ocl::setUseOpenCL(true);
+    //ocl::setUseOpenCL(true);
     static const Size win_size = Size(48,48*2);
     static const Size training_padding=Size(0, 0);
     static const Size win_stride = Size(8, 8);

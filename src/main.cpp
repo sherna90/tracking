@@ -5,8 +5,6 @@
  */
 
 #include <opencv2/video/tracking.hpp>
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/imgproc.hpp"
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
 #include "../include/hist.hpp"
@@ -109,7 +107,7 @@ void App::run(){
             filter.draw_particles(current_frame); 
             estimate=filter.estimate(current_frame,true); 
             intersection=ground_truth & estimate;
-            int true_positives,false_positives,false_negatives;
+            int true_positives=0,false_positives=0,false_negatives=0;
             ratio = double(intersection.area())/double(ground_truth.area());
             if(ratio==1.0){ 
                 true_positives=ground_truth.area();
@@ -126,7 +124,7 @@ void App::run(){
                 false_negatives=ground_truth.area()-intersection.area();
                 estimate.area()>0?false_positives=estimate.area()-intersection.area():false_positives=1;   
             }
-            //cout << "ratio:" << ratio << ",tp:" << true_positives << ",fp:" << false_positives << ",fn:"<<false_negatives<< ",precision:"<<double(true_positives)/double(true_positives+false_positives)<<endl;
+            cout << "ratio:" << ratio << ",tp:" << true_positives << ",fp:" << false_positives << ",fn:"<<false_negatives<< ",precision:"<<double(true_positives)/double(true_positives+false_positives)<<endl;
             avg_precision+=double(true_positives)/double(true_positives+false_positives); 
             avg_recall+=double(true_positives)/double(true_positives+false_negatives); 
         }     
@@ -148,7 +146,7 @@ void App::getNextFilename(string& fn){
     if(index == string::npos) {
         index = fn.find_last_of("\\");
     }
-    size_t index1 = fn.find_last_of("0");
+    //size_t index1 = fn.find_last_of("0");
     size_t index2 = fn.find_last_of(".");
     string prefix = fn.substr(0,index+1);
     string suffix = fn.substr(index2);

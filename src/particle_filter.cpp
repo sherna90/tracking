@@ -159,7 +159,7 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
     Eigen::VectorXd alpha,counts;
     alpha=Eigen::VectorXd::Ones(10);
     //Eigen::Map<VectorXd> alpha( &reference_hist.data() ); 
-    //cv2eigen(reference_hist,alpha);
+    cv2eigen(reference_hist,alpha);
     dirichlet polya(alpha);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;

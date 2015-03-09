@@ -3,7 +3,7 @@
  * @brief utilities
  * @author Guillermo Becerra
  */
-#include "../include/utils.h"
+#include "../include/utils.hpp"
 
 using namespace Eigen;
 
@@ -21,7 +21,7 @@ double bhattarchaya(VectorXd m1, VectorXd m2){
     return sqrt(1-coef.sum());
 }
 
-void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove){
+void removeRow(MatrixXd& matrix, unsigned int rowToRemove){
     unsigned int numRows = matrix.rows()-1;
     unsigned int numCols = matrix.cols();
 
@@ -39,7 +39,7 @@ void flat(MatrixXd& mat){
 
 VectorXd average(MatrixXd a,MatrixXd weigths, int axis){
     MatrixXd r = a;
-    Util::flat(weigths);
+    flat(weigths);
     
     if(axis==0){
 
@@ -56,7 +56,7 @@ VectorXd average(MatrixXd a,MatrixXd weigths, int axis){
         return (1/weigths.sum())*r.rowwise().sum().transpose();
     
     }else{
-        cout << "invalid argument on average function AVERAGE" << endl;
+        //cout << "invalid argument on average function AVERAGE" << endl;
         exit(EXIT_FAILURE);
     }
     

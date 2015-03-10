@@ -108,7 +108,7 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
 
 void particle_filter::update(Mat& image,Mat& reference_hist,Mat& reference_hog)
 {
-    weights[time_stamp].resize(n_particles);
+    weights[time_stamp].resize(n_particles,0.0f);
     static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
     static const float LAMBDA_SHAPE = 0.5f*1.0f/(pow(SIGMA_SHAPE,2.0f));
     for (int i=0;i<n_particles;i++){
@@ -136,7 +136,7 @@ void particle_filter::update(Mat& image,Mat& reference_hist,Mat& reference_hog)
 
 void particle_filter::update(Mat& image,Mat& reference_hist)
 {
-    weights[time_stamp].resize(n_particles);
+    weights[time_stamp].resize(n_particles,0.0f);
     static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
@@ -146,7 +146,7 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
         calc_hist_hsv(part_roi,part_hist);
         float bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
         float prob = 0.0f;
-        if(bc_color != 1.0f ) // Clamp total mismatch to 0 likelyhood
+        if(bc_color != 1.0f ) // Clamp total mismatch to 0 likelihood
             prob = 1.0f/sqrt(2.0f*SIGMA_COLOR)*exp(-LAMBDA_COLOR * (bc_color * bc_color) );
         weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob;
     }
@@ -155,17 +155,16 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
 
 void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
 {
-    weights[time_stamp].resize(n_particles);
+    weights[time_stamp].resize(n_particles,0.0f);
     Eigen::VectorXd alpha,counts;
     alpha.setOnes(reference_hist.total());
     for(int h=0;h<H_BINS;h++)
         for( int s = 0; s < S_BINS; s++ )
         {
-            alpha[h*S_BINS+s] = (double)reference_hist.at<float>(h, s);
+            alpha[h*S_BINS+s] = (double)reference_hist.at<float>(h, s)+DBL_EPSILON;
         }
     dirichlet polya(alpha);
     //cout << alpha.transpose() << endl; 
-    //polya.dirichlet_moment_match(alpha);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
@@ -180,14 +179,23 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
             }
         cout << "particle : " << i << ",time stamp : " << time_stamp<< endl;    
         cout << "histogram : " << counts.transpose() << endl; 
-        cout << "alpha : " << alpha.transpose() << endl; 
+        cout << "alpha : " << alpha.transpose() << endl;  
         double prob = polya.log_likelihood(counts);
-        weights[time_stamp].at(i)=weights[time_stamp-1][i]*exp(prob);
-        cout << "log-likelihood : " << prob << endl; 
+        if(prob != 0.0 ) // Clamp total mismatch to 0 likelihood    
+            weights[time_stamp].at(i)=weights[time_stamp-1][i]*exp(prob);
+        float bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
+        cout << "likelihood DCM: " << exp(prob) << endl;
+        if(bc_color != 1.0f ) {
+            static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
+            prob = 1.0f/sqrt(2.0f*SIGMA_COLOR)*exp(-LAMBDA_COLOR * (bc_color * bc_color) ); 
+        }
+        cout << "likelihood bhattarchaya: " << prob << endl;
+        cout << "weight : " << weights[time_stamp].at(i) << endl;
         cout << "--------------------------------" << endl; 
 
     }
-    //resample();
+    resample();
+    exit (1);
 }
 
 void particle_filter::resample(){

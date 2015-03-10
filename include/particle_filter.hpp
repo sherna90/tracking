@@ -9,6 +9,7 @@
 #include "hist.hpp"
 #include "dirichlet.hpp"
 #include <time.h>
+#include <float.h>
 #include <vector>
 #include <iostream>
 

@@ -104,6 +104,7 @@ void App::run(){
             filter.predict(Size(current_frame.cols,current_frame.rows));
             //filter.update(current_frame,reference_hist,reference_hog);
             filter.update_dirichlet(current_frame,reference_hist);
+            //filter.update(current_frame,reference_hist);
             filter.draw_particles(current_frame); 
             estimate=filter.estimate(current_frame,true); 
             intersection=ground_truth & estimate;

@@ -124,6 +124,11 @@ void App::run(){
                 false_negatives=ground_truth.area()-intersection.area();
                 estimate.area()>0?false_positives=estimate.area()-intersection.area():false_positives=1;   
             }
+            // cout << "particle weights: time stamp " << num_frames-1;
+            // for (int i=0; i<filter.weights[(int)num_frames-1].size();i++){
+            //     cout << ", "<< filter.weights[(int)num_frames-1][i] << ",";
+            // }
+            cout << endl;
             cout << "ratio:" << ratio << ",tp:" << true_positives << ",fp:" << false_positives << ",fn:"<<false_negatives<< ",precision:"<<double(true_positives)/double(true_positives+false_positives)<<endl;
             avg_precision+=double(true_positives)/double(true_positives+false_positives); 
             avg_recall+=double(true_positives)/double(true_positives+false_negatives); 

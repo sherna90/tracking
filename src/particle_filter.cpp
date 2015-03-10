@@ -161,9 +161,11 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
     for(int h=0;h<H_BINS;h++)
         for( int s = 0; s < S_BINS; s++ )
         {
-            alpha[h*S_BINS+s] = reference_hist.at<double>(h, s);
+            alpha[h*S_BINS+s] = (double)reference_hist.at<float>(h, s);
         }
     dirichlet polya(alpha);
+    //cout << alpha.transpose() << endl; 
+    //polya.dirichlet_moment_match(alpha);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
@@ -174,12 +176,18 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
         for(int h=0;h<H_BINS;h++)
             for( int s = 0; s < S_BINS; s++ )
             {
-                counts[h*S_BINS+s] = part_hist.at<double>(h, s);
+                counts[h*S_BINS+s] = (double)part_hist.at<float>(h, s);
             }
+        cout << "particle : " << i << ",time stamp : " << time_stamp<< endl;    
+        cout << "histogram : " << counts.transpose() << endl; 
+        cout << "alpha : " << alpha.transpose() << endl; 
         double prob = polya.log_likelihood(counts);
         weights[time_stamp].at(i)=weights[time_stamp-1][i]*exp(prob);
+        cout << "log-likelihood : " << prob << endl; 
+        cout << "--------------------------------" << endl; 
+
     }
-    resample();
+    //resample();
 }
 
 void particle_filter::resample(){

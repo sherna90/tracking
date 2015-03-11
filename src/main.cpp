@@ -76,7 +76,7 @@ App::App(string _firstFrameFilename, string _gtFilename){
 void App::run(){
     current_frame = imread(firstFrameFilename);
     ifstream groundtruth; 
-    groundtruth.open(gtFilename,ifstream::in);
+    groundtruth.open(gtFilename.c_str(),ifstream::in);
     string current_filename(firstFrameFilename),current_gt;
     if(current_frame.empty()){
         //error in opening the first image

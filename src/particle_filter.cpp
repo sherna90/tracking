@@ -47,7 +47,7 @@ void particle_filter::predict(Size im_size){
         _y=cvRound(state.y+state.dy+rng.gaussian(POS_STD));
         _width=cvRound(state.width*state.scale);
         _height=cvRound(state.height*state.scale);
-        if((_x+_width)<im_size.width && _x>=0 && (_y+_height)<im_size.height && _y>=0 && isless(getESS(),THRESHOLD)){
+        if((_x+_width)<im_size.width && _x>=0 && (_y+_height)<im_size.height && _y>=0 && isless(getESS(),(float)THRESHOLD)){
             state.x=_x;
             state.y=_y;
             state.width=_width;
@@ -214,7 +214,7 @@ void particle_filter::resample(){
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     ESS=1.0f/sum_squared_weights[0];
-    if(isless(ESS/n_particles,THRESHOLD)){
+    if(isless(ESS/n_particles,(float)THRESHOLD)){
         vector<particle> new_states;
         for (int i=0; i<n_particles; i++) {
             float uni_rand = rng.uniform(0.0f,1.0f);

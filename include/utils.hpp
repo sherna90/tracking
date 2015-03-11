@@ -5,6 +5,7 @@
 #include <cmath>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <stdint.h>
 
 double lnchoose(int  n, int m);
 double bhattarchaya(Eigen::VectorXd m1, Eigen::VectorXd m2);

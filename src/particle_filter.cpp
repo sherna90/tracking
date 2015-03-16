@@ -203,7 +203,7 @@ void particle_filter::resample(){
     vector<float> normalized_weights(n_particles);
     vector<float> squared_normalized_weights(n_particles);
     Scalar s = sum(weights[time_stamp]);
-    for (int i=0; i<weights[time_stamp].size(); i++) {
+    for (unsigned int i=0; i<weights[time_stamp].size(); i++) {
         normalized_weights[i] = weights[time_stamp][i] / s[0];
         squared_normalized_weights[i]=pow(normalized_weights[i],2.0f);
         if (i==0) {

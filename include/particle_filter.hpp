@@ -59,7 +59,7 @@ public:
 
 private:
     int time_stamp;
-    void resample();
+    void resample(bool log_scale);
     float ESS;
     bool initialized;
     RNG rng;

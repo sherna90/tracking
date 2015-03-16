@@ -131,7 +131,7 @@ void particle_filter::update(Mat& image,Mat& reference_hist,Mat& reference_hog)
         //weights[i]=weights[i]*(ALPHA*prob_color+(1-ALPHA)*prob_hog);
         weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob_color*prob_hog;
     }
-    resample();
+    resample(false);
 }
 
 void particle_filter::update(Mat& image,Mat& reference_hist)
@@ -150,7 +150,7 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
             prob = 1.0f/sqrt(2.0f*SIGMA_COLOR)*exp(-LAMBDA_COLOR * (bc_color * bc_color) );
         weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob;
     }
-    resample();
+    resample(false);
 }
 
 void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
@@ -164,7 +164,6 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
             alpha[h*S_BINS+s] = (double)reference_hist.at<float>(h, s)+DBL_EPSILON;
         }
     dirichlet polya(alpha);
-    //cout << alpha.transpose() << endl; 
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
@@ -178,33 +177,47 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
                 counts[h*S_BINS+s] = (double)part_hist.at<float>(h, s);
             }
         cout << "particle : " << i << ",time stamp : " << time_stamp<< endl;    
-        cout << "histogram : " << counts.transpose() << endl; 
-        cout << "alpha : " << alpha.transpose() << endl;  
         double prob = polya.log_likelihood(counts);
-        if(prob != 0.0 ) // Clamp total mismatch to 0 likelihood    
-            weights[time_stamp].at(i)=weights[time_stamp-1][i]*exp(prob);
         float bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
-        cout << "likelihood DCM: " << exp(prob) << endl;
+        cout << "log-likelihood DCM: " << prob << endl;
+        if(prob != 0.0 ) // Clamp total mismatch to 0 likelihood    
+            weights[time_stamp].at(i)=log(weights[time_stamp-1][i])+prob;
         if(bc_color != 1.0f ) {
             static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
-            prob = 1.0f/sqrt(2.0f*SIGMA_COLOR)*exp(-LAMBDA_COLOR * (bc_color * bc_color) ); 
+            prob = log(1.0f/sqrt(2.0f*SIGMA_COLOR))-(LAMBDA_COLOR * (bc_color * bc_color) ); 
         }
-        cout << "likelihood bhattarchaya: " << prob << endl;
-        cout << "weight : " << weights[time_stamp].at(i) << endl;
+
+       
+        cout << "log-likelihood bhattarchaya: " << prob << endl;
+        cout << "log weight : " << weights[time_stamp].at(i) << endl;
         cout << "--------------------------------" << endl; 
 
     }
-    resample();
-    exit (1);
+    resample(true);
+    //exit(1);
 }
 
-void particle_filter::resample(){
+
+void particle_filter::resample(bool log_scale=false){
     vector<float> cumulative_sum(n_particles);
     vector<float> normalized_weights(n_particles);
     vector<float> squared_normalized_weights(n_particles);
+    float logsumexp=0.0;
+    if(log_scale){
+        float max_value = *max_element(weights[time_stamp].begin(), weights[time_stamp].end());
+        for (int i=0; i<weights[time_stamp].size(); i++) {
+            logsumexp+=exp(weights[time_stamp][i]-max_value);
+        }
+        logsumexp=max_value+log(logsumexp);
+    }
     Scalar s = sum(weights[time_stamp]);
     for (int i=0; i<weights[time_stamp].size(); i++) {
-        normalized_weights[i] = weights[time_stamp][i] / s[0];
+        if(log_scale){
+            normalized_weights[i] = exp(weights[time_stamp][i]-logsumexp); 
+            }
+        else{
+            normalized_weights[i] = weights[time_stamp][i] / s[0];
+        }
         squared_normalized_weights[i]=pow(normalized_weights[i],2.0f);
         if (i==0) {
             cumulative_sum[i] = normalized_weights[i];

@@ -11,7 +11,7 @@ using namespace std;
 void calc_hist_hsv(Mat& image, Mat& hist)
 {
     int hist_size[] = { H_BINS, S_BINS };
-    float h_ranges[] = { 0, 180 };
+    float h_ranges[] = { 0, 256 };
     float s_ranges[] = { 0, 256 };
     const float* ranges[] = { h_ranges, s_ranges };
     int channels[] = { 0, 1 };

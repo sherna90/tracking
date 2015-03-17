@@ -11,14 +11,14 @@ using namespace std;
 void calc_hist_hsv(Mat& image, Mat& hist)
 {
     int hist_size[] = { H_BINS, S_BINS };
-    float h_ranges[] = { 0, 256 };
+    float h_ranges[] = { 0, 180 };
     float s_ranges[] = { 0, 256 };
     const float* ranges[] = { h_ranges, s_ranges };
     int channels[] = { 0, 1 };
     Mat hsv_base;
     cvtColor( image, hsv_base, COLOR_BGR2HSV );
     calcHist(&hsv_base, 1, channels, Mat(), hist, 2, hist_size, ranges, true, false);
-    //normalize(hist, hist, 0, 255, NORM_MINMAX);
+    //normalize(hist, hist, 0, 1, NORM_MINMAX, -1, Mat());
 }
 
 void calc_hog(Mat& image,Mat& hist)

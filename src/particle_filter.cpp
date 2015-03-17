@@ -47,7 +47,7 @@ void particle_filter::predict(Size im_size){
         _y=cvRound(state.y+state.dy+rng.gaussian(POS_STD));
         _width=cvRound(state.width*state.scale);
         _height=cvRound(state.height*state.scale);
-        if((_x+_width)<im_size.width && _x>=0 && (_y+_height)<im_size.height && _y>=0 && isless(getESS(),THRESHOLD)){
+        if((_x+_width)<im_size.width && _x>=0 && (_y+_height)<im_size.height && _y>=0 && isless(getESS(),(float)THRESHOLD)){
             state.x=_x;
             state.y=_y;
             state.width=_width;
@@ -161,8 +161,10 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
     for(int h=0;h<H_BINS;h++)
         for( int s = 0; s < S_BINS; s++ )
         {
-            alpha[h*S_BINS+s] = (double)reference_hist.at<float>(h, s)+DBL_EPSILON;
+            alpha[h*S_BINS+s] = (reference_hist.at<float>(h, s)>0.0f)?reference_hist.at<float>(h, s):DBL_EPSILON;
         }
+    //cout << "dirichlet precision : " << alpha.sum()<< endl; 
+    //cout << "H = " << reference_hist << endl;  
     dirichlet polya(alpha);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
@@ -174,23 +176,23 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist)
         for(int h=0;h<H_BINS;h++)
             for( int s = 0; s < S_BINS; s++ )
             {
-                counts[h*S_BINS+s] = (double)part_hist.at<float>(h, s);
+                counts[h*S_BINS+s] = part_hist.at<float>(h, s);
             }
-        cout << "particle : " << i << ",time stamp : " << time_stamp<< endl;    
-        double prob = polya.log_likelihood(counts);
-        float bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
-        cout << "log-likelihood DCM: " << prob << endl;
-        if(prob != 0.0 ) // Clamp total mismatch to 0 likelihood    
-            weights[time_stamp].at(i)=log(weights[time_stamp-1][i])+prob;
+       double prob = polya.log_likelihood(counts);
+       float bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
+        //cout << "log-likelihood DCM: " << prob << endl;
+        //cout << "sample = " << part_hist << ", ";   
+        cout  << prob << ",";
         if(bc_color != 1.0f ) {
             static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
             prob = log(1.0f/sqrt(2.0f*SIGMA_COLOR))-(LAMBDA_COLOR * (bc_color * bc_color) ); 
         }
-
-       
-        cout << "log-likelihood bhattarchaya: " << prob << endl;
-        cout << "log weight : " << weights[time_stamp].at(i) << endl;
-        cout << "--------------------------------" << endl; 
+        cout <<  prob << endl;
+        if(prob != 0.0 ) // Clamp total mismatch to 0 likelihood    
+            weights[time_stamp].at(i)=log(weights[time_stamp-1][i])+prob;  
+        //cout << "log-likelihood bhattarchaya: " << prob << endl;
+        //cout << "log weight : " << weights[time_stamp].at(i) << endl;
+        //cout << "--------------------------------" << endl; 
 
     }
     resample(true);
@@ -227,7 +229,7 @@ void particle_filter::resample(bool log_scale=false){
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     ESS=1.0f/sum_squared_weights[0];
-    if(isless(ESS/n_particles,THRESHOLD)){
+    if(isless(ESS/n_particles,(float)THRESHOLD)){
         vector<particle> new_states;
         for (int i=0; i<n_particles; i++) {
             float uni_rand = rng.uniform(0.0f,1.0f);

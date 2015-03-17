@@ -74,7 +74,7 @@ double median(MatrixXd med){
 }
 // Utils for digamma from http://fastapprox.googlecode.com/svn/trunk/fastapprox/src/fastonebigheader.h
 
-static inline float fastlog2 (float x)
+float fastlog2 (float x)
 {
   union { float f; uint32_t i; } vx = { x };
   union { uint32_t i; float f; } mx = { (vx.i & 0x007FFFFF) | 0x3f000000 };
@@ -86,13 +86,13 @@ static inline float fastlog2 (float x)
            - 1.72587999f / (0.3520887068f + mx.f);
 }
 
-static inline float fastlog (float x)
+float fastlog (float x)
 {
   return 0.69314718f * fastlog2 (x);
 }
 
 
-static inline float fastdigamma (float x)
+float fastdigamma (float x)
 {
   float twopx = 2.0f + x;
   float logterm = fastlog (twopx);
@@ -116,4 +116,16 @@ MatrixXd psi(MatrixXd mat){
 float psi(float x){
     
     return fastdigamma(x);
+}
+
+double* linspace(double min, double max, int n){
+    double* result=new double[n];
+    int iterator = 0;
+    for (int i = 0; i <= n-2; i++){
+        double temp = min + i*(max-min)/(floor((double)n) - 1);
+        result[iterator]=temp;
+        iterator += 1;
+    }
+    result[iterator]=max;
+    return result;
 }

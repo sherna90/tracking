@@ -76,7 +76,7 @@ App::App(string _firstFrameFilename, string _gtFilename){
 void App::run(){
     current_frame = imread(firstFrameFilename);
     ifstream groundtruth; 
-    groundtruth.open(gtFilename,ifstream::in);
+    groundtruth.open(gtFilename.c_str(),ifstream::in);
     string current_filename(firstFrameFilename),current_gt;
     if(current_frame.empty()){
         //error in opening the first image
@@ -129,8 +129,7 @@ void App::run(){
             // for (int i=0; i<filter.weights[(int)num_frames-1].size();i++){
             //     cout << ", "<< filter.weights[(int)num_frames-1][i] << ",";
             // }
-            cout << endl;
-            cout << "ratio:" << ratio << ",tp:" << true_positives << ",fp:" << false_positives << ",fn:"<<false_negatives<< ",precision:"<<double(true_positives)/double(true_positives+false_positives)<<endl;
+            //cout << "ratio:" << ratio << ",tp:" << true_positives << ",fp:" << false_positives << ",fn:"<<false_negatives<< ",precision:"<<double(true_positives)/double(true_positives+false_positives)<<endl;
             avg_precision+=double(true_positives)/double(true_positives+false_positives); 
             avg_recall+=double(true_positives)/double(true_positives+false_negatives); 
         }     

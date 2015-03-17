@@ -213,6 +213,7 @@ void particle_filter::resample(bool log_scale=false){
         logsumexp=max_value+log(logsumexp);
     }
     Scalar s = sum(weights[time_stamp]);
+<<<<<<< HEAD
     for (int i=0; i<weights[time_stamp].size(); i++) {
         if(log_scale){
             normalized_weights[i] = exp(weights[time_stamp][i]-logsumexp); 
@@ -220,6 +221,10 @@ void particle_filter::resample(bool log_scale=false){
         else{
             normalized_weights[i] = weights[time_stamp][i] / s[0];
         }
+=======
+    for (unsigned int i=0; i<weights[time_stamp].size(); i++) {
+        normalized_weights[i] = weights[time_stamp][i] / s[0];
+>>>>>>> a204e2c59f143a604407efdd7c1dfb7f9f7f45e4
         squared_normalized_weights[i]=pow(normalized_weights[i],2.0f);
         if (i==0) {
             cumulative_sum[i] = normalized_weights[i];

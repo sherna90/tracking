@@ -7,8 +7,10 @@
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
+ #include <opencv2/tracking.hpp> //added
 #include "../include/hist.hpp"
 #include "../include/particle_filter.hpp"
+
 //C
 #include <stdio.h>
 //C++
@@ -30,11 +32,15 @@ private:
     string firstFrameFilename,gtFilename;
     void updateGroundTruth(Mat frame,string str,bool draw);
     void getNextFilename(string& fn);
+    void initializeGroundTruth(Rect2d& boundingBox); //added
     Rect intersect(Rect r1, Rect r2);
     Mat current_frame,current_roi; 
     Rect ground_truth,estimate;
     MatND reference_hist,reference_hog;
     int keyboard;
+    Rect2d boundingBox; //added
+    Ptr<Tracker> tracker; //added
+
 };
 
 
@@ -78,6 +84,14 @@ void App::run(){
     ifstream groundtruth; 
     groundtruth.open(gtFilename.c_str(),ifstream::in);
     string current_filename(firstFrameFilename),current_gt;
+    //added to tracking algorithm
+    string track_algorithm="MIL";
+    tracker = Tracker::create( track_algorithm );
+    if(tracker == NULL){
+        cout << "Unable to load track algorithm" << endl;
+        exit(EXIT_FAILURE);
+    }
+
     if(current_frame.empty()){
         //error in opening the first image
         cerr << "Unable to open first image frame: " << firstFrameFilename << endl;
@@ -97,16 +111,34 @@ void App::run(){
             calc_hist_hsv(current_roi,reference_hist);
             calc_hog(current_roi,reference_hog);
             filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows));
+            //added to tracking algorithm
+            boundingBox.x = ground_truth.x;
+            boundingBox.y = ground_truth.y;
+            boundingBox.width = ground_truth.width;
+            boundingBox.height = ground_truth.height;
+            tracker->init( current_frame, boundingBox );
+
+
         }
         else if(filter.is_initialized())
         {
+            //add to tracking algorithm
+             tracker->update( current_frame, boundingBox );
+            // rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 );
+
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict(Size(current_frame.cols,current_frame.rows));
             //filter.update(current_frame,reference_hist,reference_hog);
             filter.update_dirichlet(current_frame,reference_hist);
             //filter.update(current_frame,reference_hist);
-            filter.draw_particles(current_frame); 
+            filter.draw_particles(current_frame);
+            //draw tracker box
+            rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
             estimate=filter.estimate(current_frame,true); 
+            
+            //draw tracker box
+            rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
+            
             intersection=ground_truth & estimate;
             int true_positives=0,false_positives=0,false_negatives=0;
             ratio = double(intersection.area())/double(ground_truth.area());
@@ -187,11 +219,13 @@ void App::updateGroundTruth(Mat frame,string str,bool draw=false){
         iss2 >> y1;
         pt[0][i].x = cvRound(x1);
         pt[0][i].y = cvRound(y1);
+        
     }
+
     if(draw) {
         rectangle( frame, pt[0][1], pt[0][3], Scalar(0,255,0), 1, LINE_AA );
     }
-    ground_truth=Rect(pt[0][1].x,pt[0][1].y,cvRound(pt[0][3].x-pt[0][1].x),cvRound(pt[0][3].y-pt[0][1].y));
+    ground_truth=Rect(pt[0][1].x,pt[0][1].y,cvRound(pt[0][3].x-pt[0][1].x),cvRound(pt[0][3].y-pt[0][1].y));    
 }
 
 Rect App::intersect(Rect r1, Rect r2) 
@@ -211,4 +245,39 @@ void App::help(){
     << "or: ./tracker -img /data/images/1.png -gt groundtruth.txt"                                           << endl
     << "--------------------------------------------------------------------------" << endl
     << endl;
+}
+
+void App::initializeGroundTruth(Rect2d& boundingBox){
+    ifstream groundtruth;
+    groundtruth.open(gtFilename.c_str(),ifstream::in);
+    string str;
+    groundtruth >> str;
+
+    const int NUMBER=4;
+    Point pt[1][NUMBER];
+    size_t index1=0;
+    size_t index2=-1;
+    Mat imageROI;
+    for (int i = 0; i < NUMBER; i++)
+    {
+      index1=str.find(",",index2+1);
+      string str_x1 = str.substr(index2+1, index1-index2-1);
+      istringstream iss(str_x1);
+      int x1 = 0;
+      iss >> x1;
+      index2=str.find(",",index1+1);
+      string str_y1 = str.substr(index1+1, index2-index1-1);
+      istringstream iss2(str_y1);
+      int y1 = 0;
+      iss2 >> y1;
+      pt[0][i].x = cvRound(x1);
+      pt[0][i].y = cvRound(y1);
+      
+    }
+
+    boundingBox.x=pt[0][1].x;
+    boundingBox.y=pt[0][1].y;
+    boundingBox.width=abs(pt[0][3].x-pt[0][1].x);
+    boundingBox.height=abs(pt[0][3].y-pt[0][1].y);
+
 }

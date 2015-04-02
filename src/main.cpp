@@ -21,6 +21,20 @@
 using namespace cv;
 using namespace std;
 
+class Performance
+{
+    private:
+        Rect intersection;
+        int true_positives, false_positives, false_negatives;
+        double avg_precision,avg_recall,ratio;
+    public:
+        Performance(void);
+        void calc(Rect ground_truth, Rect estimate);
+        double get_avg_precision(void);
+        double get_avg_recall(void);
+};
+
+
 class App
 {
 public:
@@ -85,8 +99,8 @@ void App::run(){
     groundtruth.open(gtFilename.c_str(),ifstream::in);
     string current_filename(firstFrameFilename),current_gt;
     //added to tracking algorithm
-    string track_algorithm="MIL";
-    tracker = Tracker::create( track_algorithm );
+    string track_algorithm_selected="MIL";
+    tracker = Tracker::create( track_algorithm_selected );
     if(tracker == NULL){
         cout << "Unable to load track algorithm" << endl;
         exit(EXIT_FAILURE);
@@ -98,8 +112,13 @@ void App::run(){
         exit(EXIT_FAILURE);
     }
     particle_filter filter(300);
-    Rect intersection;
-    double avg_precision=0.0,avg_recall=0.0,ratio,num_frames=0.0;
+    
+    double num_frames=0.0;
+
+    //test object performance
+    Performance track_algorithm;
+    Performance particle_filter_algorithm;
+
     namedWindow("Tracker");
     while( (char)keyboard != 'q' && (char)keyboard != 27 ){
         groundtruth >> current_gt;
@@ -123,8 +142,7 @@ void App::run(){
         else if(filter.is_initialized())
         {
             //add to tracking algorithm
-             tracker->update( current_frame, boundingBox );
-            // rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 );
+            tracker->update( current_frame, boundingBox );
 
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict(Size(current_frame.cols,current_frame.rows));
@@ -139,38 +157,25 @@ void App::run(){
             //draw tracker box
             rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
             
-            intersection=ground_truth & estimate;
-            int true_positives=0,false_positives=0,false_negatives=0;
-            ratio = double(intersection.area())/double(ground_truth.area());
-            if(ratio==1.0){ 
-                true_positives=ground_truth.area();
-                false_negatives=0;
-                false_positives=0;
-            }
-            else if(ratio>1.0){
-                true_positives=ground_truth.area();
-                false_negatives=0;
-                false_positives=estimate.area()-ground_truth.area();   
-            }
-            else if(ratio<1.0){
-                true_positives=intersection.area();
-                false_negatives=ground_truth.area()-intersection.area();
-                estimate.area()>0?false_positives=estimate.area()-intersection.area():false_positives=1;   
-            }
-            // cout << "particle weights: time stamp " << num_frames-1;
-            // for (int i=0; i<filter.weights[(int)num_frames-1].size();i++){
-            //     cout << ", "<< filter.weights[(int)num_frames-1][i] << ",";
-            // }
-            //cout << "ratio:" << ratio << ",tp:" << true_positives << ",fp:" << false_positives << ",fn:"<<false_negatives<< ",precision:"<<double(true_positives)/double(true_positives+false_positives)<<endl;
-            avg_precision+=double(true_positives)/double(true_positives+false_positives); 
-            avg_recall+=double(true_positives)/double(true_positives+false_negatives); 
+            //test performance object
+            particle_filter_algorithm.calc(ground_truth,estimate);
+            Rect IntboundingBox;
+            IntboundingBox.x = (int)boundingBox.x;
+            IntboundingBox.y = (int)boundingBox.y;
+            IntboundingBox.width = (int)boundingBox.width;
+            IntboundingBox.height = (int)boundingBox.height;
+            track_algorithm.calc(ground_truth,IntboundingBox);
+            
         }     
         imshow("Tracker", current_frame);
         keyboard = waitKey( 30 );
         getNextFilename(current_filename);
         current_frame = imread(current_filename);
         if(current_frame.empty()){
-            cout << "average precision:" << avg_precision/num_frames << ",average recall:" << avg_recall/num_frames << endl;         
+            //cout << "average precision:" << avg_precision/num_frames << ",average recall:" << avg_recall/num_frames << endl;         
+            //test performance object
+            cout << "track algorithm >> " << "average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
+            cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -228,7 +233,7 @@ void App::updateGroundTruth(Mat frame,string str,bool draw=false){
     ground_truth=Rect(pt[0][1].x,pt[0][1].y,cvRound(pt[0][3].x-pt[0][1].x),cvRound(pt[0][3].y-pt[0][1].y));    
 }
 
-Rect App::intersect(Rect r1, Rect r2) 
+Rect App::intersect(Rect r1, Rect r2) //unused function.
 { 
     return r1 | r2; 
 }
@@ -247,37 +252,34 @@ void App::help(){
     << endl;
 }
 
-void App::initializeGroundTruth(Rect2d& boundingBox){
-    ifstream groundtruth;
-    groundtruth.open(gtFilename.c_str(),ifstream::in);
-    string str;
-    groundtruth >> str;
-
-    const int NUMBER=4;
-    Point pt[1][NUMBER];
-    size_t index1=0;
-    size_t index2=-1;
-    Mat imageROI;
-    for (int i = 0; i < NUMBER; i++)
-    {
-      index1=str.find(",",index2+1);
-      string str_x1 = str.substr(index2+1, index1-index2-1);
-      istringstream iss(str_x1);
-      int x1 = 0;
-      iss >> x1;
-      index2=str.find(",",index1+1);
-      string str_y1 = str.substr(index1+1, index2-index1-1);
-      istringstream iss2(str_y1);
-      int y1 = 0;
-      iss2 >> y1;
-      pt[0][i].x = cvRound(x1);
-      pt[0][i].y = cvRound(y1);
-      
+Performance::Performance(void){
+    avg_precision=0.0;avg_recall=0.0;
+}
+void Performance::calc(Rect ground_truth, Rect estimate){
+    intersection=ground_truth & estimate;
+    true_positives=0;false_positives=0;false_negatives=0;
+    ratio = double(intersection.area())/double(ground_truth.area());
+    if(ratio==1.0){ 
+        true_positives=ground_truth.area();
+        false_negatives=0;
+        false_positives=0;
     }
-
-    boundingBox.x=pt[0][1].x;
-    boundingBox.y=pt[0][1].y;
-    boundingBox.width=abs(pt[0][3].x-pt[0][1].x);
-    boundingBox.height=abs(pt[0][3].y-pt[0][1].y);
-
+    else if(ratio>1.0){
+        true_positives=ground_truth.area();
+        false_negatives=0;
+        false_positives=estimate.area()-ground_truth.area();   
+    }
+    else if(ratio<1.0){
+        true_positives=intersection.area();
+        false_negatives=ground_truth.area()-intersection.area();
+        estimate.area()>0?false_positives=estimate.area()-intersection.area():false_positives=1;   
+    }
+    avg_precision+=double(true_positives)/double(true_positives+false_positives); 
+    avg_recall+=double(true_positives)/double(true_positives+false_negatives);
+}
+double Performance::get_avg_precision(void){
+    return avg_precision;
+}
+double Performance::get_avg_recall(void){
+    return avg_recall;
 }

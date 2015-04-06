@@ -226,7 +226,8 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist){
         }
     //cout << "dirichlet precision : " << alpha.sum()<< endl; 
     //cout << "H = " << reference_hist << endl;  
-    dirichlet polya(alpha);
+    //dirichlet polya(alpha);
+    polya.setAlpha(alpha);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
@@ -275,7 +276,7 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist,Mat& refer
     for(unsigned int g = 0; g < reference_hog.total(); g++ ){
             alpha_h[g] = (reference_hog.at<float>(0, g)>0.0f)?reference_hog.at<float>(0, g):DBL_EPSILON;
         }
-    dirichlet polya(alpha);
+    polya.setAlpha(alpha);
     dirichlet polya_h(alpha_h);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;

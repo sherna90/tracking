@@ -1,14 +1,16 @@
 #include "../include/dirichlet.hpp"
 
 dirichlet::dirichlet(int n){
-     alpha=VectorXd::Ones(n);
-     meanprecision();
+    alpha=VectorXd::Ones(n);
+    meanprecision();
 }
 
 dirichlet::dirichlet(VectorXd a){
     setAlpha(a);
 }
-
+dirichlet::dirichlet(){
+    
+}
 
 void dirichlet::setAlpha(VectorXd a){
     alpha=a;

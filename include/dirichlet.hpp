@@ -20,6 +20,7 @@ using namespace Eigen;
 class dirichlet{
 	public:
 		//constructors
+		dirichlet();
 		dirichlet(VectorXd a);
 		dirichlet(int n);
 		//getters

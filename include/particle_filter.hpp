@@ -62,6 +62,7 @@ public:
     
 
 private:
+    dirichlet polya;
     int time_stamp;
     void resample(bool log_scale);
     float ESS;

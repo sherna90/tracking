@@ -79,10 +79,10 @@ void particle_filter::smoother(int fixed_lag){
     vector<float> sum_weights(n_particles,0.0f);
     static const float LAMBDA_POS = 0.5f*1.0f/(pow(POS_STD,2.0f));
     if(fixed_lag<time_stamp){
-        for(unsigned int k=time_stamp;k>(time_stamp-fixed_lag);k--){
-            for (unsigned int j=0;j<n_particles;j++){
+        for(int k=time_stamp;k>(time_stamp-fixed_lag);k--){
+            for (int j=0;j<n_particles;j++){
                 particle state=states[k][j];
-                for (unsigned int l=0;l<n_particles;l++){
+                for (int l=0;l<n_particles;l++){
                     particle past_state=states[k-1][l];
                     float sum=LAMBDA_POS*pow(state.x-past_state.x-past_state.dx,2.0);
                     sum+=LAMBDA_POS*pow(state.y-past_state.y-past_state.dy,2.0);
@@ -96,10 +96,10 @@ void particle_filter::smoother(int fixed_lag){
                 sum_weights[j]=max_value+log(logsumexp);
             }
            
-            for (unsigned int i=0;i<n_particles;i++){
+            for (int i=0;i<n_particles;i++){
                 particle past_state=states[k-1][i];
                 float backward_probability=0.0f;
-                for (unsigned int j=0;j<n_particles;j++){
+                for (int j=0;j<n_particles;j++){
                     particle state=states[k][j];
                     float sum=LAMBDA_POS*pow(state.x-past_state.x-past_state.dx,2.0);
                     sum+=LAMBDA_POS*pow(state.y-past_state.y-past_state.dy,2.0);
@@ -272,7 +272,7 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist,Mat& refer
             alpha[h*S_BINS+s] = (reference_hist.at<float>(h, s)>0.0f)?reference_hist.at<float>(h, s):DBL_EPSILON;
             lambda+=reference_hist.at<float>(h, s);
         }
-    for( int g = 0; g < reference_hog.total(); g++ ){
+    for(unsigned int g = 0; g < reference_hog.total(); g++ ){
             alpha_h[g] = (reference_hog.at<float>(0, g)>0.0f)?reference_hog.at<float>(0, g):DBL_EPSILON;
         }
     dirichlet polya(alpha);
@@ -293,7 +293,7 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist,Mat& refer
                 counts[h*S_BINS+s] = part_hist.at<float>(h, s);
             }
         counts_h.setOnes(part_hog.total());
-        for( int g = 0; g < part_hog.total(); g++ ){
+        for(unsigned int g = 0; g < part_hog.total(); g++ ){
             counts_h[g] = part_hog.at<float>(0, g);
         }
         double prob = polya_h.log_likelihood(counts_h);

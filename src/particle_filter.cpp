@@ -318,7 +318,7 @@ void particle_filter::resample(bool log_scale=false){
         logsumexp=max_value+log(logsumexp);
     }
     Scalar s = sum(weights[time_stamp]);
-    for (int i=0; i<weights[time_stamp].size(); i++) {
+    for (unsigned int i=0; i<weights[time_stamp].size(); i++) {
         if(log_scale){
             normalized_weights[i] = exp(weights[time_stamp][i]-logsumexp); 
             }

@@ -7,8 +7,10 @@
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
+ #include <opencv2/tracking.hpp> //added
 #include "../include/hist.hpp"
 #include "../include/particle_filter.hpp"
+
 //C
 #include <stdio.h>
 //C++
@@ -18,6 +20,20 @@
 
 using namespace cv;
 using namespace std;
+
+class Performance
+{
+    private:
+        Rect intersection;
+        int true_positives, false_positives, false_negatives;
+        double avg_precision,avg_recall,ratio;
+    public:
+        Performance(void);
+        void calc(Rect ground_truth, Rect estimate);
+        double get_avg_precision(void);
+        double get_avg_recall(void);
+};
+
 
 class App
 {
@@ -36,6 +52,9 @@ private:
     Rect ground_truth,estimate,smoothed_estimate;
     MatND reference_hist,reference_hog;
     int keyboard;
+    Rect2d boundingBox; //added
+    Ptr<Tracker> tracker; //added
+
 };
 
 
@@ -80,6 +99,14 @@ void App::run(int num_particles, int fixed_lag){
     ifstream groundtruth; 
     groundtruth.open(gtFilename.c_str(),ifstream::in);
     string current_filename(firstFrameFilename),current_gt;
+    //added to tracking algorithm
+    string track_algorithm_selected="MIL";
+    tracker = Tracker::create( track_algorithm_selected );
+    if(tracker == NULL){
+        cout << "Unable to load track algorithm" << endl;
+        exit(EXIT_FAILURE);
+    }
+
     if(current_frame.empty()){
         //error in opening the first image
         cerr << "Unable to open first image frame: " << firstFrameFilename << endl;
@@ -88,6 +115,11 @@ void App::run(int num_particles, int fixed_lag){
     particle_filter filter(num_particles);
     Rect intersection;
     double avg_precision=0.0,avg_recall=0.0,ratio,num_frames=0.0;
+    particle_filter filter(300);
+    double num_frames=0.0;
+    //test object performance
+    Performance track_algorithm;
+    Performance particle_filter_algorithm;
     namedWindow("Tracker");
     while( (char)keyboard != 'q' && (char)keyboard != 27 ){
         groundtruth >> current_gt;
@@ -99,9 +131,18 @@ void App::run(int num_particles, int fixed_lag){
             calc_hist_hsv(current_roi,reference_hist);
             calc_hog(current_roi,reference_hog);
             filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows));
+            //added to tracking algorithm
+            boundingBox.x = ground_truth.x;
+            boundingBox.y = ground_truth.y;
+            boundingBox.width = ground_truth.width;
+            boundingBox.height = ground_truth.height;
+            tracker->init( current_frame, boundingBox );
         }
         else if(filter.is_initialized())
         {
+            //add to tracking algorithm
+            tracker->update( current_frame, boundingBox );
+
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict(Size(current_frame.cols,current_frame.rows));
             //filter.update(current_frame,reference_hist,reference_hog);
@@ -120,6 +161,8 @@ void App::run(int num_particles, int fixed_lag){
                 Mat previous_frame = imread(previous_filename);
                 filter.smoother(fixed_lag);
                 smoothed_estimate=filter.smoothed_estimate(current_frame,fixed_lag,true);
+                Mat smoothed_roi = Mat(previous_frame,smoothed_estimate);
+                calc_hist_hsv(smoothed_roi,smoothed_hist);
             }
             //cout << "-------------------"  << endl; 
             intersection=ground_truth & estimate;
@@ -147,13 +190,34 @@ void App::run(int num_particles, int fixed_lag){
             //cout << "ratio:" << ratio << ",tp:" << true_positives << ",fp:" << false_positives << ",fn:"<<false_negatives<< ",precision:"<<double(true_positives)/double(true_positives+false_positives)<<endl;
             avg_precision+=double(true_positives)/double(true_positives+false_positives); 
             avg_recall+=double(true_positives)/double(true_positives+false_negatives); 
+            filter.update_dirichlet(current_frame,reference_hist);
+            //filter.update(current_frame,reference_hist);
+            filter.draw_particles(current_frame);
+            //draw tracker box
+            rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
+            estimate=filter.estimate(current_frame,true); 
+            
+            //draw tracker box
+            rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
+            
+            //test performance object
+            particle_filter_algorithm.calc(ground_truth,estimate);
+            Rect IntboundingBox;
+            IntboundingBox.x = (int)boundingBox.x;
+            IntboundingBox.y = (int)boundingBox.y;
+            IntboundingBox.width = (int)boundingBox.width;
+            IntboundingBox.height = (int)boundingBox.height;
+            track_algorithm.calc(ground_truth,IntboundingBox);
         }     
         imshow("Tracker", current_frame);
         keyboard = waitKey( 30 );
         getNextFilename(current_filename);
         current_frame = imread(current_filename);
         if(current_frame.empty()){
-            cout << "average precision:" << avg_precision/num_frames << ",average recall:" << avg_recall/num_frames << endl;         
+            //cout << "average precision:" << avg_precision/num_frames << ",average recall:" << avg_recall/num_frames << endl;         
+            //test performance object
+            cout << "track algorithm >> " << "average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
+            cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -222,14 +286,16 @@ void App::updateGroundTruth(Mat frame,string str,bool draw=false){
         iss2 >> y1;
         pt[0][i].x = cvRound(x1);
         pt[0][i].y = cvRound(y1);
+        
     }
+
     if(draw) {
         rectangle( frame, pt[0][1], pt[0][3], Scalar(0,255,0), 1, LINE_AA );
     }
-    ground_truth=Rect(pt[0][1].x,pt[0][1].y,cvRound(pt[0][3].x-pt[0][1].x),cvRound(pt[0][3].y-pt[0][1].y));
+    ground_truth=Rect(pt[0][1].x,pt[0][1].y,cvRound(pt[0][3].x-pt[0][1].x),cvRound(pt[0][3].y-pt[0][1].y));    
 }
 
-Rect App::intersect(Rect r1, Rect r2) 
+Rect App::intersect(Rect r1, Rect r2) //unused function.
 { 
     return r1 | r2; 
 }
@@ -246,4 +312,36 @@ void App::help(){
     << "or: ./tracker -img /data/images/1.png -gt groundtruth.txt"                                           << endl
     << "--------------------------------------------------------------------------" << endl
     << endl;
+}
+
+Performance::Performance(void){
+    avg_precision=0.0;avg_recall=0.0;
+}
+void Performance::calc(Rect ground_truth, Rect estimate){
+    intersection=ground_truth & estimate;
+    true_positives=0;false_positives=0;false_negatives=0;
+    ratio = double(intersection.area())/double(ground_truth.area());
+    if(ratio==1.0){ 
+        true_positives=ground_truth.area();
+        false_negatives=0;
+        false_positives=0;
+    }
+    else if(ratio>1.0){
+        true_positives=ground_truth.area();
+        false_negatives=0;
+        false_positives=estimate.area()-ground_truth.area();   
+    }
+    else if(ratio<1.0){
+        true_positives=intersection.area();
+        false_negatives=ground_truth.area()-intersection.area();
+        estimate.area()>0?false_positives=estimate.area()-intersection.area():false_positives=1;   
+    }
+    avg_precision+=double(true_positives)/double(true_positives+false_positives); 
+    avg_recall+=double(true_positives)/double(true_positives+false_negatives);
+}
+double Performance::get_avg_precision(void){
+    return avg_precision;
+}
+double Performance::get_avg_recall(void){
+    return avg_recall;
 }

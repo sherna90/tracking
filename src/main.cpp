@@ -50,7 +50,7 @@ private:
     Rect intersect(Rect r1, Rect r2);
     Mat current_frame,current_roi; 
     Rect ground_truth,estimate,smoothed_estimate;
-    MatND reference_hist,reference_hog;
+    MatND reference_hist,reference_hog,smoothed_hist;
     int keyboard;
     Rect2d boundingBox; //added
     Ptr<Tracker> tracker; //added
@@ -114,8 +114,6 @@ void App::run(int num_particles, int fixed_lag){
     }
     particle_filter filter(num_particles);
     Rect intersection;
-    double avg_precision=0.0,avg_recall=0.0,ratio,num_frames=0.0;
-    particle_filter filter(300);
     double num_frames=0.0;
     //test object performance
     Performance track_algorithm;
@@ -164,43 +162,7 @@ void App::run(int num_particles, int fixed_lag){
                 Mat smoothed_roi = Mat(previous_frame,smoothed_estimate);
                 calc_hist_hsv(smoothed_roi,smoothed_hist);
             }
-            //cout << "-------------------"  << endl; 
-            intersection=ground_truth & estimate;
-            int true_positives=0,false_positives=0,false_negatives=0;
-            ratio = double(intersection.area())/double(ground_truth.area());
-            if(ratio==1.0){ 
-                true_positives=ground_truth.area();
-                false_negatives=0;
-                false_positives=0;
-            }
-            else if(ratio>1.0){
-                true_positives=ground_truth.area();
-                false_negatives=0;
-                false_positives=estimate.area()-ground_truth.area();   
-            }
-            else if(ratio<1.0){
-                true_positives=intersection.area();
-                false_negatives=ground_truth.area()-intersection.area();
-                estimate.area()>0?false_positives=estimate.area()-intersection.area():false_positives=1;   
-            }
-            // cout << "particle weights: time stamp " << num_frames-1;
-            // for (int i=0; i<filter.weights[(int)num_frames-1].size();i++){
-            //     cout << ", "<< filter.weights[(int)num_frames-1][i] << ",";
-            // }
-            //cout << "ratio:" << ratio << ",tp:" << true_positives << ",fp:" << false_positives << ",fn:"<<false_negatives<< ",precision:"<<double(true_positives)/double(true_positives+false_positives)<<endl;
-            avg_precision+=double(true_positives)/double(true_positives+false_positives); 
-            avg_recall+=double(true_positives)/double(true_positives+false_negatives); 
-            filter.update_dirichlet(current_frame,reference_hist);
-            //filter.update(current_frame,reference_hist);
-            filter.draw_particles(current_frame);
-            //draw tracker box
             rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
-            estimate=filter.estimate(current_frame,true); 
-            
-            //draw tracker box
-            rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
-            
-            //test performance object
             particle_filter_algorithm.calc(ground_truth,estimate);
             Rect IntboundingBox;
             IntboundingBox.x = (int)boundingBox.x;

@@ -34,12 +34,12 @@ void calc_hog(Mat& image,Mat& hist)
         resize(image,part_hog,descriptor.winSize,0,0,INTER_LINEAR);
         cvtColor(part_hog, part_hog, COLOR_RGB2GRAY);
         descriptor.compute(part_hog,descriptors,Size(0,0), Size(0,0),points);
-        hist.create(descriptors.size(),1,CV_32FC1);
+        hist.create(1,descriptors.size(),CV_32FC1);
         for(unsigned int i=0;i<descriptors.size();i++){
-            hist.at<float>(i,0)=descriptors.at(i);
+            hist.at<float>(0,i)=descriptors.at(i);
         }
     }
-    //normalize(hist, hist, 0, 255, NORM_MINMAX);
+    //normalize(hist, hist, 0, 1, NORM_MINMAX);
 }
 
 

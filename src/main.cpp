@@ -24,15 +24,16 @@ class App
 public:
     App(string _firstFrameFilename,string _gtFilename);
     void help();
-    void run();
+    void run(int,int);
 
 private:
     string firstFrameFilename,gtFilename;
     void updateGroundTruth(Mat frame,string str,bool draw);
     void getNextFilename(string& fn);
+    void getPreviousFilename(string& fn);
     Rect intersect(Rect r1, Rect r2);
     Mat current_frame,current_roi; 
-    Rect ground_truth,estimate;
+    Rect ground_truth,estimate,smoothed_estimate;
     MatND reference_hist,reference_hog;
     int keyboard;
 };
@@ -40,6 +41,7 @@ private:
 
 
 int main(int argc, char* argv[]){
+    int num_particles=1000,fixed_lag=3;
     if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
@@ -64,7 +66,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         App app(_firstFrameFilename,_gtFilename);
-        app.run();
+        app.run(num_particles,fixed_lag);
     }
 }
 
@@ -73,7 +75,7 @@ App::App(string _firstFrameFilename, string _gtFilename){
     gtFilename=_gtFilename;  
 }
 
-void App::run(){
+void App::run(int num_particles, int fixed_lag){
     current_frame = imread(firstFrameFilename);
     ifstream groundtruth; 
     groundtruth.open(gtFilename.c_str(),ifstream::in);
@@ -83,7 +85,7 @@ void App::run(){
         cerr << "Unable to open first image frame: " << firstFrameFilename << endl;
         exit(EXIT_FAILURE);
     }
-    particle_filter filter(300);
+    particle_filter filter(num_particles);
     Rect intersection;
     double avg_precision=0.0,avg_recall=0.0,ratio,num_frames=0.0;
     namedWindow("Tracker");
@@ -103,10 +105,23 @@ void App::run(){
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict(Size(current_frame.cols,current_frame.rows));
             //filter.update(current_frame,reference_hist,reference_hog);
-            filter.update_dirichlet(current_frame,reference_hist);
-            //filter.update(current_frame,reference_hist);
-            filter.draw_particles(current_frame); 
-            estimate=filter.estimate(current_frame,true); 
+            //filter.update_dirichlet(current_frame,reference_hist);
+            //filter.update_dirichlet(current_frame,reference_hist,reference_hog);
+            filter.update(current_frame,reference_hist);
+            //filter.draw_particles(current_frame); 
+            estimate=filter.estimate(current_frame,true);
+            // fixed-lag backward pass
+
+            if(fixed_lag<num_frames){
+                string previous_filename=current_filename;
+                for(int l=(num_frames);l>(num_frames-fixed_lag);l--){
+                    getPreviousFilename(previous_filename);
+                }
+                Mat previous_frame = imread(previous_filename);
+                filter.smoother(fixed_lag);
+                smoothed_estimate=filter.smoothed_estimate(current_frame,fixed_lag,true);
+            }
+            //cout << "-------------------"  << endl; 
             intersection=ground_truth & estimate;
             int true_positives=0,false_positives=0,false_negatives=0;
             ratio = double(intersection.area())/double(ground_truth.area());
@@ -165,6 +180,26 @@ void App::getNextFilename(string& fn){
     string nextFrameNumberString = oss.str();
     string nextFrameFilename = prefix + zeros.substr(0,zeros.length()-1-nextFrameNumberString.length())+nextFrameNumberString + suffix;
     fn.assign(nextFrameFilename);
+}
+
+void App::getPreviousFilename(string& fn){
+    size_t index = fn.find_last_of("/");
+    if(index == string::npos) {
+        index = fn.find_last_of("\\");
+    }
+    size_t index2 = fn.find_last_of(".");
+    string prefix = fn.substr(0,index+1);
+    string suffix = fn.substr(index2);
+    string frameNumberString = fn.substr(index+1, index2-index-1);
+    istringstream iss(frameNumberString);
+    int frameNumber = 0;
+    iss >> frameNumber;
+    ostringstream oss;
+    oss << (frameNumber - 1);
+    string zeros ("000000000");
+    string previousFrameNumberString = oss.str();
+    string previousFrameFilename = prefix + zeros.substr(0,zeros.length()-1-previousFrameNumberString.length())+previousFrameNumberString + suffix;
+    fn.assign(previousFrameFilename);
 }
 
 void App::updateGroundTruth(Mat frame,string str,bool draw=false){

@@ -45,15 +45,19 @@ public:
     int n_particles;
     vector<particle> states[FIXED_LAG];
     vector<float>  weights[FIXED_LAG];
+    vector<float>  smoothing_weights;
     particle_filter(int _n_particles);
     bool is_initialized();
     void initialize(Rect roi,Size im_size);
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);
+    Rect smoothed_estimate(Mat& image,int fixed_lag,bool draw);
     void predict(Size im_size);
     void update(Mat& image,Mat& reference_hist);
-    void update_dirichlet(Mat& image,Mat& reference_hist);
     void update(Mat& image,Mat& reference_hist,Mat& reference_hog);
+    void update_dirichlet(Mat& image,Mat& reference_hist);
+    void update_dirichlet(Mat& image,Mat& reference_hist,Mat& reference_hog);
+    void smoother(int fixed_lag);
     float getESS();
     
 

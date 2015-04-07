@@ -6,6 +6,26 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <stdint.h>
+#include <opencv2/video/tracking.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/video.hpp>
+
+using namespace cv;
+
+class Performance
+{
+    private:
+        Rect intersection;
+        int true_positives, false_positives, false_negatives;
+        double avg_precision,avg_recall,ratio;
+    public:
+        Performance(void);
+        void calc(Rect ground_truth, Rect estimate);
+        double get_avg_precision(void);
+        double get_avg_recall(void);
+};
+
+
 
 double lnchoose(int  n, int m);
 double bhattarchaya(Eigen::VectorXd m1, Eigen::VectorXd m2);

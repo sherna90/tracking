@@ -5,6 +5,7 @@
  */
 #include "../include/utils.hpp"
 
+
 using namespace Eigen;
 
 double lnchoose(int  n, int m){
@@ -128,4 +129,37 @@ double* linspace(double min, double max, int n){
     }
     result[iterator]=max;
     return result;
+}
+
+
+Performance::Performance(void){
+    avg_precision=0.0;avg_recall=0.0;
+}
+void Performance::calc(Rect ground_truth, Rect estimate){
+    intersection=ground_truth & estimate;
+    true_positives=0;false_positives=0;false_negatives=0;
+    ratio = double(intersection.area())/double(ground_truth.area());
+    if(ratio==1.0){ 
+        true_positives=ground_truth.area();
+        false_negatives=0;
+        false_positives=0;
+    }
+    else if(ratio>1.0){
+        true_positives=ground_truth.area();
+        false_negatives=0;
+        false_positives=estimate.area()-ground_truth.area();   
+    }
+    else if(ratio<1.0){
+        true_positives=intersection.area();
+        false_negatives=ground_truth.area()-intersection.area();
+        estimate.area()>0?false_positives=estimate.area()-intersection.area():false_positives=1;   
+    }
+    avg_precision+=double(true_positives)/double(true_positives+false_positives); 
+    avg_recall+=double(true_positives)/double(true_positives+false_negatives);
+}
+double Performance::get_avg_precision(void){
+    return avg_precision;
+}
+double Performance::get_avg_recall(void){
+    return avg_recall;
 }

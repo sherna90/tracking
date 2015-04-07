@@ -47,6 +47,7 @@ public:
     vector<float>  weights[FIXED_LAG];
     vector<float>  smoothing_weights;
     particle_filter(int _n_particles);
+    particle_filter(int _n_particles,VectorXd alpha);
     bool is_initialized();
     void initialize(Rect roi,Size im_size);
     void draw_particles(Mat& image);

@@ -18,7 +18,7 @@ particle_filter::particle_filter(int _n_particles,VectorXd alpha) {
     time_stamp=0;
     initialized=false;
     //rng(0xFFFFFFFF);
-    polya = new dirichlet(alpha);
+    polya = dirichlet(alpha);
 }
 
 bool particle_filter::is_initialized() {

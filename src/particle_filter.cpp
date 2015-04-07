@@ -13,10 +13,19 @@ particle_filter::particle_filter(int _n_particles) {
     //rng(0xFFFFFFFF);
 }
 
+particle_filter::particle_filter(int _n_particles,VectorXd alpha) {
+    n_particles = _n_particles;
+    time_stamp=0;
+    initialized=false;
+    //rng(0xFFFFFFFF);
+    polya = new dirichlet(alpha);
+}
 
 bool particle_filter::is_initialized() {
     return initialized;
 }
+
+
 
 void particle_filter::initialize(Rect roi,Size im_size) {
     weights[0].resize(n_particles);

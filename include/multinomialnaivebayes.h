@@ -1,17 +1,14 @@
 #ifndef MULTINOMIALNAIVEBAYES_H
 #define MULTINOMIALNAIVEBAYES_H
 
-#include <float.h>
-#include <vector>
+#include <stdlib.h>
+#include <cmath>
+#include "multinomial.h"
 #include <map>
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <cmath>
-#include <Eigen/Dense>
-#include "multinomial.h"
 
-using namespace std;
 
 class MultinomialNaiveBayes
 {
@@ -29,23 +26,21 @@ public:
     void setY(const VectorXi *value);
 
 
-    map<int,vector<int> > getXc() const;
-    void setXc(const map<int,vector<int> > &value);
+    std::map<long, std::vector<long> > getXc() const;
+    void setXc(const std::map<long, std::vector<long> > &value);
 
 
 
-    map<int, double> getPrior() const;
-    void setPrior(const map<int,double> &value);
+    std::map<long, double> getPrior() const;
+    void setPrior(const std::map<long, double> &value);
 
 
 private:
     const MatrixXd *X;
     const VectorXi *Y;
-    map<int,Multinomial> classes;
-    map<int,vector<int> > Xc;
-    map<int,int> Tc;
-    map<int,double> Prior;
-
+    std::map<long,Multinomial> classes;
+    std::map<long,std::vector<long>> Xc;
+    std::map<long,double> Prior;
 
     bool get_classes(),initialized;
 

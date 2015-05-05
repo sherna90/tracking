@@ -66,6 +66,7 @@ double median(MatrixXd med){
     MatrixXd aux = med;
     flat(aux);
     int n = aux.rows();
+    std::sort(aux.data(),aux.data()+n);
     if(n%2==0){
         return (aux(n/2,0)+aux(n/2-1,0))/2.0;
 

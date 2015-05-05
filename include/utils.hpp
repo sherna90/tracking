@@ -9,7 +9,7 @@
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
-
+#include <algorithm>
 using namespace cv;
 
 class Performance

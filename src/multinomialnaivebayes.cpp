@@ -39,26 +39,25 @@ VectorXi MultinomialNaiveBayes::test(MatrixXd &Xtest)
 {
     VectorXi c=VectorXi::Zero(Xtest.rows());
 
-    int corte=0;
-    if(Xtest.rows()%2==0)
-        corte=Xtest.rows()/2;
-    else
-        corte=(Xtest.rows()+1)/2;
+    // int corte=0;
+    // if(Xtest.rows()%2==0)
+    //     corte=Xtest.rows()/2;
+    // else
+    //     corte=(Xtest.rows()+1)/2;
+    // //omp_set_nested(1);
+    // #pragma omp  sections
+    // {
+    //     #pragma omp section
+    //     {
+    //         doTest(0,corte,c,Xtest);
+    //     }
+    //     #pragma omp section
+    //     {
+    //         doTest(corte,Xtest.rows(),c,Xtest);
+    //     }
 
-
-    //omp_set_nested(1);
-    #pragma omp  sections
-    {
-        #pragma omp section
-        {
-            doTest(0,corte,c,Xtest);
-        }
-        #pragma omp section
-        {
-            doTest(corte,Xtest.rows(),c,Xtest);
-        }
-
-    }
+    // }
+    doTest(0,Xtest.rows(),c,Xtest);
     return c;
 }
 bool MultinomialNaiveBayes::get_classes()

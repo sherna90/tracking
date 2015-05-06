@@ -19,11 +19,6 @@ public:
     void fit();
     VectorXi test(MatrixXd &Xtest);
 
-    const MatrixXd *getX() const;
-    void setX(const MatrixXd *value);
-
-    const VectorXi *getY() const;
-    void setY(const VectorXi *value);
 
 
     std::map<long, std::vector<long> > getXc() const;
@@ -34,10 +29,20 @@ public:
     std::map<long, double> getPrior() const;
     void setPrior(const std::map<long, double> &value);
 
+    void doTest(long a, long b, VectorXi &c, MatrixXd &Xtest);
+
+
+
+
+    MatrixXd *getX();
+    void setX(MatrixXd *value);
+
+    VectorXi *getY() ;
+    void setY( VectorXi *value);
 
 private:
-    const MatrixXd *X;
-    const VectorXi *Y;
+    MatrixXd *X;
+    VectorXi *Y;
     std::map<long,Multinomial> classes;
     std::map<long,std::vector<long>> Xc;
     std::map<long,double> Prior;

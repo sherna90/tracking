@@ -189,6 +189,35 @@ double trigamma(double x){
     return tri + 0.5*y + (1.0 + y*(1.0 / 6.0 +y*(-1.0/30.0 + y*(1.0/42.0 +y*-1.0 / 30.0))))/x;
 }
 
+VectorXd di_pochhammer(double x, VectorXd vec)
+{
+    VectorXd res(vec.size());
+    for(int i=0;i<vec.size();i++)
+    {
+        if(vec(i)>0){
+            res(i)=psi(x+vec(i)) - psi(x); // psi(vec.array()+x)
+        }
+        else{
+            res(i)=0;
+        }
+    }
+    return res;
+}
+
+VectorXd tri_pochhammer(double x, VectorXd vec)
+{
+    VectorXd res(vec.size());
+    for(int i=0;i<vec.size();i++)
+    {
+        if(vec(i)>0){
+            res(i)=trigamma(x+vec(i)) - trigamma(x); //
+        }
+        else{
+            res(i)=0;
+        }
+    }
+    return res;
+}
 
 
 Performance::Performance(void){

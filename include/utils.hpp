@@ -44,7 +44,8 @@ int positives(Eigen::VectorXd counts);
 double quad_root(double a, double b, double c);
 void removeNoTrials(Eigen::MatrixXd& counts);
 double trigamma(double x);
-
+Eigen::VectorXd di_pochhammer(double x, Eigen::VectorXd vec);
+Eigen::VectorXd tri_pochhammer(double x, Eigen::VectorXd vec);
 
 
 #endif

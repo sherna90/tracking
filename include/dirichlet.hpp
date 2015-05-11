@@ -35,11 +35,15 @@ class dirichlet{
 		void fit_fixedPoint(MatrixXd counts,int maxIter,double tol);
 		void dirichlet_moment_match(MatrixXd proportions, MatrixXd weigths);
         void dirichlet_moment_match(MatrixXd counts);
+        void fit_betabinom_minka_alternating(MatrixXd& counts, int maxiter, double tol);
 	private:
 		VectorXd alpha;
 	    VectorXd m;
 		double s;
-		
+		void polya_fit_m(MatrixXd& counts,double tol);
+		void s_derivatives(MatrixXd& counts, double *g,double *h);
+		double stable_a2(MatrixXd& counts);
+		void polya_fit_s(MatrixXd& counts,double tol);		
 };
 
 #endif

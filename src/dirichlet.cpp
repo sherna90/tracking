@@ -118,3 +118,106 @@ void dirichlet::fit_fixedPoint(MatrixXd counts,int maxIter,double tol){ //incomp
     }
     
 }
+
+void dirichlet::polya_fit_m(MatrixXd& counts,double tol)
+{
+    meanprecision();
+    VectorXd old_m,a;
+    for (int i=0;i<20;i++){
+        old_m=m;
+        a=s*m;
+        for(int j=0;j<counts.cols();j++)
+        {
+            m(j)= (a(j)*di_pochhammer(a(j),counts.col(j))).sum();
+        }
+        m/=(m.sum());
+        if ((m-old_m).cwiseAbs().maxCoeff() < tol){
+            break;
+        }
+    }
+    alpha= s*m;
+}
+
+
+void dirichlet::s_derivatives(MatrixXd& counts, double *g,double *h)
+{
+    meanprecision();
+    *g=-1.0*(di_pochhammer(s,counts.rowwise().sum()).sum());
+    *h=-1.0*(tri_pochhammer(s,counts.rowwise().sum()).sum());
+    
+    for(int k=0;k<counts.cols();k++){
+        *g+=m[k]* di_pochhammer(alpha[k],counts.col(k)).sum();
+        *h+=std::pow(m[k],2.0)*tri_pochhammer(alpha[k],counts.col(k)).sum();
+    }
+}
+double dirichlet::stable_a2(MatrixXd& counts){
+    VectorXd scounts=counts.rowwise().sum();
+    double a,ak; 
+    m= alpha*(1.0/alpha.sum());
+    a = (1.0/6.0)*(scounts*(scounts.array()-1).matrix()*(2*scounts.array()-1).matrix()).sum();
+    for(int k=0;k<counts.cols();k++){
+        ak = (1.0/6.0)*(counts.col(k)*(counts.col(k).array()-1).matrix()*(2*counts.col(k).array()-1).matrix()).sum();
+        if(ak > 0){
+            a-=ak/(m[k]*m[k]);
+        }
+    }
+    return a;
+}
+
+void dirichlet::polya_fit_s(MatrixXd& counts,double tol)
+{
+    double h,g,eps,c,a0,a1,a2,b;
+    VectorXd old_alpha;
+    meanprecision();
+    eps= std::numeric_limits<double>::epsilon();
+    
+    for(int iter=0;iter<10;iter++){
+        s_derivatives(counts,&g,&h);
+        if (g > eps){
+            c = g+s*h;  
+            if(c >=0){
+                s=INFINITY;
+            }else{
+                s=s/(1.0+g/(h*s));
+            }
+        } 
+        if(g<-eps){
+            
+            c = positives(counts)- positives(counts.rowwise().sum());
+            
+            if(c >0){
+                a0 = s*s*h+c;
+                a1 = 2.0*s*s*(s*h+g);
+                if( abs(2.0*g+h*s) > eps ){
+                    a2=s*s*s*(2.0*g+h*s);
+                }else{
+                    a2= stable_a2(counts);
+                }
+                b= quad_root(a2,a1,a0);
+                s= 1/ ((1 / s) - (g / c) * std::pow((s + b)/b,2));
+            }
+        }
+        old_alpha=alpha;
+        alpha=m*s;
+        if((old_alpha-alpha).cwiseAbs().maxCoeff()<tol){
+            break;
+        }
+
+    }
+
+}
+
+void dirichlet::fit_betabinom_minka_alternating(MatrixXd& counts, int maxiter, double tol)
+{
+    removeNoTrials(counts);
+    double change = 2*tol;
+    VectorXd alpha_old;
+    dirichlet_moment_match(counts);
+
+    for(int iter=0;iter<maxiter && change>tol;iter++){
+        alpha_old=alpha;
+        polya_fit_m(counts,tol);
+        polya_fit_s(counts,tol);
+        change = (alpha_old - alpha).cwiseAbs().maxCoeff();
+    }
+}

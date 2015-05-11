@@ -132,6 +132,64 @@ double* linspace(double min, double max, int n){
     return result;
 }
 
+int positives(MatrixXd& counts){
+    int count=0
+
+    for(int i=0;i<counts.rows();i++){
+        for (int j = 0; j< counts.cols(); j++)
+        {   
+            if(counts(i,j)>0){
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+int positives(VectorXd counts){
+    int count=0;
+    for(int i=0;i<counts.size();i++){
+        if(counts(i)>0){
+            count++;
+        }
+    }
+    return count;
+}
+
+double quad_root(double a, double b, double c){
+    double top = std::sqrt(b*b-4*a*c);
+    return std::max((-b + top) / (2 * a), (-b - top) / (2 * a));
+}
+
+void removeNoTrials(MatrixXd& counts){
+    MatrixXd auxCounts = counts.rowwise().sum();
+    for(int i=0;i<auxCounts.rows();i++){
+         if(auxCounts(i,0)<0){
+            Util::removeRow(auxCounts,i);
+            Util::removeRow(counts,i);
+            i--;
+         }
+    }
+}
+
+double trigamma(double x){
+    double tri=0,y;
+
+    if(x<=1e-4){
+        return (1.0/(x*x));
+    }
+
+    while(x< 5.0)
+    {
+        tri+=1.0/(x*x);
+        x+=1.0;
+    }
+    y=1.0/(x*x);
+
+    return tri + 0.5*y + (1.0 + y*(1.0 / 6.0 +y*(-1.0/30.0 + y*(1.0/42.0 +y*-1.0 / 30.0))))/x;
+}
+
+
 
 Performance::Performance(void){
     avg_precision=0.0;avg_recall=0.0;

@@ -39,5 +39,12 @@ float fastdigamma (float x);
 Eigen::MatrixXd psi(Eigen::MatrixXd mat);
 float psi(float x);
 double* linspace(double min, double max, int n);
+int positives(MatrixXd& counts);
+int positives(VectorXd counts);
+double quad_root(double a, double b, double c);
+void removeNoTrials(MatrixXd& counts);
+double trigamma(double x);
+
+
 
 #endif

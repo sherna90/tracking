@@ -3,8 +3,8 @@
 
 #include <stdlib.h>
 #include <cmath>
-#include "../Eigen/Core"
-#include "../Eigen/Dense"
+#include <Eigen/Core>
+#include <Eigen/Dense>
 #include <iostream>
 #include <vector>
 
@@ -17,7 +17,7 @@ public:
     Multinomial();
     Multinomial(MatrixXd &counts);
     Multinomial(MatrixXd &counts, double alpha);
-    Multinomial(std::vector<long>  &indices, MatrixXd *X, double alpha);
+    Multinomial(std::vector<unsigned int>  &indices, MatrixXd *X, double alpha);
     double log_likelihood(VectorXd test);
 
     VectorXd getTheta() const;

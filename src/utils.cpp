@@ -133,7 +133,7 @@ double* linspace(double min, double max, int n){
 }
 
 int positives(MatrixXd& counts){
-    int count=0
+    int count=0;
 
     for(int i=0;i<counts.rows();i++){
         for (int j = 0; j< counts.cols(); j++)
@@ -165,8 +165,8 @@ void removeNoTrials(MatrixXd& counts){
     MatrixXd auxCounts = counts.rowwise().sum();
     for(int i=0;i<auxCounts.rows();i++){
          if(auxCounts(i,0)<0){
-            Util::removeRow(auxCounts,i);
-            Util::removeRow(counts,i);
+            removeRow(auxCounts,i);
+            removeRow(counts,i);
             i--;
          }
     }

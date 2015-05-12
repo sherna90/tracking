@@ -4,26 +4,37 @@ Multinomial::Multinomial()
 {
 
 }
-
-Multinomial::Multinomial(MatrixXd &counts)
+Multinomial::Multinomial(VectorXd &theta)
 {
-   Multinomial(counts,1.0);
+
+    setTheta(theta);
 }
+// Multinomial::Multinomial(MatrixXd &counts)
+// {
+   
+// }
 
 Multinomial::Multinomial(MatrixXd &counts, double alpha)
 {
-   double total=counts.sum()+counts.cols()*alpha;
-   std::cout<<"counts sum:"<<counts.sum() << " "<<counts.cols()<<std::endl;
-   theta=VectorXd(counts.cols());
-   #pragma omp parallel for
-       for (unsigned int i = 0; i < counts.cols(); ++i) {
-           theta(i)=(counts.col(i).sum()+alpha)/total;
-           //std::cout<<"sum cols:"<<counts.col(i).sum()<<std::endl;
-       }
+    sufficient=VectorXd(counts.cols());
+
+
+    double total=counts.sum()+counts.cols()*alpha;
+    std::cout<<"counts sum:"<<counts.sum() << " "<<counts.cols()<<std::endl;
+    theta=VectorXd(counts.cols());
+    #pragma omp parallel for
+    for (unsigned int i = 0; i < counts.cols(); ++i) {
+         theta(i)=(counts.col(i).sum()+alpha)/total;
+         sufficient(i)=counts.col(i).sum();
+         //std::cout<<"sum cols:"<<counts.col(i).sum()<<std::endl;
+    }
+
 }
 
 Multinomial::Multinomial(std::vector<unsigned int>  &indices, MatrixXd *X,double alpha)
 {
+    sufficient=VectorXd(X->cols());
+
     double sumcols=0.0;
     double sumX=0.0;
     theta=VectorXd(X->cols());
@@ -32,9 +43,7 @@ Multinomial::Multinomial(std::vector<unsigned int>  &indices, MatrixXd *X,double
     {
         sumX += X->row(indices.at(i)).sum();
     }
-    // std::cout<<"sumX:"<<sumX<<std::endl;
     double total = sumX + X->cols()*alpha;
-    // std::cout<<"total:"<<total<<std::endl;
     for (unsigned int j = 0; j < X->cols(); ++j) 
     {
         #pragma omp parallel for reduction(+:sumcols)
@@ -42,12 +51,11 @@ Multinomial::Multinomial(std::vector<unsigned int>  &indices, MatrixXd *X,double
         {
             sumcols += (*X)(indices[i],j);
         }
-        // std::cout<<"sumcols:"<<sumcols<<std::endl;
+        sufficient(j)=sumcols;
         theta(j)=(sumcols + alpha)/total;
-         // std::cout<<"theta:"<<theta(j)<<std::endl;
         sumcols=0.0;
     }
-
+    addTheta(sufficient,alpha);
 }
 
 double Multinomial::log_likelihood(VectorXd test)
@@ -73,6 +81,11 @@ VectorXd Multinomial::getTheta() const
 void Multinomial::setTheta(const VectorXd &value)
 {
     theta = value;
+}
+void Multinomial::addTheta(VectorXd &value,double alpha)
+{
+    sufficient+=value;
+    theta= (sufficient.array()+alpha) / (sufficient.sum() +value.cols()*alpha);
 }
 
 

@@ -15,17 +15,21 @@ class Multinomial
 {
 public:
     Multinomial();
-    Multinomial(MatrixXd &counts);
+    // Multinomial(MatrixXd &counts);
     Multinomial(MatrixXd &counts, double alpha);
+    Multinomial(VectorXd &thetas);
     Multinomial(std::vector<unsigned int>  &indices, MatrixXd *X, double alpha);
     double log_likelihood(VectorXd test);
 
     VectorXd getTheta() const;
     void setTheta(const VectorXd &value);
+    void addTheta(VectorXd &value, double alpha);
 
 
 private:
     VectorXd theta;
+    VectorXd sufficient;
+
 };
 
 #endif // MULTINOMIAL_H

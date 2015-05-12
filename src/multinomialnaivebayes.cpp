@@ -6,9 +6,7 @@ MultinomialNaiveBayes::MultinomialNaiveBayes()
 }
 
 MultinomialNaiveBayes::MultinomialNaiveBayes(MatrixXd &datos,VectorXd &clases)
-{
-//    X=&datos;
-//    Y=&clases;
+
     X=&datos;
     Y=&clases;
     initialized=get_classes();
@@ -49,7 +47,6 @@ bool MultinomialNaiveBayes::get_classes()
 {
     for (unsigned int i = 0; i < getY()->rows(); ++i) {
         Xc[(*getY())(i)].push_back(i);
-        //Xc[(getY())(i)].push_back(i);
     }
 
     std::map<unsigned int,std::vector<unsigned int>>::iterator iter;

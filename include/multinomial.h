@@ -18,7 +18,7 @@ public:
     // Multinomial(MatrixXd &counts);
     Multinomial(MatrixXd &counts, double alpha);
     Multinomial(VectorXd &thetas);
-    Multinomial(std::vector<unsigned int>  &indices, MatrixXd *X, double alpha);
+    Multinomial(VectorXd &sufficient,double alpha);
     double log_likelihood(VectorXd test);
 
     VectorXd getTheta() const;

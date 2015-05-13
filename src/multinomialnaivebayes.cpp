@@ -5,18 +5,26 @@ MultinomialNaiveBayes::MultinomialNaiveBayes()
     initialized=false;
 }
 
-MultinomialNaiveBayes::MultinomialNaiveBayes(MatrixXd &datos,VectorXd &clases)
-
+MultinomialNaiveBayes::MultinomialNaiveBayes(MatrixXd &datos,VectorXi &clases)
+{
     X=&datos;
     Y=&clases;
-    initialized=get_classes();
+    initialized=true;
 }
 void MultinomialNaiveBayes::fit()
 {
-    if(initialized){
-        std::map<unsigned int,std::vector<unsigned int>>::iterator iter;
-        for (iter = Xc.begin(); iter != Xc.end(); ++iter) {
-            classes[iter->first]=Multinomial(iter->second,X , 1.0);
+    if(initialized)
+    {
+        for (unsigned int i = 0; i < getY()->rows(); ++i) {
+            if(Xc_sufficient[(*getY())(i)].size()==0)
+            {
+                Xc_sufficient[(*getY())(i)]=VectorXd::Zero(X->cols());
+                Prior[(*getY())(i)]=0;
+                classes[(*getY())(i)]=Multinomial();
+            }
+            Xc_sufficient[(*getY())(i)]+=getX()->row(i);
+            Prior[(*getY())(i)]=(Prior[(*getY())(i)]+1.0)/getX()->rows();
+            classes[(*getY())(i)].addTheta(Xc_sufficient[(*getY())(i)] ,1.0);
         }
     }
 }
@@ -43,30 +51,6 @@ VectorXd MultinomialNaiveBayes::test(MatrixXd &Xtest)
     }
     return c;
 }
-bool MultinomialNaiveBayes::get_classes()
-{
-    for (unsigned int i = 0; i < getY()->rows(); ++i) {
-        Xc[(*getY())(i)].push_back(i);
-    }
-
-    std::map<unsigned int,std::vector<unsigned int>>::iterator iter;
-
-    for (iter = Xc.begin(); iter != Xc.end(); ++iter) {
-        Prior[iter->first]=(double)getXc()[iter->first].size()/getX()->rows();
-        //Prior[iter->first]=(double)getXc()[iter->first].size()/getX()rows();
-    }
-    return true;
-}
-
-std::map<unsigned int, std::vector<unsigned int> > MultinomialNaiveBayes::getXc() const
-{
-    return Xc;
-}
-
-void MultinomialNaiveBayes::setXc(const std::map<unsigned int, std::vector<unsigned int> > &value)
-{
-    Xc = value;
-}
 std::map<unsigned int, double> MultinomialNaiveBayes::getPrior() const
 {
     return Prior;
@@ -85,12 +69,12 @@ void MultinomialNaiveBayes::setX( MatrixXd *value)
 {
     X = value;
 }
- VectorXd *MultinomialNaiveBayes::getY() 
+ VectorXi *MultinomialNaiveBayes::getY() 
 {
     return Y;
 }
 
-void MultinomialNaiveBayes::setY( VectorXd *value)
+void MultinomialNaiveBayes::setY( VectorXi *value)
 {
     Y = value;
 }

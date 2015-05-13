@@ -9,18 +9,12 @@ Multinomial::Multinomial(VectorXd &theta)
 
     setTheta(theta);
 }
-// Multinomial::Multinomial(MatrixXd &counts)
-// {
-   
-// }
 
 Multinomial::Multinomial(MatrixXd &counts, double alpha)
 {
     sufficient=VectorXd(counts.cols());
-
-
     double total=counts.sum()+counts.cols()*alpha;
-    std::cout<<"counts sum:"<<counts.sum() << " "<<counts.cols()<<std::endl;
+    // std::cout<<"counts sum:"<<counts.sum() << " "<<counts.cols()<<std::endl;
     theta=VectorXd(counts.cols());
     #pragma omp parallel for
     for (unsigned int i = 0; i < counts.cols(); ++i) {
@@ -28,34 +22,13 @@ Multinomial::Multinomial(MatrixXd &counts, double alpha)
          sufficient(i)=counts.col(i).sum();
          //std::cout<<"sum cols:"<<counts.col(i).sum()<<std::endl;
     }
-
 }
 
-Multinomial::Multinomial(std::vector<unsigned int>  &indices, MatrixXd *X,double alpha)
+Multinomial::Multinomial(VectorXd &sufficient,double alpha)
 {
-    sufficient=VectorXd(X->cols());
-
-    double sumcols=0.0;
-    double sumX=0.0;
-    theta=VectorXd(X->cols());
-    #pragma omp parallel for reduction(+:sumX)
-    for (unsigned int i = 0; i < indices.size(); ++i)
-    {
-        sumX += X->row(indices.at(i)).sum();
-    }
-    double total = sumX + X->cols()*alpha;
-    for (unsigned int j = 0; j < X->cols(); ++j) 
-    {
-        #pragma omp parallel for reduction(+:sumcols)
-        for (unsigned int i = 0; i <  indices.size(); ++i)
-        {
-            sumcols += (*X)(indices[i],j);
-        }
-        sufficient(j)=sumcols;
-        theta(j)=(sumcols + alpha)/total;
-        sumcols=0.0;
-    }
+    this->sufficient=VectorXd(sufficient.size());
     addTheta(sufficient,alpha);
+
 }
 
 double Multinomial::log_likelihood(VectorXd test)
@@ -84,12 +57,8 @@ void Multinomial::setTheta(const VectorXd &value)
 }
 void Multinomial::addTheta(VectorXd &value,double alpha)
 {
+    if(sufficient.size()==0)
+        this->sufficient=VectorXd(value.size());
     sufficient+=value;
     theta= (sufficient.array()+alpha) / (sufficient.sum() +value.cols()*alpha);
 }
-
-
-
-
-
-

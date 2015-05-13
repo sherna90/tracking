@@ -245,7 +245,7 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
 void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist){
     weights[time_stamp].resize(n_particles,0.0f);
     double lambda=0.0;
-    static const float LAMBDA_COLOR = 0.5f/(pow(SIGMA_COLOR,2.0f));
+    //static const float LAMBDA_COLOR = 0.5f/(pow(SIGMA_COLOR,2.0f));
     Gaussian g;
     g.setSd(SIGMA_COLOR);
     Eigen::VectorXd alpha,counts;
@@ -281,10 +281,10 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist){
         //cout << "sample = " << part_hist << ", ";   
         //cout  << prob << ",";
         if(bc_color != 1.0f ) {      
-            prob = log(1.0f/sqrt(2.0f*SIGMA_COLOR))-(LAMBDA_COLOR * (bc_color * bc_color) ); 
-            cout <<"prob "<<prob << endl;
+            //prob = log(1.0f/sqrt(2.0f*SIGMA_COLOR))-(LAMBDA_COLOR * (bc_color * bc_color) ); 
+            //cout <<"prob "<<prob << endl;
             prob = g.log_likelihood(bc_color);
-            cout << "prob log_likelihood " << prob << endl;
+            //cout << "prob log_likelihood " << prob << endl;
         }
         //cout <<  prob << endl; 
         //cout << "log-likelihood bhattarchaya: " << prob << endl;

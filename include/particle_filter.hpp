@@ -8,6 +8,7 @@
 #include <opencv2/core/eigen.hpp>
 #include "hist.hpp"
 #include "dirichlet.hpp"
+#include "gaussian.hpp"
 #include <time.h>
 #include <float.h>
 #include <vector>

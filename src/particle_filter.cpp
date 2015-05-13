@@ -176,9 +176,14 @@ Rect particle_filter::smoothed_estimate(Mat& image,int fixed_lag,bool draw=false
 
 void particle_filter::update(Mat& image,Mat& reference_hist,Mat& reference_hog)
 {
+
+    
+
     weights[time_stamp].resize(n_particles,0.0f);
-    static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
-    static const float LAMBDA_SHAPE = 0.5f*1.0f/(pow(SIGMA_SHAPE,2.0f));
+    // static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
+    // static const float LAMBDA_SHAPE = 0.5f*1.0f/(pow(SIGMA_SHAPE,2.0f));
+    Gaussian g;
+
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
@@ -193,9 +198,21 @@ void particle_filter::update(Mat& image,Mat& reference_hist,Mat& reference_hog)
         float prob_color = 0.0f;
         float prob_hog = 0.0f;
         if(bc_color != 1.0f) // Clamp total mismatch to 0 likelihood
-            prob_color = (1.0f/sqrt(2.0f*M_PI*pow(SIGMA_COLOR,2.0f)))*exp(-LAMBDA_COLOR * (bc_color * bc_color) );
-         if( bc_hog != 1.0f) // Clamp total mismatch to 0 likelihood
-            prob_hog = (1.0f/sqrt(2.0f*M_PI*pow(SIGMA_SHAPE,2.0f)))*exp(-LAMBDA_SHAPE * (bc_hog * bc_hog));
+        {
+            g.setSd(SIGMA_COLOR);
+            prob_color=g.likelihood(bc_color);
+            // cout << "bccolor g.likelihood "<< prob_color << endl;
+            // prob_color = (1.0f/sqrt(2.0f*M_PI*pow(SIGMA_COLOR,2.0f)))*exp(-LAMBDA_COLOR * (bc_color * bc_color) );
+            // cout << "bccolor "<< prob_color << endl;
+        }
+        if( bc_hog != 1.0f) // Clamp total mismatch to 0 likelihood
+        {
+            g.setSd(SIGMA_SHAPE);
+            prob_hog = g.likelihood(bc_hog);
+            // cout << "bchog g.likelihood "<< prob_hog << endl;
+            // prob_hog = (1.0f/sqrt(2.0f*M_PI*pow(SIGMA_SHAPE,2.0f)))*exp(-LAMBDA_SHAPE * (bc_hog * bc_hog));
+            // cout << "bchog "<< prob_hog << endl;
+        }
         //weights[i]=weights[i]*(ALPHA*prob_color+(1-ALPHA)*prob_hog);
         weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob_color*prob_hog;
     }
@@ -205,7 +222,8 @@ void particle_filter::update(Mat& image,Mat& reference_hist,Mat& reference_hog)
 void particle_filter::update(Mat& image,Mat& reference_hist)
 {
     weights[time_stamp].resize(n_particles,0.0f);
-    static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
+    //static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
+    Gaussian g;
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
@@ -214,8 +232,11 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
         calc_hist_hsv(part_roi,part_hist);
         float bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
         float prob = 0.0f;
-        if(bc_color != 1.0f ) // Clamp total mismatch to 0 likelihood
-            prob = (1.0f/sqrt(2.0f*pow(SIGMA_COLOR,2.0f)))*exp(-LAMBDA_COLOR * (bc_color * bc_color) );
+        if(bc_color != 1.0f ){ // Clamp total mismatch to 0 likelihood
+            g.setSd(SIGMA_COLOR);
+            prob = g.likelihood(bc_color);
+            //prob = (1.0f/sqrt(2.0f*pow(SIGMA_COLOR,2.0f)))*exp(-LAMBDA_COLOR * (bc_color * bc_color) );
+        }
         weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob;
     }
     resample(false);
@@ -224,7 +245,9 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
 void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist){
     weights[time_stamp].resize(n_particles,0.0f);
     double lambda=0.0;
-    static const float LAMBDA_COLOR = 0.5f/(pow(SIGMA_COLOR,2.0f));
+    //static const float LAMBDA_COLOR = 0.5f/(pow(SIGMA_COLOR,2.0f));
+    Gaussian g;
+    g.setSd(SIGMA_COLOR);
     Eigen::VectorXd alpha,counts;
     alpha.setOnes(reference_hist.total());
     for(int h=0;h<H_BINS;h++)
@@ -258,7 +281,10 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist){
         //cout << "sample = " << part_hist << ", ";   
         //cout  << prob << ",";
         if(bc_color != 1.0f ) {      
-            prob = log(1.0f/sqrt(2.0f*SIGMA_COLOR))-(LAMBDA_COLOR * (bc_color * bc_color) ); 
+            //prob = log(1.0f/sqrt(2.0f*SIGMA_COLOR))-(LAMBDA_COLOR * (bc_color * bc_color) ); 
+            //cout <<"prob "<<prob << endl;
+            prob = g.log_likelihood(bc_color);
+            //cout << "prob log_likelihood " << prob << endl;
         }
         //cout <<  prob << endl; 
         //cout << "log-likelihood bhattarchaya: " << prob << endl;

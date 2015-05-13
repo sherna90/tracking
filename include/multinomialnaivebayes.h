@@ -14,38 +14,33 @@ class MultinomialNaiveBayes
 {
 public:
     MultinomialNaiveBayes();
-    MultinomialNaiveBayes(MatrixXd &X, VectorXi &Y);
+    MultinomialNaiveBayes(MatrixXd &X, VectorXd &Y);
 
     void fit();
-    VectorXi test(MatrixXd &Xtest);
+    VectorXd test(MatrixXd &Xtest);
 
 
 
-    std::map<long, std::vector<long> > getXc() const;
-    void setXc(const std::map<long, std::vector<long> > &value);
+    std::map<unsigned int, std::vector<unsigned int> > getXc() const;
+    void setXc(const std::map<unsigned int, std::vector<unsigned int> > &value);
 
 
 
-    std::map<long, double> getPrior() const;
-    void setPrior(const std::map<long, double> &value);
-
-    void doTest(long a, long b, VectorXi &c, MatrixXd &Xtest);
-
-
-
+    std::map<unsigned int, double> getPrior() const;
+    void setPrior(const std::map<unsigned int, double> &value);
 
     MatrixXd *getX();
     void setX(MatrixXd *value);
 
-    VectorXi *getY() ;
-    void setY( VectorXi *value);
+    VectorXd *getY() ;
+    void setY( VectorXd *value);
 
 private:
     MatrixXd *X;
-    VectorXi *Y;
-    std::map<long,Multinomial> classes;
-    std::map<long,std::vector<long>> Xc;
-    std::map<long,double> Prior;
+    VectorXd *Y;
+    std::map<unsigned int,Multinomial> classes;
+    std::map<unsigned int,std::vector<unsigned int>> Xc;
+    std::map<unsigned int,double> Prior;
 
     bool get_classes(),initialized;
 

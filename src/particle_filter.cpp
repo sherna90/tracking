@@ -10,19 +10,7 @@ particle_filter::particle_filter(int _n_particles) {
     n_particles = _n_particles;
     time_stamp=0;
     initialized=false;
-    //rng(0xFFFFFFFF);
-    color_lilekihood=Gaussian(0.0,SIGMA_SHAPE);
-    hog_likelihood=Gaussian(0.0,SIGMA_COLOR);
-}
-
-particle_filter::particle_filter(int _n_particles,VectorXd alpha) {
-    n_particles = _n_particles;
-    time_stamp=0;
-    initialized=false;
-    //rng(0xFFFFFFFF);
-    polya = dirichlet(alpha);
-    color_lilekihood=Gaussian(0.0,SIGMA_SHAPE);
-    hog_likelihood=Gaussian(0.0,SIGMA_COLOR);
+    //rng(0xFFFFFFFF);    
 }
 
 bool particle_filter::is_initialized() {
@@ -31,7 +19,7 @@ bool particle_filter::is_initialized() {
 
 
 
-void particle_filter::initialize(Rect roi,Size im_size) {
+void particle_filter::initialize(Rect roi,Size im_size,Mat& reference_hist,Mat& reference_hog) {
     weights[0].resize(n_particles);
     smoothing_weights.resize(n_particles);
     for (int i=0;i<n_particles;i++){
@@ -49,6 +37,17 @@ void particle_filter::initialize(Rect roi,Size im_size) {
         state.height=reference_roi.height;
         
     }
+    color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
+    hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
+    Eigen::VectorXd alpha;
+    alpha.setOnes(reference_hist.total());
+    for(int h=0;h<H_BINS;h++)
+        for( int s = 0; s < S_BINS; s++ ){
+            alpha[h*S_BINS+s] = reference_hist.at<float>(h, s);
+        }
+    polya = dirichlet(alpha);
+    alpha /=alpha.sum();
+    discrete = Multinomial(alpha);    
     initialized=true;
 }
 
@@ -196,11 +195,11 @@ void particle_filter::update(Mat& image,Mat& reference_hist,Mat& reference_hog)
         double prob_hog = 0.0f;
         if(bc_color != 1.0f)
         {
-            //prob_color=color_lilekihood.likelihood(bc_color);
+            prob_color=color_lilekihood.likelihood(bc_color);
         }
         if( bc_hog != 1.0f)
         {
-            //prob_hog = hog_likelihood.likelihood(bc_hog);
+            prob_hog = hog_likelihood.likelihood(bc_hog);
         }
         //weights[i]=weights[i]*(ALPHA*prob_color+(1-ALPHA)*prob_hog);
         weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob_color*prob_hog;
@@ -220,31 +219,22 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
         double bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
         double prob = 0.0f;
         if(bc_color != 1.0f ){ 
-            //prob = color_lilekihood.likelihood(bc_color);
+            prob = color_lilekihood.likelihood(bc_color);
         }
         weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob;
     }
     resample(false);
 }
 
-void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist){
+void particle_filter::update_dirichlet(Mat& image){
     weights[time_stamp].resize(n_particles,0.0f);
-    double lambda=0.0;
-    Eigen::VectorXd alpha,counts;
-    alpha.setOnes(reference_hist.total());
-    for(int h=0;h<H_BINS;h++)
-        for( int s = 0; s < S_BINS; s++ )
-        {
-            alpha[h*S_BINS+s] = (reference_hist.at<float>(h, s)>0.0f)?reference_hist.at<float>(h, s):DBL_EPSILON;
-            lambda+=reference_hist.at<float>(h, s);
-        }
-    polya.setAlpha(alpha);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
         part_roi=image(boundingBox);
         calc_hist_hsv(part_roi,part_hist);
+        Eigen::VectorXd counts;
         counts.setOnes(part_hist.total());
         double k=0.0;
         for(int h=0;h<H_BINS;h++)
@@ -253,57 +243,13 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist){
                 k+=part_hist.at<float>(h, s);
                 counts[h*S_BINS+s] = part_hist.at<float>(h, s);
             }
-        double prob = polya.log_likelihood(counts)+k * log(lambda) - lgamma(k + 1.0) - lambda;
+        //double prob = polya.log_likelihood(counts);//+k * log(lambda) - lgamma(k + 1.0) - lambda;
+        double prob = discrete.log_likelihood(counts);
         weights[time_stamp].at(i)=log(weights[time_stamp-1][i])+prob; 
     }
     resample(true);
-    //exit(1);
 }
 
-void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist,Mat& reference_hog){
-    weights[time_stamp].resize(n_particles,0.0f);
-    double lambda=0.0;
-    Eigen::VectorXd alpha,counts,alpha_h,counts_h;
-    alpha.setOnes(reference_hist.total());
-    alpha_h.setOnes(reference_hog.total());
-    for(int h=0;h<H_BINS;h++)
-        for( int s = 0; s < S_BINS; s++ )
-        {
-            alpha[h*S_BINS+s] = (reference_hist.at<float>(h, s)>0.0f)?reference_hist.at<float>(h, s):DBL_EPSILON;
-            lambda+=reference_hist.at<float>(h, s);
-        }
-    for(unsigned int g = 0; g < reference_hog.total(); g++ ){
-            alpha_h[g] = (reference_hog.at<float>(0, g)>0.0f)?reference_hog.at<float>(0, g):DBL_EPSILON;
-        }
-    polya.setAlpha(alpha);
-    dirichlet polya_h(alpha_h);
-    for (int i=0;i<n_particles;i++){
-        Mat part_hist,part_roi,part_hog;
-        particle state=states[time_stamp][i];
-        Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
-        part_roi=image(boundingBox);
-        calc_hist_hsv(part_roi,part_hist);
-        calc_hog(part_roi,part_hog);
-        counts.setOnes(part_hist.total());
-        double k=0.0;
-        for(int h=0;h<H_BINS;h++)
-            for( int s = 0; s < S_BINS; s++ )
-            {
-                k+=part_hist.at<float>(h, s);
-                counts[h*S_BINS+s] = part_hist.at<float>(h, s);
-            }
-        counts_h.setOnes(part_hog.total());
-        for(unsigned int g = 0; g < part_hog.total(); g++ ){
-            counts_h[g] = part_hog.at<float>(0, g);
-        }
-        double prob = polya_h.log_likelihood(counts_h);
-        //cout << "sample = " << part_hog << ", "; 
-        weights[time_stamp].at(i)=log(weights[time_stamp-1][i])+prob;  
-
-    }
-    resample(true);
-    //exit(1);
-}
 
 void particle_filter::resample(bool log_scale=false){
     vector<float> cumulative_sum(n_particles);

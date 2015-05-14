@@ -48,7 +48,7 @@ private:
 
 
 int main(int argc, char* argv[]){
-    int num_particles=1000,fixed_lag=3;
+    int num_particles=300,fixed_lag=3;
     if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
@@ -116,7 +116,7 @@ void App::run(int num_particles, int fixed_lag){
             current_roi = Mat(current_frame,ground_truth);
             calc_hist_hsv(current_roi,reference_hist);
             calc_hog(current_roi,reference_hog);
-            filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows));
+            filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows),reference_hist,reference_hog);
             //added to tracking algorithm
             boundingBox.x = ground_truth.x;
             boundingBox.y = ground_truth.y;
@@ -131,15 +131,14 @@ void App::run(int num_particles, int fixed_lag){
 
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict(Size(current_frame.cols,current_frame.rows));
-            //filter.update(current_frame,reference_hist,reference_hog);
-            //filter.update_dirichlet(current_frame,reference_hist);
+            filter.update_dirichlet(current_frame);
             //filter.update_dirichlet(current_frame,reference_hist,reference_hog);
-            filter.update(current_frame,reference_hist);
-            filter.draw_particles(current_frame); 
+            //filter.update(current_frame,reference_hist);
+            //filter.draw_particles(current_frame); 
             estimate=filter.estimate(current_frame,true);
+            cout<< estimate <<endl;
             // fixed-lag backward pass
-
-            if(fixed_lag<num_frames){
+     /*       if(fixed_lag<num_frames){
                 string previous_filename=current_filename;
                 for(int l=(num_frames);l>(num_frames-fixed_lag);l--){
                     getPreviousFilename(previous_filename);
@@ -149,7 +148,7 @@ void App::run(int num_particles, int fixed_lag){
                 smoothed_estimate=filter.smoothed_estimate(current_frame,fixed_lag,true);
                 Mat smoothed_roi = Mat(previous_frame,smoothed_estimate);
                 calc_hist_hsv(smoothed_roi,smoothed_hist);
-            }
+            }*/
             rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
             particle_filter_algorithm.calc(ground_truth,estimate);
             Rect IntboundingBox;

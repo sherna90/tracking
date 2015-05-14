@@ -6,7 +6,6 @@ Multinomial::Multinomial()
 }
 Multinomial::Multinomial(VectorXd &theta)
 {
-
     setTheta(theta);
 }
 
@@ -14,13 +13,11 @@ Multinomial::Multinomial(MatrixXd &counts, double alpha)
 {
     sufficient=VectorXd(counts.cols());
     double total=counts.sum()+counts.cols()*alpha;
-    // std::cout<<"counts sum:"<<counts.sum() << " "<<counts.cols()<<std::endl;
     theta=VectorXd(counts.cols());
     #pragma omp parallel for
     for (unsigned int i = 0; i < counts.cols(); ++i) {
          theta(i)=(counts.col(i).sum()+alpha)/total;
          sufficient(i)=counts.col(i).sum();
-         //std::cout<<"sum cols:"<<counts.col(i).sum()<<std::endl;
     }
 }
 

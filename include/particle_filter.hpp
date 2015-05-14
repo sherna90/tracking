@@ -9,6 +9,7 @@
 #include "hist.hpp"
 #include "dirichlet.hpp"
 #include "gaussian.hpp"
+#include "multinomial.h"
 #include <time.h>
 #include <float.h>
 #include <vector>
@@ -50,15 +51,14 @@ public:
     particle_filter(int _n_particles);
     particle_filter(int _n_particles,VectorXd alpha);
     bool is_initialized();
-    void initialize(Rect roi,Size im_size);
+    void initialize(Rect roi,Size im_size,Mat& reference_hist,Mat& reference_hog);
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);
     Rect smoothed_estimate(Mat& image,int fixed_lag,bool draw);
     void predict(Size im_size);
     void update(Mat& image,Mat& reference_hist);
     void update(Mat& image,Mat& reference_hist,Mat& reference_hog);
-    void update_dirichlet(Mat& image,Mat& reference_hist);
-    void update_dirichlet(Mat& image,Mat& reference_hist,Mat& reference_hog);
+    void update_dirichlet(Mat& image);
     void smoother(int fixed_lag);
     float getESS();
     
@@ -71,8 +71,8 @@ private:
     bool initialized;
     RNG rng;
     Rect reference_roi;
-    Gaussian color_lilekihood;
-    Gaussian hog_likelihood;
+    Gaussian color_lilekihood,hog_likelihood;
+    Multinomial discrete;
 };
 
 #endif

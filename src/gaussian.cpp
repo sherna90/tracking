@@ -8,8 +8,8 @@ Gaussian::Gaussian(double m, double s){
 Gaussian::Gaussian(VectorXd& data){
     mean= data.sum()/data.size();
     sd = sqrt((data.array()-mean).square().matrix().sum()/data.size());
-
 }
+
 double Gaussian::getMean(void){
     return mean;
 }

@@ -11,6 +11,8 @@ particle_filter::particle_filter(int _n_particles) {
     time_stamp=0;
     initialized=false;
     //rng(0xFFFFFFFF);
+    color_lilekihood=Gaussian(0.0,SIGMA_SHAPE);
+    hog_likelihood=Gaussian(0.0,SIGMA_COLOR);
 }
 
 particle_filter::particle_filter(int _n_particles,VectorXd alpha) {
@@ -19,6 +21,8 @@ particle_filter::particle_filter(int _n_particles,VectorXd alpha) {
     initialized=false;
     //rng(0xFFFFFFFF);
     polya = dirichlet(alpha);
+    color_lilekihood=Gaussian(0.0,SIGMA_SHAPE);
+    hog_likelihood=Gaussian(0.0,SIGMA_COLOR);
 }
 
 bool particle_filter::is_initialized() {
@@ -176,14 +180,7 @@ Rect particle_filter::smoothed_estimate(Mat& image,int fixed_lag,bool draw=false
 
 void particle_filter::update(Mat& image,Mat& reference_hist,Mat& reference_hog)
 {
-
-    
-
     weights[time_stamp].resize(n_particles,0.0f);
-    // static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
-    // static const float LAMBDA_SHAPE = 0.5f*1.0f/(pow(SIGMA_SHAPE,2.0f));
-    Gaussian g;
-
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
@@ -191,27 +188,19 @@ void particle_filter::update(Mat& image,Mat& reference_hist,Mat& reference_hog)
         part_roi=image(boundingBox);
         calc_hist_hsv(part_roi,part_hist);
         calc_hog(part_roi,part_hog);
-        float bc_hog = 0.0f; 
+        double bc_hog = 0.0f; 
         if(part_hog.size()==reference_hog.size())
             bc_hog = compareHist(reference_hog, part_hog, HISTCMP_BHATTACHARYYA);
-        float bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
-        float prob_color = 0.0f;
-        float prob_hog = 0.0f;
-        if(bc_color != 1.0f) // Clamp total mismatch to 0 likelihood
+        double bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
+        double prob_color = 0.0f;
+        double prob_hog = 0.0f;
+        if(bc_color != 1.0f)
         {
-            g.setSd(SIGMA_COLOR);
-            prob_color=g.likelihood(bc_color);
-            // cout << "bccolor g.likelihood "<< prob_color << endl;
-            // prob_color = (1.0f/sqrt(2.0f*M_PI*pow(SIGMA_COLOR,2.0f)))*exp(-LAMBDA_COLOR * (bc_color * bc_color) );
-            // cout << "bccolor "<< prob_color << endl;
+            //prob_color=color_lilekihood.likelihood(bc_color);
         }
-        if( bc_hog != 1.0f) // Clamp total mismatch to 0 likelihood
+        if( bc_hog != 1.0f)
         {
-            g.setSd(SIGMA_SHAPE);
-            prob_hog = g.likelihood(bc_hog);
-            // cout << "bchog g.likelihood "<< prob_hog << endl;
-            // prob_hog = (1.0f/sqrt(2.0f*M_PI*pow(SIGMA_SHAPE,2.0f)))*exp(-LAMBDA_SHAPE * (bc_hog * bc_hog));
-            // cout << "bchog "<< prob_hog << endl;
+            //prob_hog = hog_likelihood.likelihood(bc_hog);
         }
         //weights[i]=weights[i]*(ALPHA*prob_color+(1-ALPHA)*prob_hog);
         weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob_color*prob_hog;
@@ -222,20 +211,16 @@ void particle_filter::update(Mat& image,Mat& reference_hist,Mat& reference_hog)
 void particle_filter::update(Mat& image,Mat& reference_hist)
 {
     weights[time_stamp].resize(n_particles,0.0f);
-    //static const float LAMBDA_COLOR = 0.5f*1.0f/(pow(SIGMA_COLOR,2.0f));
-    Gaussian g;
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
         part_roi=image(boundingBox);
         calc_hist_hsv(part_roi,part_hist);
-        float bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
-        float prob = 0.0f;
-        if(bc_color != 1.0f ){ // Clamp total mismatch to 0 likelihood
-            g.setSd(SIGMA_COLOR);
-            prob = g.likelihood(bc_color);
-            //prob = (1.0f/sqrt(2.0f*pow(SIGMA_COLOR,2.0f)))*exp(-LAMBDA_COLOR * (bc_color * bc_color) );
+        double bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
+        double prob = 0.0f;
+        if(bc_color != 1.0f ){ 
+            //prob = color_lilekihood.likelihood(bc_color);
         }
         weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob;
     }
@@ -245,9 +230,6 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
 void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist){
     weights[time_stamp].resize(n_particles,0.0f);
     double lambda=0.0;
-    //static const float LAMBDA_COLOR = 0.5f/(pow(SIGMA_COLOR,2.0f));
-    Gaussian g;
-    g.setSd(SIGMA_COLOR);
     Eigen::VectorXd alpha,counts;
     alpha.setOnes(reference_hist.total());
     for(int h=0;h<H_BINS;h++)
@@ -256,9 +238,6 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist){
             alpha[h*S_BINS+s] = (reference_hist.at<float>(h, s)>0.0f)?reference_hist.at<float>(h, s):DBL_EPSILON;
             lambda+=reference_hist.at<float>(h, s);
         }
-    //cout << "dirichlet precision : " << alpha.sum()<< endl; 
-    //cout << "H = " << reference_hist << endl;  
-    //dirichlet polya(alpha);
     polya.setAlpha(alpha);
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
@@ -276,21 +255,6 @@ void particle_filter::update_dirichlet(Mat& image,Mat& reference_hist){
             }
         double prob = polya.log_likelihood(counts)+k * log(lambda) - lgamma(k + 1.0) - lambda;
         weights[time_stamp].at(i)=log(weights[time_stamp-1][i])+prob; 
-        float bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
-        //cout << "log-likelihood DCM: " << prob << endl;
-        //cout << "sample = " << part_hist << ", ";   
-        //cout  << prob << ",";
-        if(bc_color != 1.0f ) {      
-            //prob = log(1.0f/sqrt(2.0f*SIGMA_COLOR))-(LAMBDA_COLOR * (bc_color * bc_color) ); 
-            //cout <<"prob "<<prob << endl;
-            prob = g.log_likelihood(bc_color);
-            //cout << "prob log_likelihood " << prob << endl;
-        }
-        //cout <<  prob << endl; 
-        //cout << "log-likelihood bhattarchaya: " << prob << endl;
-        //cout << "log weight : " << weights[time_stamp].at(i) << endl;
-        //cout << "--------------------------------" << endl; 
-
     }
     resample(true);
     //exit(1);

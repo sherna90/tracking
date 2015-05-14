@@ -71,6 +71,8 @@ private:
     bool initialized;
     RNG rng;
     Rect reference_roi;
+    Gaussian color_lilekihood;
+    Gaussian hog_likelihood;
 };
 
 #endif

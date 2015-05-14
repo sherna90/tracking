@@ -1,5 +1,10 @@
 #include "../include/gaussian.hpp"
 
+Gaussian::Gaussian(double m, double s){
+    mean= m;
+    sd = s;
+}
+
 Gaussian::Gaussian(VectorXd& data){
     mean= data.sum()/data.size();
     sd = sqrt((data.array()-mean).square().matrix().sum()/data.size());

@@ -9,7 +9,7 @@
 #include "hist.hpp"
 #include "dirichlet.hpp"
 #include "gaussian.hpp"
-#include "multinomial.h"
+#include "multinomial.hpp"
 #include <time.h>
 #include <float.h>
 #include <vector>

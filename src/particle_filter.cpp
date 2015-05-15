@@ -39,15 +39,20 @@ void particle_filter::initialize(Rect roi,Size im_size,Mat& reference_hist,Mat& 
     }
     color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
     hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
+    double eps= std::numeric_limits<double>::epsilon();
     Eigen::VectorXd alpha;
     alpha.setOnes(reference_hist.total());
     for(int h=0;h<H_BINS;h++)
         for( int s = 0; s < S_BINS; s++ ){
-            alpha[h*S_BINS+s] = reference_hist.at<float>(h, s);
+            double val=reference_hist.at<float>(h, s);
+            alpha[h*S_BINS+s] = (val!=0.0) ? val : eps;
         }
     polya = dirichlet(alpha);
+    cout << alpha.transpose() << endl; 
     alpha /=alpha.sum();
-    discrete = Multinomial(alpha);    
+    discrete = Multinomial(alpha);  
+    cout << alpha.transpose() << endl; 
+    cout << "initialized!" << endl;  
     initialized=true;
 }
 
@@ -227,24 +232,34 @@ void particle_filter::update(Mat& image,Mat& reference_hist)
 }
 
 void particle_filter::update_dirichlet(Mat& image){
+    double lambda=polya.getAlpha().sum();
     weights[time_stamp].resize(n_particles,0.0f);
+    double eps= std::numeric_limits<double>::epsilon();
+    double prob = 0.0f;
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
         part_roi=image(boundingBox);
         calc_hist_hsv(part_roi,part_hist);
+        calc_hog(part_roi,part_hog);        
         Eigen::VectorXd counts;
         counts.setOnes(part_hist.total());
         double k=0.0;
         for(int h=0;h<H_BINS;h++)
             for( int s = 0; s < S_BINS; s++ )
             {
-                k+=part_hist.at<float>(h, s);
-                counts[h*S_BINS+s] = part_hist.at<float>(h, s);
+                double val=part_hist.at<float>(h, s);
+                k+=val;             
+                counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
-        //double prob = polya.log_likelihood(counts);//+k * log(lambda) - lgamma(k + 1.0) - lambda;
-        double prob = discrete.log_likelihood(counts);
+        //double prob = polya.log_likelihood(counts)+k * log(lambda) - lgamma(k + 1.0) - lambda;
+        prob=discrete.log_likelihood(counts)+k * log(lambda) - lgamma(k + 1.0) - lambda;
+        cout << "alpha : " << polya.getAlpha().transpose() << endl;
+        cout << "theta : " << discrete.getTheta().transpose() << endl;
+        cout << "histogram : "<< counts.transpose() << endl; 
+        cout << "probability : "<< prob << endl;        
+        cout << "---------------------------------" << endl;
         weights[time_stamp].at(i)=log(weights[time_stamp-1][i])+prob; 
     }
     resample(true);

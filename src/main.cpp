@@ -48,7 +48,7 @@ private:
 
 
 int main(int argc, char* argv[]){
-    int num_particles=300,fixed_lag=3;
+    int num_particles=1000,fixed_lag=3;
     if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
@@ -131,9 +131,9 @@ void App::run(int num_particles, int fixed_lag){
 
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict(Size(current_frame.cols,current_frame.rows));
-            filter.update_dirichlet(current_frame);
+            //filter.update_dirichlet(current_frame);
             //filter.update_dirichlet(current_frame,reference_hist,reference_hog);
-            //filter.update(current_frame,reference_hist);
+            filter.update(current_frame,reference_hist);
             //filter.draw_particles(current_frame); 
             estimate=filter.estimate(current_frame,true);
             cout<< estimate <<endl;

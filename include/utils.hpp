@@ -31,21 +31,21 @@ double lnchoose(int  n, int m);
 double bhattarchaya(Eigen::VectorXd m1, Eigen::VectorXd m2);
 void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove);
 void flat(Eigen::MatrixXd& mat);
-Eigen::VectorXd average(Eigen::MatrixXd a,Eigen::MatrixXd weigths, int axis);
-double median(Eigen::MatrixXd med);
+Eigen::VectorXd average(const Eigen::Ref<const Eigen::MatrixXd>& a,const Eigen::Ref<const Eigen::MatrixXd>& weigths, int axis);
+double median(const Eigen::Ref<const Eigen::MatrixXd>& med);
 float fastlog2 (float x);
 float fastlog (float x);
 float fastdigamma (float x);
-Eigen::MatrixXd psi(Eigen::MatrixXd mat);
+Eigen::MatrixXd psi(const Eigen::Ref<const Eigen::MatrixXd>& mat);
 float psi(float x);
 double* linspace(double min, double max, int n);
-int positives(Eigen::MatrixXd& counts);
-int positives(Eigen::VectorXd counts);
+int positives(const Eigen::Ref<const Eigen::MatrixXd>&  counts);
+//int positives(Eigen::VectorXd counts);
 double quad_root(double a, double b, double c);
 void removeNoTrials(Eigen::MatrixXd& counts);
 double trigamma(double x);
-Eigen::VectorXd di_pochhammer(double x, Eigen::VectorXd vec);
-Eigen::VectorXd tri_pochhammer(double x, Eigen::VectorXd vec);
+Eigen::VectorXd di_pochhammer(double x, const Eigen::Ref<const Eigen::VectorXd>& vec);
+Eigen::VectorXd tri_pochhammer(double x, const Eigen::Ref<const Eigen::VectorXd>& vec);
 
 
 #endif

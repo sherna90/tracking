@@ -38,9 +38,9 @@ void flat(MatrixXd& mat){
     
 }
 
-VectorXd average(MatrixXd a,MatrixXd weigths, int axis){
+VectorXd average(const Ref<const MatrixXd>& a,const Ref<const MatrixXd>& weigths, int axis){
     MatrixXd r = a;
-    flat(weigths);
+    //flat(weigths);
     
     if(axis==0){
 
@@ -62,7 +62,7 @@ VectorXd average(MatrixXd a,MatrixXd weigths, int axis){
     }
     
 }
-double median(MatrixXd med){
+double median(const Ref<const MatrixXd>& med){
     MatrixXd aux = med;
     flat(aux);
     int n = aux.rows();
@@ -104,7 +104,7 @@ float fastdigamma (float x)
          + logterm;
 }
 
-MatrixXd psi(MatrixXd mat){
+MatrixXd psi(const Ref<const MatrixXd>& mat){
     MatrixXd res(mat.rows(),mat.cols());
 
     for(int i=0;i<mat.rows();i++){
@@ -132,7 +132,7 @@ double* linspace(double min, double max, int n){
     return result;
 }
 
-int positives(MatrixXd& counts){
+int positives(const Ref<const MatrixXd>&  counts){
     int count=0;
 
     for(int i=0;i<counts.rows();i++){
@@ -146,15 +146,15 @@ int positives(MatrixXd& counts){
     return count;
 }
 
-int positives(VectorXd counts){
-    int count=0;
-    for(int i=0;i<counts.size();i++){
-        if(counts(i)>0){
-            count++;
-        }
-    }
-    return count;
-}
+// int positives(VectorXd counts){
+//     int count=0;
+//     for(int i=0;i<counts.size();i++){
+//         if(counts(i)>0){
+//             count++;
+//         }
+//     }
+//     return count;
+// }
 
 double quad_root(double a, double b, double c){
     double top = std::sqrt(b*b-4*a*c);
@@ -189,7 +189,7 @@ double trigamma(double x){
     return tri + 0.5*y + (1.0 + y*(1.0 / 6.0 +y*(-1.0/30.0 + y*(1.0/42.0 +y*-1.0 / 30.0))))/x;
 }
 
-VectorXd di_pochhammer(double x, VectorXd vec)
+VectorXd di_pochhammer(double x, const Eigen::Ref<const Eigen::VectorXd>& vec)
 {
     VectorXd res(vec.size());
     for(int i=0;i<vec.size();i++)
@@ -204,7 +204,7 @@ VectorXd di_pochhammer(double x, VectorXd vec)
     return res;
 }
 
-VectorXd tri_pochhammer(double x, VectorXd vec)
+VectorXd tri_pochhammer(double x, const Eigen::Ref<const Eigen::VectorXd>& vec)
 {
     VectorXd res(vec.size());
     for(int i=0;i<vec.size();i++)

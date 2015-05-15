@@ -32,9 +32,9 @@ class dirichlet{
 		//methods
 		void meanprecision();
         double log_likelihood(VectorXd counts);
-		void fit_fixedPoint(MatrixXd counts,int maxIter,double tol);
-		void dirichlet_moment_match(MatrixXd proportions, MatrixXd weigths);
-        void dirichlet_moment_match(MatrixXd counts);
+		void fit_fixedPoint(MatrixXd& counts,int maxIter,double tol);
+		void dirichlet_moment_match(const Ref<const MatrixXd>& proportions, const Ref<const MatrixXd>& weigths);
+        void dirichlet_moment_match(const Ref<const MatrixXd>& counts);
         void fit_betabinom_minka_alternating(MatrixXd& counts, int maxiter, double tol);
 	private:
 		VectorXd alpha;

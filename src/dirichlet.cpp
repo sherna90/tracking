@@ -39,7 +39,7 @@ void dirichlet::meanprecision(){
     m= (1.0f/s)*alpha;
 }
 
-void dirichlet::dirichlet_moment_match(MatrixXd proportions, MatrixXd weigths){
+void dirichlet::dirichlet_moment_match(const Ref<const MatrixXd>& proportions, const Ref<const MatrixXd>& weigths){
     VectorXd a;
     VectorXd m2;
     VectorXd aok,m2ok;
@@ -68,20 +68,20 @@ void dirichlet::dirichlet_moment_match(MatrixXd proportions, MatrixXd weigths){
     
 }
 
-void dirichlet::dirichlet_moment_match(MatrixXd counts){
+void dirichlet::dirichlet_moment_match(const Ref<const MatrixXd>& counts){
     MatrixXd norm_sum = counts.rowwise().sum();
-    
+    MatrixXd norm_counts(counts.rows(),counts.cols());
     for(int i=0;i<counts.rows();i++){
         if(norm_sum(i,0)!=0){
-            counts.row(i)= counts.row(i)*(1/norm_sum(i,0)); //  
+            norm_counts.row(i)= counts.row(i)*(1/norm_sum(i,0)); // 
         }else{
             continue;
         }
     }
-    dirichlet_moment_match(counts,norm_sum);
+    dirichlet_moment_match(norm_counts,norm_sum);
 }
 
-void dirichlet::fit_fixedPoint(MatrixXd counts,int maxIter,double tol){ //incomplete
+void dirichlet::fit_fixedPoint(MatrixXd& counts,int maxIter,double tol){ //incomplete
     int train=counts.rows();
     int D=counts.cols();
     int iter=0;

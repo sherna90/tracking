@@ -1,4 +1,4 @@
-#include "../include/multinomialnaivebayes.h"
+#include "../include/multinomialnaivebayes.hpp"
 
 MultinomialNaiveBayes::MultinomialNaiveBayes()
 {
@@ -11,21 +11,30 @@ MultinomialNaiveBayes::MultinomialNaiveBayes(MatrixXd &datos,VectorXi &clases)
     Y=&clases;
     initialized=true;
 }
-void MultinomialNaiveBayes::fit()
+void MultinomialNaiveBayes::fit(double alpha)
 {
     if(initialized)
     {
-        for (unsigned int i = 0; i < getY()->rows(); ++i) {
-            if(Xc_sufficient[(*getY())(i)].size()==0)
-            {
-                Xc_sufficient[(*getY())(i)]=VectorXd::Zero(X->cols());
-                Prior[(*getY())(i)]=0;
-                classes[(*getY())(i)]=Multinomial();
+        #pragma omp parallel
+        {
+            #pragma omp single
+            for (unsigned int i = 0; i < getY()->rows(); ++i) {
+                if(Xc_sufficient[(*getY())(i)].size()==0)
+                {
+                    Xc_sufficient[(*getY())(i)]=VectorXd::Zero(X->cols());
+                    Prior[(*getY())(i)]=0;
+                    classes[(*getY())(i)]=Multinomial();
+                }
+                Xc_sufficient[(*getY())(i)]+=getX()->row(i);
+                Prior[(*getY())(i)]=(Prior[(*getY())(i)]+1.0)/getX()->rows();
+                classes[(*getY())(i)].addTheta(Xc_sufficient[(*getY())(i)] ,alpha);
             }
-            Xc_sufficient[(*getY())(i)]+=getX()->row(i);
-            Prior[(*getY())(i)]=(Prior[(*getY())(i)]+1.0)/getX()->rows();
-            classes[(*getY())(i)].addTheta(Xc_sufficient[(*getY())(i)] ,1.0);
         }
+        // std::map<unsigned int,VectorXd>::iterator iter;
+        // for (iter = classes.begin(); iter != classes.end(); ++iter) {
+        //     // Prior[(*getY())(i)]=(Prior[(*getY())(i)]+1.0)/getX()->rows();
+        //     //std::cout << Xc_sufficient[iter->first].sum()<< std::endl;
+        // }
     }
 }
 
@@ -41,7 +50,7 @@ VectorXd MultinomialNaiveBayes::test(MatrixXd &Xtest)
         max_class=0.0;
         max_score=-100000000.0;
         for (iter = classes.begin(); iter != classes.end(); ++iter) {
-            score=log(getPrior()[iter->first])+iter->second.log_likelihood(std::move(Xtest.row(i)));
+            score=log(getPrior()[iter->first])+iter->second.log_likelihood(Xtest.row(i));
             if(score > max_score){
                 max_score=score;
                 max_class=iter->first;

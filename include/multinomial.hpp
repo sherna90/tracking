@@ -16,14 +16,14 @@ class Multinomial
 public:
     Multinomial();
     // Multinomial(MatrixXd &counts);
-    Multinomial(MatrixXd &counts, double alpha);
+    Multinomial(MatrixXd &counts, double &alpha);
     Multinomial(VectorXd &thetas);
-    Multinomial(VectorXd &sufficient,double alpha);
-    double log_likelihood(VectorXd test);
+    Multinomial(VectorXd &sufficient,double &alpha);
+    double log_likelihood(const VectorXd &test);
 
     VectorXd getTheta() const;
     void setTheta(const VectorXd &value);
-    void addTheta(VectorXd &value, double alpha);
+    void addTheta(VectorXd &value, double &alpha);
 
 
 private:

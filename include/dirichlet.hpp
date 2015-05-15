@@ -31,7 +31,7 @@ class dirichlet{
 		void setAlpha(VectorXd a);
 		//methods
 		void meanprecision();
-        double log_likelihood(VectorXd counts);
+        double log_likelihood(const Ref<const VectorXd>&counts);
 		void fit_fixedPoint(MatrixXd& counts,int maxIter,double tol);
 		void dirichlet_moment_match(const Ref<const MatrixXd>& proportions, const Ref<const MatrixXd>& weigths);
         void dirichlet_moment_match(const Ref<const MatrixXd>& counts);

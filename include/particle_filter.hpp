@@ -55,10 +55,9 @@ public:
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);
     Rect smoothed_estimate(Mat& image,int fixed_lag,bool draw);
-    void predict(Size im_size);
-    void update(Mat& image,Mat& reference_hist);
-    void update(Mat& image,Mat& reference_hist,Mat& reference_hog);
-    void update_dirichlet(Mat& image);
+    void predict();
+    void update(Mat& image,bool hog);
+    void update_discrete(Mat& image,bool dirichlet);
     void smoother(int fixed_lag);
     float getESS();
     
@@ -71,8 +70,10 @@ private:
     bool initialized;
     RNG rng;
     Rect reference_roi;
+    Size im_size;
     Gaussian color_lilekihood,hog_likelihood;
     Multinomial discrete;
+    Mat reference_hist,reference_hog;
 };
 
 #endif

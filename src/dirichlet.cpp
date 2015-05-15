@@ -17,7 +17,7 @@ void dirichlet::setAlpha(VectorXd a){
     meanprecision();
 }
 
-double dirichlet::log_likelihood(VectorXd counts){
+double dirichlet::log_likelihood(const Ref<const VectorXd>& counts){
     VectorXd log_counts=VectorXd::Zero(counts.size());
     VectorXd log_alpha=VectorXd::Zero(alpha.size());
     VectorXd log_alpha_counts=VectorXd::Zero(alpha.size());

@@ -7,7 +7,7 @@
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
- #include <opencv2/tracking.hpp> //added
+#include <opencv2/tracking.hpp> //added
 #include "../include/hist.hpp"
 #include "../include/particle_filter.hpp"
 
@@ -48,7 +48,7 @@ private:
 
 
 int main(int argc, char* argv[]){
-    int num_particles=300,fixed_lag=3;
+    int num_particles=300,fixed_lag=10;
     if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
@@ -136,17 +136,17 @@ void App::run(int num_particles, int fixed_lag){
             filter.draw_particles(current_frame); 
             estimate=filter.estimate(current_frame,true);
             // fixed-lag backward pass
-     /*       if(fixed_lag<num_frames){
+            if(fixed_lag<(num_frames)){
                 string previous_filename=current_filename;
-                for(int l=(num_frames);l>(num_frames-fixed_lag);l--){
+                for(int l=(num_frames);l>(num_frames-fixed_lag);--l){
                     getPreviousFilename(previous_filename);
                 }
                 Mat previous_frame = imread(previous_filename);
                 filter.smoother(fixed_lag);
-                smoothed_estimate=filter.smoothed_estimate(current_frame,fixed_lag,true);
-                Mat smoothed_roi = Mat(previous_frame,smoothed_estimate);
-                calc_hist_hsv(smoothed_roi,smoothed_hist);
-            }*/
+                smoothed_estimate=filter.smoothed_estimate(fixed_lag);
+                if(smoothed_estimate.area()>0)
+                    filter.update_model(previous_frame,smoothed_estimate);
+            }
             rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
             particle_filter_algorithm.calc(ground_truth,estimate);
             Rect IntboundingBox;

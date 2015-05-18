@@ -26,7 +26,7 @@
 #define SIGMA_SHAPE 0.09
 #define ALPHA 0.7
 #define THRESHOLD 0.7
-#define FIXED_LAG 1000
+#define FIXED_LAG 10000
 
 using namespace cv;
 using namespace std;
@@ -54,11 +54,12 @@ public:
     void initialize(Rect roi,Size im_size,Mat& reference_hist,Mat& reference_hog);
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);
-    Rect smoothed_estimate(Mat& image,int fixed_lag,bool draw);
+    Rect smoothed_estimate(int fixed_lag);
     void predict();
     void update(Mat& image,bool hog);
     void update_discrete(Mat& image,bool dirichlet);
     void smoother(int fixed_lag);
+    void update_model(Mat& previous_frame,Rect& smoothed_estimate);
     float getESS();
     
 

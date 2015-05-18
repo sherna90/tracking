@@ -96,6 +96,7 @@ void particle_filter::smoother(int fixed_lag){
     vector<float> normalized_weights(n_particles,0.0f);
     vector<float> sum_weights(n_particles,0.0f);
     static const float LAMBDA_POS = 0.5f*1.0f/(pow(POS_STD,2.0f));
+    cout << "------------------" << endl;
     if(fixed_lag<time_stamp){
         for(int k=time_stamp;k>(time_stamp-fixed_lag);k--){
             for (int j=0;j<n_particles;j++){
@@ -116,7 +117,7 @@ void particle_filter::smoother(int fixed_lag){
            
             for (int i=0;i<n_particles;i++){
                 particle past_state=states[k-1][i];
-                float backward_probability=0.0f;
+                double backward_probability=0.0f;
                 for (int j=0;j<n_particles;j++){
                     particle state=states[k][j];
                     float sum=LAMBDA_POS*pow(state.x-past_state.x-past_state.dx,2.0);
@@ -125,10 +126,11 @@ void particle_filter::smoother(int fixed_lag){
                     backward_probability+=exp(log_prob-sum_weights[j]);
                 }
                 smoothing_weights.at(i) = weights[k-1].at(i)*backward_probability;
+                //cout << backward_probability << endl;
                 //smoothing_weights.at(i) = weights[k-1].at(i);
        
             }
-            //cout << "Lag:" << k << endl;
+            cout << "Lag:" << k << endl;
         }
     }
 }
@@ -171,9 +173,10 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     return estimate;
 }
 
-Rect particle_filter::smoothed_estimate(Mat& image,int fixed_lag,bool draw=false){
+Rect particle_filter::smoothed_estimate(int fixed_lag){
     //smoothing_weights=weights[time_stamp];
     float _x=0.0,_y=0.0,_width=0.0,_height=0.0;
+    Rect estimate;
     for (int i=0;i<n_particles;i++){
         particle state=states[time_stamp-fixed_lag][i];
         _x+=smoothing_weights[i]*state.x;
@@ -186,8 +189,13 @@ Rect particle_filter::smoothed_estimate(Mat& image,int fixed_lag,bool draw=false
     pt1.y=cvRound(_y);
     pt2.x=cvRound(_x+_width);
     pt2.y=cvRound(_y+_height);
-    if(draw) rectangle( image, pt1,pt2, Scalar(0,255,255), 1, LINE_AA );
-    return Rect(pt1.x,pt1.y,cvRound(pt2.x-pt1.x),cvRound(pt2.y-pt1.y));
+    if(pt2.x<im_size.width && pt1.x>=0 && pt2.y<im_size.height && pt1.y>=0){
+        estimate=Rect(pt1.x,pt1.y,cvRound(pt2.x-pt1.x),cvRound(pt2.y-pt1.y));
+    }
+    else{
+        cout << "oops!" << endl;
+    }
+    return estimate;
 }
 
 
@@ -298,4 +306,22 @@ void particle_filter::resample(bool log_scale=false){
 
 float particle_filter::getESS(){
     return ESS/n_particles;
+}
+
+void particle_filter::update_model(Mat& previous_frame,Rect& smoothed_estimate){
+    
+    double eps= std::numeric_limits<double>::epsilon();
+    Mat smoothed_hist;
+    Mat smoothed_roi = Mat(previous_frame,smoothed_estimate);
+    calc_hist_hsv(smoothed_roi,smoothed_hist); 
+    Eigen::VectorXd counts;
+    counts.setOnes(smoothed_hist.total());
+    double k=0.0001;
+    for(int h=0;h<H_BINS;h++)
+        for( int s = 0; s < S_BINS; s++ )
+        {
+            double val=smoothed_hist.at<float>(h, s);            
+            counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
+        }
+    discrete.addTheta(counts,k);
 }

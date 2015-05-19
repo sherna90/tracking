@@ -44,16 +44,24 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
     color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
     hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
     double eps= std::numeric_limits<double>::epsilon();
-    Eigen::VectorXd alpha;
+    Eigen::VectorXd alpha,alpha_hog;
     alpha.setOnes(reference_hist.total());
     for(int h=0;h<H_BINS;h++)
         for( int s = 0; s < S_BINS; s++ ){
             double val=reference_hist.at<float>(h, s);
             alpha[h*S_BINS+s] = (val!=0.0) ? val : eps;
         }
+    alpha_hog.setOnes(reference_hog.total());
+    for(unsigned int g=0;g<reference_hog.total();g++){
+        double val=reference_hog.at<float>(0,g);
+        alpha_hog[g] = (val!=0.0) ? val : eps;
+    }
     polya = dirichlet(alpha);
     alpha /=alpha.sum();
     discrete = Multinomial(alpha);  
+    polya_hog = dirichlet(alpha_hog);
+    alpha_hog /=alpha_hog.sum();
+    discrete_hog = Multinomial(alpha_hog);  
     cout << "initialized!" << endl;  
     initialized=true;
 }
@@ -227,7 +235,7 @@ void particle_filter::update(Mat& image,bool hog=false)
     resample(false);
 }
 
-void particle_filter::update_discrete(Mat& image,bool dirichlet=false){
+void particle_filter::update_discrete(Mat& image,bool dirichlet=false,bool hog = false){
     double lambda=polya.getAlpha().sum();
     weights[time_stamp].resize(n_particles,0.0f);
     double eps= std::numeric_limits<double>::epsilon();
@@ -239,7 +247,7 @@ void particle_filter::update_discrete(Mat& image,bool dirichlet=false){
         part_roi=image(boundingBox);
         calc_hist_hsv(part_roi,part_hist);
         calc_hog(part_roi,part_hog);        
-        Eigen::VectorXd counts;
+        Eigen::VectorXd counts,hog_counts;
         counts.setOnes(part_hist.total());
         double k=0.0;
         for(int h=0;h<H_BINS;h++)
@@ -251,11 +259,31 @@ void particle_filter::update_discrete(Mat& image,bool dirichlet=false){
             }
         if(dirichlet) prob = polya.log_likelihood(counts)+k * log(lambda) - lgamma(k + 1.0) - lambda;
         else prob=discrete.log_likelihood(counts)+k * log(lambda) - lgamma(k + 1.0) - lambda;
-        weights[time_stamp].at(i)=log(weights[time_stamp-1][i])+prob; 
+        weights[time_stamp].at(i)=log(weights[time_stamp-1][i])+prob;
+
+        if(hog){
+            calc_hog(part_roi,part_hog);
+            hog_counts.setOnes(part_hog.total());
+            //cout << part_hog.total() << endl;
+            //cout << polya_hog.getAlpha().total() << endl; 
+            if(part_hog.size()==reference_hog.size()){
+                for(unsigned int g=0;g<part_hog.total();g++){
+                    double val=part_hog.at<float>(0, g);
+                    hog_counts[g] = (val!=0.0) ? val : eps;
+                }
+                double prob_hog;
+                if(dirichlet){
+                    prob_hog = polya_hog.log_likelihood(hog_counts);
+                }else{
+                    prob_hog = discrete_hog.log_likelihood(hog_counts);
+                }
+                    
+                weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob_hog;
+            }
+        }
     }
     resample(true);
 }
-
 
 void particle_filter::resample(bool log_scale=false){
     vector<float> cumulative_sum(n_particles);

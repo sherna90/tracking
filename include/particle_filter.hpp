@@ -26,7 +26,6 @@
 #define SIGMA_SHAPE 0.09
 #define ALPHA 0.7
 #define THRESHOLD 0.7
-#define FIXED_LAG 10000
 
 using namespace cv;
 using namespace std;
@@ -45,8 +44,8 @@ typedef struct particle {
 class particle_filter {
 public:
     int n_particles;
-    vector<particle> states[FIXED_LAG];
-    vector<float>  weights[FIXED_LAG];
+    vector< vector<particle> > states;
+    vector< vector<float> >  weights;
     vector<float>  smoothing_weights;
     particle_filter(int _n_particles);
     particle_filter(int _n_particles,VectorXd alpha);

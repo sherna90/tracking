@@ -17,6 +17,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <queue>
 
 using namespace cv;
 using namespace std;
@@ -38,6 +39,7 @@ private:
     Rect intersect(Rect r1, Rect r2);
     Mat current_frame,current_roi; 
     Rect ground_truth,estimate,smoothed_estimate;
+    queue<Rect> ground_truth_stack;
     MatND reference_hist,reference_hog,smoothed_hist;
     int keyboard;
     Rect2d boundingBox; //added
@@ -84,8 +86,8 @@ App::App(string _firstFrameFilename, string _gtFilename){
 
 void App::run(int num_particles, int fixed_lag){
     current_frame = imread(firstFrameFilename);
-    ifstream groundtruth; 
-    groundtruth.open(gtFilename.c_str(),ifstream::in);
+    ifstream groundtruth_file; 
+    groundtruth_file.open(gtFilename.c_str(),ifstream::in);
     string current_filename(firstFrameFilename),current_gt;
     //added to tracking algorithm
     string track_algorithm_selected="MIL";
@@ -101,14 +103,14 @@ void App::run(int num_particles, int fixed_lag){
         exit(EXIT_FAILURE);
     }
     particle_filter filter(num_particles);
-    Rect intersection;
     double num_frames=0.0;
     //test object performance
     Performance track_algorithm;
     Performance particle_filter_algorithm;
+    Performance smoother_algorithm;
     namedWindow("Tracker");
     while( (char)keyboard != 'q' && (char)keyboard != 27 ){
-        groundtruth >> current_gt;
+        groundtruth_file >> current_gt;
         num_frames++;
         if(!filter.is_initialized())
         {
@@ -128,14 +130,14 @@ void App::run(int num_particles, int fixed_lag){
         {
             //add to tracking algorithm
             tracker->update( current_frame, boundingBox );
-
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict();
-            filter.update_discrete(current_frame,true);
-            //filter.update(current_frame,true);
+            //filter.update_discrete(current_frame,false);
+            filter.update(current_frame,true);
             filter.draw_particles(current_frame); 
             estimate=filter.estimate(current_frame,true);
             // fixed-lag backward pass
+            ground_truth_stack.push(ground_truth);
             if(fixed_lag<(num_frames)){
                 string previous_filename=current_filename;
                 for(int l=(num_frames);l>(num_frames-fixed_lag);--l){
@@ -144,11 +146,15 @@ void App::run(int num_particles, int fixed_lag){
                 Mat previous_frame = imread(previous_filename);
                 filter.smoother(fixed_lag);
                 smoothed_estimate=filter.smoothed_estimate(fixed_lag);
-                if(smoothed_estimate.area()>0)
+                if(smoothed_estimate.area()>0){
                     filter.update_model(previous_frame,smoothed_estimate);
+                    smoother_algorithm.calc(ground_truth_stack.front(),smoothed_estimate);
+                }
+                ground_truth_stack.pop();
             }
             rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
             particle_filter_algorithm.calc(ground_truth,estimate);
+            
             Rect IntboundingBox;
             IntboundingBox.x = (int)boundingBox.x;
             IntboundingBox.y = (int)boundingBox.y;
@@ -165,6 +171,7 @@ void App::run(int num_particles, int fixed_lag){
             //test performance object
             cout << "track algorithm >> " << "average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
             cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
+            cout << "smoothing algorithm >> " <<"average precision:" << smoother_algorithm.get_avg_precision()/num_frames << ",average recall:" << smoother_algorithm.get_avg_recall()/num_frames << endl;
             exit(EXIT_FAILURE);
         }
     }

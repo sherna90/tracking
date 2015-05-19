@@ -25,6 +25,7 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
     reference_hog=_reference_hog;
     im_size=_im_size;
     smoothing_weights.resize(n_particles);
+    vector<particle> tmp_vector;
     for (int i=0;i<n_particles;i++){
         particle state;
         state.x=rng.uniform(0, im_size.width-roi.width);
@@ -32,14 +33,14 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
         state.dx=rng.gaussian(VEL_STD);
         state.dy=rng.gaussian(VEL_STD);
         state.scale=1.f+rng.gaussian(SCALE_STD);
-        states[0].push_back(state);
+        tmp_vector.push_back(state);
         weights[0].at(i)=1.f/n_particles;
         ESS=0.0f;
         reference_roi=roi;
         state.width=reference_roi.width;
-        state.height=reference_roi.height;
-        
+        state.height=reference_roi.height;      
     }
+    states.push_back(tmp_vector);
     color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
     hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
     double eps= std::numeric_limits<double>::epsilon();
@@ -96,7 +97,7 @@ void particle_filter::smoother(int fixed_lag){
     vector<float> normalized_weights(n_particles,0.0f);
     vector<float> sum_weights(n_particles,0.0f);
     static const float LAMBDA_POS = 0.5f*1.0f/(pow(POS_STD,2.0f));
-    cout << "------------------" << endl;
+    //cout << "------------------" << endl;
     if(fixed_lag<time_stamp){
         for(int k=time_stamp;k>(time_stamp-fixed_lag);k--){
             for (int j=0;j<n_particles;j++){
@@ -114,7 +115,8 @@ void particle_filter::smoother(int fixed_lag){
                 }
                 sum_weights[j]=max_value+log(logsumexp);
             }
-           
+            //cout << "num frame :" << time_stamp << "; fixed-lag:" <<  k << endl;
+    
             for (int i=0;i<n_particles;i++){
                 particle past_state=states[k-1][i];
                 double backward_probability=0.0f;
@@ -130,7 +132,6 @@ void particle_filter::smoother(int fixed_lag){
                 //smoothing_weights.at(i) = weights[k-1].at(i);
        
             }
-            cout << "Lag:" << k << endl;
         }
     }
 }
@@ -316,12 +317,12 @@ void particle_filter::update_model(Mat& previous_frame,Rect& smoothed_estimate){
     calc_hist_hsv(smoothed_roi,smoothed_hist); 
     Eigen::VectorXd counts;
     counts.setOnes(smoothed_hist.total());
-    double k=0.0001;
+    double k=1.0;
     for(int h=0;h<H_BINS;h++)
         for( int s = 0; s < S_BINS; s++ )
         {
             double val=smoothed_hist.at<float>(h, s);            
             counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
         }
-    discrete.addTheta(counts,k);
+    //discrete.addTheta(counts,k);
 }

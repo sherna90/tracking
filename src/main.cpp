@@ -132,8 +132,8 @@ void App::run(int num_particles, int fixed_lag){
             tracker->update( current_frame, boundingBox );
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict();
-            //filter.update_discrete(current_frame,false);
-            filter.update(current_frame,true);
+            //filter.update_discrete(current_frame,DIRICHLET_LIKELIHOOD,WITHOUT_HOG);
+            filter.update(current_frame,WITH_HOG);
             filter.draw_particles(current_frame); 
             estimate=filter.estimate(current_frame,true);
             // fixed-lag backward pass

@@ -26,6 +26,10 @@
 #define SIGMA_SHAPE 0.09
 #define ALPHA 0.7
 #define THRESHOLD 0.7
+#define DIRICHLET_LIKELIHOOD true
+#define MULTINOMIAL_LIKELIHOOD false
+#define WITH_HOG true
+#define WITHOUT_HOG false
 
 using namespace cv;
 using namespace std;
@@ -56,14 +60,14 @@ public:
     Rect smoothed_estimate(int fixed_lag);
     void predict();
     void update(Mat& image,bool hog);
-    void update_discrete(Mat& image,bool dirichlet);
+    void update_discrete(Mat& image,bool dirichlet,bool hog);
     void smoother(int fixed_lag);
     void update_model(Mat& previous_frame,Rect& smoothed_estimate);
     float getESS();
     
 
 private:
-    dirichlet polya;
+    dirichlet polya,polya_hog;
     int time_stamp;
     void resample(bool log_scale);
     float ESS;
@@ -72,8 +76,9 @@ private:
     Rect reference_roi;
     Size im_size;
     Gaussian color_lilekihood,hog_likelihood;
-    Multinomial discrete;
     Mat reference_hist,reference_hog;
+    Multinomial discrete,discrete_hog;
+
 };
 
 #endif

@@ -20,12 +20,13 @@ bool particle_filter::is_initialized() {
 
 
 void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat& _reference_hog) {
-    weights[0].resize(n_particles);
+    //weights[0].resize(n_particles);
     reference_hist=_reference_hist;
     reference_hog=_reference_hog;
     im_size=_im_size;
     smoothing_weights.resize(n_particles);
-    vector<particle> tmp_vector;
+    vector<particle> tmp_states;
+    vector<float> tmp_weights;
     for (int i=0;i<n_particles;i++){
         particle state;
         state.x=rng.uniform(0, im_size.width-roi.width);
@@ -33,14 +34,15 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
         state.dx=rng.gaussian(VEL_STD);
         state.dy=rng.gaussian(VEL_STD);
         state.scale=1.f+rng.gaussian(SCALE_STD);
-        tmp_vector.push_back(state);
-        weights[0].at(i)=1.f/n_particles;
+        tmp_states.push_back(state);
+        tmp_weights.push_back(1.f/n_particles);
         ESS=0.0f;
         reference_roi=roi;
         state.width=reference_roi.width;
         state.height=reference_roi.height;      
     }
-    states.push_back(tmp_vector);
+    states.push_back(tmp_states);
+    weights.push_back(tmp_weights);
     color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
     hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
     double eps= std::numeric_limits<double>::epsilon();
@@ -69,8 +71,10 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
 void particle_filter::predict(){
     if(initialized==true){
         time_stamp++;
+        vector<particle> tmp_new_states;
+        vector<particle> tmp_states=states.front();
         for (int i=0;i<n_particles;i++){
-            particle state=states[time_stamp-1][i];
+            particle state=tmp_states[i];
             float _x,_y,_width,_height;
             _x=cvRound(state.x+state.dx+rng.gaussian(POS_STD));
             _y=cvRound(state.y+state.dy+rng.gaussian(POS_STD));
@@ -94,13 +98,14 @@ void particle_filter::predict(){
                 state.y=rng.uniform(0, (int)(im_size.height-state.height));
                 state.scale=1.f+rng.gaussian(SCALE_STD);
             }
-            states[time_stamp].push_back(state);
+            tmp_new_states.push_back(state);
         }
+        states.push_back(tmp_new_states);
     }
 }
 
 void particle_filter::smoother(int fixed_lag){
-    smoothing_weights=weights[time_stamp];
+    smoothing_weights=weights.front();
     vector<float> log_backward_probability(n_particles,0.0f);
     vector<float> normalized_weights(n_particles,0.0f);
     vector<float> sum_weights(n_particles,0.0f);
@@ -183,7 +188,7 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
 }
 
 Rect particle_filter::smoothed_estimate(int fixed_lag){
-    //smoothing_weights=weights[time_stamp];
+    //smoothing_weights=weights.front();
     float _x=0.0,_y=0.0,_width=0.0,_height=0.0;
     Rect estimate;
     for (int i=0;i<n_particles;i++){
@@ -210,7 +215,7 @@ Rect particle_filter::smoothed_estimate(int fixed_lag){
 
 void particle_filter::update(Mat& image,bool hog=false)
 {
-    weights[time_stamp].resize(n_particles,0.0f);
+    vector<float> tmp_weights;
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[time_stamp][i];
@@ -222,22 +227,24 @@ void particle_filter::update(Mat& image,bool hog=false)
         if(bc_color != 1.0f ){ 
             prob = color_lilekihood.likelihood(bc_color);
         }
-        weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob;
+        float weight=weights[time_stamp-1][i]*prob;
         if(hog){
             calc_hog(part_roi,part_hog);
             if(part_hog.size()==reference_hog.size()){
                 double bc_hog = compareHist(reference_hog, part_hog, HISTCMP_BHATTACHARYYA);
                 double prob_hog = hog_likelihood.likelihood(bc_hog);
-                weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob_hog;
+                weight*=prob_hog;
             }
         }
+        tmp_weights.push_back(weight);
     }
+    weights.push_back(tmp_weights);
     resample(false);
 }
 
 void particle_filter::update_discrete(Mat& image,bool dirichlet=false,bool hog = false){
     double lambda=polya.getAlpha().sum();
-    weights[time_stamp].resize(n_particles,0.0f);
+    vector<float> tmp_weights;
     double eps= std::numeric_limits<double>::epsilon();
     double prob = 0.0f;
     for (int i=0;i<n_particles;i++){
@@ -259,13 +266,11 @@ void particle_filter::update_discrete(Mat& image,bool dirichlet=false,bool hog =
             }
         if(dirichlet) prob = polya.log_likelihood(counts)+k * log(lambda) - lgamma(k + 1.0) - lambda;
         else prob=discrete.log_likelihood(counts)+k * log(lambda) - lgamma(k + 1.0) - lambda;
-        weights[time_stamp].at(i)=log(weights[time_stamp-1][i])+prob;
+        float weight=log(weights[time_stamp-1][i])+prob;
 
         if(hog){
             calc_hog(part_roi,part_hog);
             hog_counts.setOnes(part_hog.total());
-            //cout << part_hog.total() << endl;
-            //cout << polya_hog.getAlpha().total() << endl; 
             if(part_hog.size()==reference_hog.size()){
                 for(unsigned int g=0;g<part_hog.total();g++){
                     double val=part_hog.at<float>(0, g);
@@ -276,12 +281,13 @@ void particle_filter::update_discrete(Mat& image,bool dirichlet=false,bool hog =
                     prob_hog = polya_hog.log_likelihood(hog_counts);
                 }else{
                     prob_hog = discrete_hog.log_likelihood(hog_counts);
-                }
-                    
-                weights[time_stamp].at(i)=weights[time_stamp-1][i]*prob_hog;
+                }                
+                weight*=prob_hog;
             }
         }
+        tmp_weights.push_back(weight);
     }
+    weights.push_back(tmp_weights);
     resample(true);
 }
 

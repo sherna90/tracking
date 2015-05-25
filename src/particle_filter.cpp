@@ -112,7 +112,7 @@ void particle_filter::smoother(int fixed_lag){
     static const float LAMBDA_POS = 0.5f*1.0f/(pow(POS_STD,2.0f));
     //cout << "------------------" << endl;
     if(fixed_lag<time_stamp){
-        for(int k=time_stamp;k>(time_stamp-fixed_lag);k--){
+        for(int k=time_stamp;k>(time_stamp-fixed_lag);--k){
             for (int j=0;j<n_particles;j++){
                 particle state=states[k][j];
                 for (int l=0;l<n_particles;l++){
@@ -213,7 +213,7 @@ Rect particle_filter::smoothed_estimate(int fixed_lag){
 }
 
 
-void particle_filter::update(Mat& image,bool hog=false)
+void particle_filter::update(Mat& image,Mat& fgmask,bool hog=false)
 {
     vector<float> tmp_weights;
     for (int i=0;i<n_particles;i++){
@@ -221,6 +221,7 @@ void particle_filter::update(Mat& image,bool hog=false)
         particle state=states[time_stamp][i];
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
         part_roi=image(boundingBox);
+        Mat roi_mask = Mat(fgmask,boundingBox);
         calc_hist_hsv(part_roi,part_hist);
         double bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
         double prob = 0.0f;
@@ -242,7 +243,7 @@ void particle_filter::update(Mat& image,bool hog=false)
     resample(false);
 }
 
-void particle_filter::update_discrete(Mat& image,bool dirichlet=false,bool hog = false){
+void particle_filter::update_discrete(Mat& image,Mat& fgmask,bool dirichlet=false,bool hog = false){
     double lambda=polya.getAlpha().sum();
     vector<float> tmp_weights;
     double eps= std::numeric_limits<double>::epsilon();
@@ -252,6 +253,7 @@ void particle_filter::update_discrete(Mat& image,bool dirichlet=false,bool hog =
         particle state=states[time_stamp][i];
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
         part_roi=image(boundingBox);
+        Mat smoothed_mask = Mat(fgmask,boundingBox);
         calc_hist_hsv(part_roi,part_hist);
         calc_hog(part_roi,part_hog);        
         Eigen::VectorXd counts,hog_counts;
@@ -264,10 +266,10 @@ void particle_filter::update_discrete(Mat& image,bool dirichlet=false,bool hog =
                 k+=val;             
                 counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
-        if(dirichlet) prob = polya.log_likelihood(counts)+k * log(lambda) - lgamma(k + 1.0) - lambda;
-        else prob=discrete.log_likelihood(counts)+k * log(lambda) - lgamma(k + 1.0) - lambda;
+        float poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
+        if(dirichlet) prob = polya.log_likelihood(counts)+poisson_log_prior;
+        else prob=discrete.log_likelihood(counts)+poisson_log_prior;
         float weight=log(weights[time_stamp-1][i])+prob;
-
         if(hog){
             calc_hog(part_roi,part_hog);
             hog_counts.setOnes(part_hog.total());
@@ -285,6 +287,7 @@ void particle_filter::update_discrete(Mat& image,bool dirichlet=false,bool hog =
                 weight*=prob_hog;
             }
         }
+        //cout << weight << ";" << counts.transpose() << endl;
         tmp_weights.push_back(weight);
     }
     weights.push_back(tmp_weights);
@@ -343,20 +346,21 @@ float particle_filter::getESS(){
     return ESS/n_particles;
 }
 
-void particle_filter::update_model(Mat& previous_frame,Rect& smoothed_estimate){
+void particle_filter::update_model(Mat& previous_frame,Mat& fgmask,Rect& smoothed_estimate){
     
     double eps= std::numeric_limits<double>::epsilon();
     Mat smoothed_hist;
     Mat smoothed_roi = Mat(previous_frame,smoothed_estimate);
-    calc_hist_hsv(smoothed_roi,smoothed_hist); 
+    Mat smoothed_mask = Mat(fgmask,smoothed_estimate);
+    calc_hist_hsv(smoothed_roi,smoothed_mask,smoothed_hist); 
     Eigen::VectorXd counts;
     counts.setOnes(smoothed_hist.total());
-    double k=1.0;
     for(int h=0;h<H_BINS;h++)
         for( int s = 0; s < S_BINS; s++ )
         {
             double val=smoothed_hist.at<float>(h, s);            
             counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
         }
-    //discrete.addTheta(counts,k);
+    //double alpha=0.1;
+    //discrete.addTheta(counts,alpha);
 }

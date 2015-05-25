@@ -59,10 +59,10 @@ public:
     Rect estimate(Mat& image,bool draw);
     Rect smoothed_estimate(int fixed_lag);
     void predict();
-    void update(Mat& image,bool hog);
-    void update_discrete(Mat& image,bool dirichlet,bool hog);
+    void update(Mat& image,Mat& fgmask,bool hog);
+    void update_discrete(Mat& image,Mat& fgmask,bool dirichlet,bool hog);
     void smoother(int fixed_lag);
-    void update_model(Mat& previous_frame,Rect& smoothed_estimate);
+    void update_model(Mat& previous_frame,Mat& fgmask,Rect& smoothed_estimate);
     float getESS();
     
 

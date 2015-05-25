@@ -10,6 +10,7 @@
 #define H_BINS 3
 #define S_BINS 3
 
+void calc_hist_hsv(cv::Mat& image, cv::Mat& mask, cv::Mat& hist);
 void calc_hist_hsv(cv::Mat& image, cv::Mat& hist);
 void calc_hog(cv::Mat& image,cv::Mat& hist);
 

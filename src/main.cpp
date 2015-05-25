@@ -5,6 +5,7 @@
  */
 
 #include <opencv2/video/tracking.hpp>
+ #include <opencv2/bgsegm.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
 #include <opencv2/tracking.hpp> //added
@@ -37,13 +38,14 @@ private:
     void getNextFilename(string& fn);
     void getPreviousFilename(string& fn);
     Rect intersect(Rect r1, Rect r2);
-    Mat current_frame,current_roi; 
+    Mat current_frame,current_roi,fgmask,segm; 
     Rect ground_truth,estimate,smoothed_estimate;
     queue<Rect> ground_truth_stack;
     MatND reference_hist,reference_hog,smoothed_hist;
     int keyboard;
     Rect2d boundingBox; //added
     Ptr<Tracker> tracker; //added
+    Ptr<BackgroundSubtractor> fgbg;
 
 };
 
@@ -81,7 +83,8 @@ int main(int argc, char* argv[]){
 
 App::App(string _firstFrameFilename, string _gtFilename){
     firstFrameFilename=_firstFrameFilename;
-    gtFilename=_gtFilename;  
+    gtFilename=_gtFilename;
+    fgbg = cv::bgsegm::createBackgroundSubtractorGMG(20, 0.7);  
 }
 
 void App::run(int num_particles, int fixed_lag){
@@ -110,12 +113,16 @@ void App::run(int num_particles, int fixed_lag){
     Performance smoother_algorithm;
     namedWindow("Tracker");
     while( (char)keyboard != 'q' && (char)keyboard != 27 ){
+        fgbg->apply(current_frame, fgmask);
+        current_frame.convertTo(segm, CV_8U, 0.5);
+        add(current_frame, Scalar(100, 100, 0), segm, fgmask);
         groundtruth_file >> current_gt;
         num_frames++;
         if(!filter.is_initialized())
         {
             updateGroundTruth(current_frame,current_gt,true);
             current_roi = Mat(current_frame,ground_truth);
+            Mat roi_mask = Mat(fgmask,boundingBox);
             calc_hist_hsv(current_roi,reference_hist);
             calc_hog(current_roi,reference_hog);
             filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows),reference_hist,reference_hog);
@@ -132,8 +139,8 @@ void App::run(int num_particles, int fixed_lag){
             tracker->update( current_frame, boundingBox );
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict();
-            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,WITHOUT_HOG);
-            //filter.update(current_frame,WITH_HOG);
+            filter.update_discrete(current_frame,fgmask,DIRICHLET_LIKELIHOOD,WITHOUT_HOG);
+            //filter.update(current_frame,fgmask,WITHOUT_HOG);
             filter.draw_particles(current_frame); 
             estimate=filter.estimate(current_frame,true);
             // fixed-lag backward pass
@@ -147,7 +154,7 @@ void App::run(int num_particles, int fixed_lag){
                 filter.smoother(fixed_lag);
                 smoothed_estimate=filter.smoothed_estimate(fixed_lag);
                 if(smoothed_estimate.area()>0){
-                    filter.update_model(previous_frame,smoothed_estimate);
+                    filter.update_model(previous_frame,fgmask,smoothed_estimate);
                     smoother_algorithm.calc(ground_truth_stack.front(),smoothed_estimate);
                 }
                 ground_truth_stack.pop();

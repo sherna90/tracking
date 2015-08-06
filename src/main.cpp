@@ -52,7 +52,7 @@ private:
 
 
 int main(int argc, char* argv[]){
-    int num_particles=300,fixed_lag=10;
+    int num_particles=300,fixed_lag=0;
     if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]){
 App::App(string _firstFrameFilename, string _gtFilename){
     firstFrameFilename=_firstFrameFilename;
     gtFilename=_gtFilename;
-    fgbg = cv::bgsegm::createBackgroundSubtractorGMG(20, 0.7);  
+    fgbg = cv::bgsegm::createBackgroundSubtractorGMG(5, 0.7);  
 }
 
 void App::run(int num_particles, int fixed_lag){
@@ -139,10 +139,10 @@ void App::run(int num_particles, int fixed_lag){
             tracker->update( current_frame, boundingBox );
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict();
-            filter.update_discrete(current_frame,fgmask,DIRICHLET_LIKELIHOOD,WITHOUT_HOG);
+            filter.update_discrete(current_frame,fgmask,MULTINOMIAL_LIKELIHOOD,WITHOUT_HOG);
             //filter.update(current_frame,fgmask,WITHOUT_HOG);
-            filter.draw_particles(current_frame); 
-            estimate=filter.estimate(current_frame,true);
+            filter.draw_particles(segm); 
+            estimate=filter.estimate(segm,true);
             // fixed-lag backward pass
             ground_truth_stack.push(ground_truth);
             if(fixed_lag<(num_frames)){
@@ -159,7 +159,7 @@ void App::run(int num_particles, int fixed_lag){
                 }
                 ground_truth_stack.pop();
             }
-            rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
+            rectangle( segm, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
             particle_filter_algorithm.calc(ground_truth,estimate);
             
             Rect IntboundingBox;
@@ -169,7 +169,7 @@ void App::run(int num_particles, int fixed_lag){
             IntboundingBox.height = (int)boundingBox.height;
             track_algorithm.calc(ground_truth,IntboundingBox);
         }     
-        imshow("Tracker", current_frame);
+        imshow("Tracker", segm);
         keyboard = waitKey( 30 );
         getNextFilename(current_filename);
         current_frame = imread(current_filename);

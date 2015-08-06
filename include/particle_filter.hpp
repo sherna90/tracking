@@ -10,6 +10,7 @@
 #include "dirichlet.hpp"
 #include "gaussian.hpp"
 #include "multinomial.hpp"
+#include "poisson.hpp"
 #include <time.h>
 #include <float.h>
 #include <vector>
@@ -26,8 +27,9 @@
 #define SIGMA_SHAPE 0.09
 #define ALPHA 0.7
 #define THRESHOLD 0.7
-#define DIRICHLET_LIKELIHOOD true
-#define MULTINOMIAL_LIKELIHOOD false
+#define DIRICHLET_LIKELIHOOD 0
+#define MULTINOMIAL_LIKELIHOOD 1
+#define POISSON_LIKELIHOOD 2
 #define WITH_HOG true
 #define WITHOUT_HOG false
 
@@ -60,7 +62,7 @@ public:
     Rect smoothed_estimate(int fixed_lag);
     void predict();
     void update(Mat& image,Mat& fgmask,bool hog);
-    void update_discrete(Mat& image,Mat& fgmask,bool dirichlet,bool hog);
+    void update_discrete(Mat& image,Mat& fgmask,int distribution,bool hog);
     void smoother(int fixed_lag);
     void update_model(Mat& previous_frame,Mat& fgmask,Rect& smoothed_estimate);
     float getESS();
@@ -78,6 +80,7 @@ private:
     Gaussian color_lilekihood,hog_likelihood;
     Mat reference_hist,reference_hog;
     Multinomial discrete,discrete_hog;
+    Poisson poisson;
 
 };
 

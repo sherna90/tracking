@@ -59,6 +59,7 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
         alpha_hog[g] = (val!=0.0) ? val : eps;
     }
     polya = dirichlet(alpha);
+    poisson = Poisson(alpha);
     alpha /=alpha.sum();
     discrete = Multinomial(alpha);  
     polya_hog = dirichlet(alpha_hog);
@@ -243,7 +244,7 @@ void particle_filter::update(Mat& image,Mat& fgmask,bool hog=false)
     resample(false);
 }
 
-void particle_filter::update_discrete(Mat& image,Mat& fgmask,bool dirichlet=false,bool hog = false){
+void particle_filter::update_discrete(Mat& image,Mat& fgmask,int distribution=MULTINOMIAL_LIKELIHOOD,bool hog = false){
     double lambda=polya.getAlpha().sum();
     vector<float> tmp_weights;
     double eps= std::numeric_limits<double>::epsilon();
@@ -267,9 +268,11 @@ void particle_filter::update_discrete(Mat& image,Mat& fgmask,bool dirichlet=fals
                 counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
         float poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
-        if(dirichlet) prob = polya.log_likelihood(counts)+poisson_log_prior;
-        else prob=discrete.log_likelihood(counts)+poisson_log_prior;
+        if(distribution==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts)+poisson_log_prior;
+        else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts)+poisson_log_prior;
+        else prob=poisson.log_likelihood(counts);
         float weight=log(weights[time_stamp-1][i])+prob;
+        //cout << "weight:" << prob << "; hist:" << counts.transpose() << endl;
         if(hog){
             calc_hog(part_roi,part_hog);
             hog_counts.setOnes(part_hog.total());
@@ -279,15 +282,16 @@ void particle_filter::update_discrete(Mat& image,Mat& fgmask,bool dirichlet=fals
                     hog_counts[g] = (val!=0.0) ? val : eps;
                 }
                 double prob_hog;
-                if(dirichlet){
+                if(distribution==DIRICHLET_LIKELIHOOD){
                     prob_hog = polya_hog.log_likelihood(hog_counts);
                 }else{
                     prob_hog = discrete_hog.log_likelihood(hog_counts);
                 }                
-                weight*=prob_hog;
+                weight+=prob_hog;
             }
         }
         //cout << weight << ";" << counts.transpose() << endl;
+        //cout << weight << ";"  << endl;
         tmp_weights.push_back(weight);
     }
     weights.push_back(tmp_weights);
@@ -352,7 +356,7 @@ void particle_filter::update_model(Mat& previous_frame,Mat& fgmask,Rect& smoothe
     Mat smoothed_hist;
     Mat smoothed_roi = Mat(previous_frame,smoothed_estimate);
     Mat smoothed_mask = Mat(fgmask,smoothed_estimate);
-    calc_hist_hsv(smoothed_roi,smoothed_mask,smoothed_hist); 
+    calc_hist_hsv(smoothed_roi,smoothed_hist); 
     Eigen::VectorXd counts;
     counts.setOnes(smoothed_hist.total());
     for(int h=0;h<H_BINS;h++)
@@ -363,4 +367,5 @@ void particle_filter::update_model(Mat& previous_frame,Mat& fgmask,Rect& smoothe
         }
     //double alpha=0.1;
     //discrete.addTheta(counts,alpha);
+    //poisson.addLambda(counts);
 }

@@ -60,5 +60,6 @@ void Multinomial::addTheta(VectorXd &value,double &alpha)
     if(sufficient.size()==0)
         this->sufficient=VectorXd(value.size());
     sufficient+=value;
-    theta= (sufficient.array()+alpha) / (sufficient.sum() +value.cols()*alpha);
+    theta= (sufficient.array()+alpha);
+    theta/=(sufficient.sum() +value.cols()*alpha);
 }

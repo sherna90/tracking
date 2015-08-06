@@ -121,27 +121,14 @@ void App::run(int num_particles, int fixed_lag){
         if(!filter.is_initialized())
         {
             updateGroundTruth(current_frame,current_gt,true);
-            cout << "gt.x: " << ground_truth.x << endl;
-            cout << "gt.y: " << ground_truth.y << endl;
-            cout << "gt.width: " << ground_truth.width << endl;
-            cout << "gt.height: " << ground_truth.height << endl;
-            Size f_size = current_frame.size();
-            cout << "Frame.width: " << f_size.width << endl;
-            cout << "Frame.height: " << f_size.height << endl;
-
+            //Fixes signs in width and height of ROI
             ground_truth.x += ground_truth.width;
             ground_truth.y += ground_truth.height;
             ground_truth.width *= -1;
             ground_truth.height *= -1;
 
-            cout << "gt.x: " << ground_truth.x << endl;
-            cout << "gt.y: " << ground_truth.y << endl;
-            cout << "gt.width: " << ground_truth.width << endl;
-            cout << "gt.height: " << ground_truth.height << endl;
-
-            current_roi = Mat(current_frame,ground_truth); // <- Assertion error in ROI
-            imshow("ROI", current_roi);
-
+            current_roi = Mat(current_frame,ground_truth);
+            
             Mat roi_mask = Mat(fgmask,boundingBox);
             calc_hist_hsv(current_roi,reference_hist);
             calc_hog(current_roi,reference_hog);

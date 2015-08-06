@@ -1,6 +1,6 @@
 /**
  * @file app.cpp
- * @brief visual tracking main application 
+ * @brief visual tracking main application
  * @author Sergio Hernandez
  */
 
@@ -38,7 +38,7 @@ private:
     void getNextFilename(string& fn);
     void getPreviousFilename(string& fn);
     Rect intersect(Rect r1, Rect r2);
-    Mat current_frame,current_roi,fgmask,segm; 
+    Mat current_frame,current_roi,fgmask,segm;
     Rect ground_truth,estimate,smoothed_estimate;
     queue<Rect> ground_truth_stack;
     MatND reference_hist,reference_hog,smoothed_hist;
@@ -84,12 +84,12 @@ int main(int argc, char* argv[]){
 App::App(string _firstFrameFilename, string _gtFilename){
     firstFrameFilename=_firstFrameFilename;
     gtFilename=_gtFilename;
-    fgbg = cv::bgsegm::createBackgroundSubtractorGMG(20, 0.7);  
+    fgbg = cv::bgsegm::createBackgroundSubtractorGMG(20, 0.7);
 }
 
 void App::run(int num_particles, int fixed_lag){
     current_frame = imread(firstFrameFilename);
-    ifstream groundtruth_file; 
+    ifstream groundtruth_file;
     groundtruth_file.open(gtFilename.c_str(),ifstream::in);
     string current_filename(firstFrameFilename),current_gt;
     //added to tracking algorithm
@@ -121,7 +121,27 @@ void App::run(int num_particles, int fixed_lag){
         if(!filter.is_initialized())
         {
             updateGroundTruth(current_frame,current_gt,true);
-            current_roi = Mat(current_frame,ground_truth);
+            cout << "gt.x: " << ground_truth.x << endl;
+            cout << "gt.y: " << ground_truth.y << endl;
+            cout << "gt.width: " << ground_truth.width << endl;
+            cout << "gt.height: " << ground_truth.height << endl;
+            Size f_size = current_frame.size();
+            cout << "Frame.width: " << f_size.width << endl;
+            cout << "Frame.height: " << f_size.height << endl;
+
+            ground_truth.x += ground_truth.width;
+            ground_truth.y += ground_truth.height;
+            ground_truth.width *= -1;
+            ground_truth.height *= -1;
+
+            cout << "gt.x: " << ground_truth.x << endl;
+            cout << "gt.y: " << ground_truth.y << endl;
+            cout << "gt.width: " << ground_truth.width << endl;
+            cout << "gt.height: " << ground_truth.height << endl;
+
+            current_roi = Mat(current_frame,ground_truth); // <- Assertion error in ROI
+            imshow("ROI", current_roi);
+
             Mat roi_mask = Mat(fgmask,boundingBox);
             calc_hist_hsv(current_roi,reference_hist);
             calc_hog(current_roi,reference_hog);
@@ -141,7 +161,7 @@ void App::run(int num_particles, int fixed_lag){
             filter.predict();
             filter.update_discrete(current_frame,fgmask,DIRICHLET_LIKELIHOOD,WITHOUT_HOG);
             //filter.update(current_frame,fgmask,WITHOUT_HOG);
-            filter.draw_particles(current_frame); 
+            filter.draw_particles(current_frame);
             estimate=filter.estimate(current_frame,true);
             // fixed-lag backward pass
             ground_truth_stack.push(ground_truth);
@@ -159,22 +179,22 @@ void App::run(int num_particles, int fixed_lag){
                 }
                 ground_truth_stack.pop();
             }
-            rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 ); 
+            rectangle( current_frame, boundingBox, Scalar( 255, 0, 0 ), 2, 1 );
             particle_filter_algorithm.calc(ground_truth,estimate);
-            
+
             Rect IntboundingBox;
             IntboundingBox.x = (int)boundingBox.x;
             IntboundingBox.y = (int)boundingBox.y;
             IntboundingBox.width = (int)boundingBox.width;
             IntboundingBox.height = (int)boundingBox.height;
             track_algorithm.calc(ground_truth,IntboundingBox);
-        }     
+        }
         imshow("Tracker", current_frame);
         keyboard = waitKey( 30 );
         getNextFilename(current_filename);
         current_frame = imread(current_filename);
         if(current_frame.empty()){
-            //cout << "average precision:" << avg_precision/num_frames << ",average recall:" << avg_recall/num_frames << endl;         
+            //cout << "average precision:" << avg_precision/num_frames << ",average recall:" << avg_recall/num_frames << endl;
             //test performance object
             cout << "track algorithm >> " << "average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
             cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
@@ -182,8 +202,8 @@ void App::run(int num_particles, int fixed_lag){
             exit(EXIT_FAILURE);
         }
     }
-     
-           
+
+
 }
 
 void App::getNextFilename(string& fn){
@@ -247,18 +267,18 @@ void App::updateGroundTruth(Mat frame,string str,bool draw=false){
         iss2 >> y1;
         pt[0][i].x = cvRound(x1);
         pt[0][i].y = cvRound(y1);
-        
+
     }
 
     if(draw) {
         rectangle( frame, pt[0][1], pt[0][3], Scalar(0,255,0), 1, LINE_AA );
     }
-    ground_truth=Rect(pt[0][1].x,pt[0][1].y,cvRound(pt[0][3].x-pt[0][1].x),cvRound(pt[0][3].y-pt[0][1].y));    
+    ground_truth=Rect(pt[0][1].x,pt[0][1].y,cvRound(pt[0][3].x-pt[0][1].x),cvRound(pt[0][3].y-pt[0][1].y));
 }
 
 Rect App::intersect(Rect r1, Rect r2) //unused function.
-{ 
-    return r1 | r2; 
+{
+    return r1 | r2;
 }
 
 void App::help(){

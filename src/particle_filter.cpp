@@ -296,21 +296,8 @@ float particle_filter::getESS(){
     return ESS/n_particles;
 }
 
-void particle_filter::update_model(Mat& previous_frame,Rect& smoothed_estimate){
-
-    double eps= std::numeric_limits<double>::epsilon();
-    Mat smoothed_hist;
-    Mat smoothed_roi = Mat(previous_frame,smoothed_estimate);
-    calc_hist_hsv(smoothed_roi,smoothed_hist);
-    Eigen::VectorXd counts;
-    counts.setOnes(smoothed_hist.total());
-    for(int h=0;h<H_BINS;h++)
-        for( int s = 0; s < S_BINS; s++ )
-        {
-            double val=smoothed_hist.at<float>(h, s);
-            counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
-        }
+void particle_filter::update_model(VectorXd alpha_new){
     //double alpha=0.1;
     //discrete.addTheta(counts,alpha);
-    //poisson.addLambda(counts);
+    poisson.setLambda(alpha_new);
 }

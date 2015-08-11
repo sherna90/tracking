@@ -34,7 +34,7 @@ public:
     void run(int num_particles);
 
 private:
-    double marginal_likelihood(int num_particles,int time_step);
+    particle_filter marginal_likelihood(int num_particles,int time_step);
     string FrameFilename, gtFilename, firstFrameFilename;
     void getNextFilename(string& fn);
     Rect updateGroundTruth(Mat frame, string str, bool draw);
@@ -105,7 +105,7 @@ PMMH::PMMH(string _firstFrameFilename, string _gtFilename){
 
 }
 
-double PMMH::marginal_likelihood(int num_particles,int time_step){
+particle_filter PMMH::marginal_likelihood(int num_particles,int time_step){
     particle_filter pmmh_filter(num_particles);
     MatND reference_hist,reference_hog;
     for(int k=0;k <time_step;k++){    
@@ -123,38 +123,24 @@ double PMMH::marginal_likelihood(int num_particles,int time_step){
             pmmh_filter.update_discrete(current_frame,POISSON_LIKELIHOOD,false);
         }
     }
-    return pmmh_filter.marginal_likelihood;
+    return pmmh_filter;
 }
 
 void PMMH::run(int num_particles){
     string current_filename;
     MatND reference_hist,reference_hog;
-    particle_filter filter(num_particles);
+    VectorXd alpha_prop;
     namedWindow("Tracker");
     for(int t=0;t < (int) images.size();t++){
         cout << "---------------" << endl;
         cout << "Time Step t=" << t << endl;
-        current_filename = firstFrameFilename;
-        Mat current_frame = images[t];
-        string current_gt = gt_vect[t];
-        Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
-        if(!filter.is_initialized()){
-            Mat current_roi = Mat(current_frame,ground_truth);
-            calc_hist_hsv(current_roi,reference_hist);
-            calc_hog(current_roi,reference_hog);
-            filter.initialize(ground_truth,current_frame.size(),reference_hist,reference_hog);
-        }
-        else{
-            filter.predict();
-            //filter.update(current_frame,true);
-            filter.update_discrete(current_frame,POISSON_LIKELIHOOD,false);
-            filter.estimate(current_frame,false);
-            cout << "PMMH Marginal Likelihood : " << marginal_likelihood(num_particles,t) << endl;
-        }
-        filter.draw_particles(current_frame);
-        cout << "Filter Marginal Likelihood : " << filter.marginal_likelihood << endl;
-        imshow("Tracker",current_frame);
-        waitKey(30); 
+        particle_filter filter = marginal_likelihood(num_particles,t);
+        cout << "Filter Marginal Likelihood : " << filter.marginal_likelihood  << endl;
+        //for(int n=0;n<10<n++){
+
+        //}
+        //imshow("Tracker",current_frame);
+        //waitKey(30); 
     }
 }
 

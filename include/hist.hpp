@@ -6,8 +6,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include "opencv2/highgui/highgui.hpp"
 
-#define H_BINS 100
-#define S_BINS 100
+#define H_BINS 3
+#define S_BINS 3
 
 void calc_hist_hsv(cv::Mat& image, cv::Mat& mask, cv::Mat& hist);
 void calc_hist_hsv(cv::Mat& image, cv::Mat& hist);

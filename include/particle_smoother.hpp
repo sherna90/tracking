@@ -15,7 +15,6 @@
 #include <float.h>
 #include <vector>
 #include <iostream>
-#include <random>
 
 #define TRANS_X_STD 0.5
 #define TRANS_Y_STD 1.0
@@ -48,29 +47,23 @@ typedef struct particle {
 } particle;
 
 
-class particle_filter {
+class particle_smoother {
 public:
     int n_particles;
-    double marginal_likelihood;
-    vector<particle> states;
-    vector<double>  weights;
-    particle_filter(int _n_particles);
-    bool is_initialized();
-    void initialize(Rect roi,Size im_size,Mat& reference_hist,Mat& reference_hog);
-    void draw_particles(Mat& image);
-    Rect estimate(Mat& image,bool draw);
-    void predict();
-    void update(Mat& image,bool hog);
-    void update_discrete(Mat& image,int distribution,bool hog);
+    vector< vector<particle> > states;
+    vector< vector<float> >  weights;
+    vector<float>  smoothing_weights;
+    particle_smoother(int _n_particles);
+    particle_smoother(int _n_particles,VectorXd alpha);
+    Rect smoothed_estimate(int fixed_lag);
     void smoother(int fixed_lag);
-    void update_model(Mat& previous_frame,Rect& smoothed_estimate);
+    void update_model(Mat& previous_frame,Mat& fgmask,Rect& smoothed_estimate);
     float getESS();
     
 
 private:
     dirichlet polya,polya_hog;
     int time_stamp;
-    void resample();
     float ESS;
     bool initialized;
     RNG rng;

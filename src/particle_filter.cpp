@@ -10,6 +10,7 @@ particle_filter::particle_filter(int _n_particles) {
     n_particles = _n_particles;
     time_stamp=0;
     initialized=false;
+    marginal_likelihood=0.0;
     //rng(0xFFFFFFFF);
 }
 
@@ -18,15 +19,12 @@ bool particle_filter::is_initialized() {
 }
 
 
-
 void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat& _reference_hog) {
-    //weights[0].resize(n_particles);
+    weights.resize(n_particles);
     reference_hist=_reference_hist;
     reference_hog=_reference_hog;
+    reference_roi=roi;
     im_size=_im_size;
-    smoothing_weights.resize(n_particles);
-    vector<particle> tmp_states;
-    vector<float> tmp_weights;
     for (int i=0;i<n_particles;i++){
         particle state;
         state.x=rng.uniform(0, im_size.width-roi.width);
@@ -34,29 +32,29 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
         state.dx=rng.gaussian(VEL_STD);
         state.dy=rng.gaussian(VEL_STD);
         state.scale=1.f+rng.gaussian(SCALE_STD);
-        tmp_states.push_back(state);
-        tmp_weights.push_back(1.f/n_particles);
+        states.push_back(state);
+        weights.push_back(1.f/n_particles);
         ESS=0.0f;
-        reference_roi=roi;
         state.width=reference_roi.width;
         state.height=reference_roi.height;
     }
-    states.push_back(tmp_states);
-    weights.push_back(tmp_weights);
     color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
     hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
     double eps= std::numeric_limits<double>::epsilon();
     Eigen::VectorXd alpha,alpha_hog;
     alpha.setOnes(reference_hist.total());
+    default_random_engine generator;
     for(int h=0;h<H_BINS;h++)
         for( int s = 0; s < S_BINS; s++ ){
             double val=reference_hist.at<float>(h, s);
-            alpha[h*S_BINS+s] = (val!=0.0) ? val : eps;
+            gamma_distribution<double> color_prior(val,1.0);
+            alpha[h*S_BINS+s] = (val!=0.0) ? color_prior(generator) : eps;
         }
     alpha_hog.setOnes(reference_hog.total());
     for(unsigned int g=0;g<reference_hog.total();g++){
         double val=reference_hog.at<float>(0,g);
-        alpha_hog[g] = (val!=0.0) ? val : eps;
+        gamma_distribution<double> hog_prior(val,1.0);
+        alpha_hog[g] = (val!=0.0) ? hog_prior(generator) : eps;
     }
     polya = dirichlet(alpha);
     poisson = Poisson(alpha);
@@ -65,7 +63,7 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
     polya_hog = dirichlet(alpha_hog);
     alpha_hog /=alpha_hog.sum();
     discrete_hog = Multinomial(alpha_hog);
-    cout << "Particle filter initialized" << endl;
+    //cout << "Particle filter initialized" << endl;
     initialized=true;
 }
 
@@ -73,9 +71,8 @@ void particle_filter::predict(){
     if(initialized==true){
         time_stamp++;
         vector<particle> tmp_new_states;
-        vector<particle> tmp_states=states.front();
         for (int i=0;i<n_particles;i++){
-            particle state=tmp_states[i];
+            particle state=states[i];
             float _x,_y,_width,_height;
             _x=cvRound(state.x+state.dx+rng.gaussian(POS_STD));
             _y=cvRound(state.y+state.dy+rng.gaussian(POS_STD));
@@ -101,59 +98,15 @@ void particle_filter::predict(){
             }
             tmp_new_states.push_back(state);
         }
-        states.push_back(tmp_new_states);
-    }
-}
-
-void particle_filter::smoother(int fixed_lag){
-    smoothing_weights=weights.front();
-    vector<float> log_backward_probability(n_particles,0.0f);
-    vector<float> normalized_weights(n_particles,0.0f);
-    vector<float> sum_weights(n_particles,0.0f);
-    static const float LAMBDA_POS = 0.5f*1.0f/(pow(POS_STD,2.0f));
-    //cout << "------------------" << endl;
-    if(fixed_lag<time_stamp){
-        for(int k=time_stamp;k>(time_stamp-fixed_lag);--k){
-            for (int j=0;j<n_particles;j++){
-                particle state=states[k][j];
-                for (int l=0;l<n_particles;l++){
-                    particle past_state=states[k-1][l];
-                    float sum=LAMBDA_POS*pow(state.x-past_state.x-past_state.dx,2.0);
-                    sum+=LAMBDA_POS*pow(state.y-past_state.y-past_state.dy,2.0);
-                    log_backward_probability[l] = log(weights[k-1].at(l))-log(2.0f*M_PI)-2.0f*log(POS_STD)-sum;
-                }
-                float logsumexp=0.0f;
-                float max_value = *max_element(log_backward_probability.begin(), log_backward_probability.end());
-                for (unsigned int h=0; h<log_backward_probability.size(); h++) {
-                    logsumexp+=exp(log_backward_probability[h]-max_value);
-                }
-                sum_weights[j]=max_value+log(logsumexp);
-            }
-            //cout << "num frame :" << time_stamp << "; fixed-lag:" <<  k << endl;
-
-            for (int i=0;i<n_particles;i++){
-                particle past_state=states[k-1][i];
-                double backward_probability=0.0f;
-                for (int j=0;j<n_particles;j++){
-                    particle state=states[k][j];
-                    float sum=LAMBDA_POS*pow(state.x-past_state.x-past_state.dx,2.0);
-                    sum+=LAMBDA_POS*pow(state.y-past_state.y-past_state.dy,2.0);
-                    float log_prob=log(weights[k-1].at(i))-log(2.0f*M_PI)-2.0f*log(POS_STD)-sum;
-                    backward_probability+=exp(log_prob-sum_weights[j]);
-                }
-                smoothing_weights.at(i) = weights[k-1].at(i)*backward_probability;
-                //cout << backward_probability << endl;
-                //smoothing_weights.at(i) = weights[k-1].at(i);
-
-            }
-        }
+        states.swap(tmp_new_states);
+        tmp_new_states = vector<particle>();
     }
 }
 
 
 void particle_filter::draw_particles(Mat& image){
     for (int i=0;i<n_particles;i++){
-        particle state=states[time_stamp][i];
+        particle state=states[i];
         Point pt1,pt2;
         pt1.x=cvRound(state.x);
         pt1.y=cvRound(state.y);
@@ -167,11 +120,11 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     float _x=0.0,_y=0.0,_width=0.0,_height=0.0;
     Rect estimate;
     for (int i=0;i<n_particles;i++){
-        particle state=states[time_stamp][i];
-        _x+=weights[time_stamp][i]*state.x;
-        _y+=weights[time_stamp][i]*state.y;
-        _width+=weights[time_stamp][i]*state.width;
-        _height+=weights[time_stamp][i]*state.height;
+        particle state=states[i];
+        _x+=weights[i]*state.x;
+        _y+=weights[i]*state.y;
+        _width+=weights[i]*state.width;
+        _height+=weights[i]*state.height;
     }
     Point pt1,pt2;
     pt1.x=cvRound(_x);
@@ -201,83 +154,61 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     return estimate;
 }
 
-Rect particle_filter::smoothed_estimate(int fixed_lag){
-    //smoothing_weights=weights.front();
-    float _x=0.0,_y=0.0,_width=0.0,_height=0.0;
-    Rect estimate;
-    for (int i=0;i<n_particles;i++){
-        particle state=states[time_stamp-fixed_lag][i];
-        _x+=smoothing_weights[i]*state.x;
-        _y+=smoothing_weights[i]*state.y;
-        _width+=smoothing_weights[i]*state.width;
-        _height+=smoothing_weights[i]*state.height;
-    }
-    Point pt1,pt2;
-    pt1.x=cvRound(_x);
-    pt1.y=cvRound(_y);
-    pt2.x=cvRound(_x+_width);
-    pt2.y=cvRound(_y+_height);
-    if(pt2.x<im_size.width && pt1.x>=0 && pt2.y<im_size.height && pt1.y>=0){
-        estimate=Rect(pt1.x,pt1.y,cvRound(pt2.x-pt1.x),cvRound(pt2.y-pt1.y));
-    }
-    else{
-        cout << "oops!" << endl;
-    }
-    return estimate;
-}
 
-
-void particle_filter::update(Mat& image,Mat& fgmask,bool hog=false)
+void particle_filter::update(Mat& image,bool hog=false)
 {
-    vector<float> tmp_weights;
+    vector<double> tmp_weights;
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
-        particle state=states[time_stamp][i];
+        particle state=states[i];
+        cout << "state : x=" << state.x << ",y=" << state.y << ",width=" << state.width << ",height="<< state.height << endl;
+        if (state.width < 0){
+          state.width = reference_roi.width;
+        }
+        if (state.height < 0){
+          state.height = reference_roi.width;
+        }
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
+        cout << boundingBox << endl;
         part_roi=image(boundingBox);
-        Mat roi_mask = Mat(fgmask,boundingBox);
         calc_hist_hsv(part_roi,part_hist);
         double bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
         double prob = 0.0f;
         if(bc_color != 1.0f ){
-            prob = color_lilekihood.likelihood(bc_color);
+            prob = color_lilekihood.log_likelihood(bc_color);
         }
-        float weight=weights[time_stamp-1][i]*prob;
+        float weight=weights[i]+prob;
         if(hog){
             calc_hog(part_roi,part_hog);
             if(part_hog.size()==reference_hog.size()){
                 double bc_hog = compareHist(reference_hog, part_hog, HISTCMP_BHATTACHARYYA);
-                double prob_hog = hog_likelihood.likelihood(bc_hog);
-                weight*=prob_hog;
+                double prob_hog = hog_likelihood.log_likelihood(bc_hog);
+                weight+=prob_hog;
             }
         }
         tmp_weights.push_back(weight);
     }
-    weights.push_back(tmp_weights);
-    resample(false);
+    weights.swap(tmp_weights);
+    tmp_weights = vector<double>();
+    resample();
 }
 
-void particle_filter::update_discrete(Mat& image,Mat& fgmask,int distribution=MULTINOMIAL_LIKELIHOOD,bool hog = false){
+void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LIKELIHOOD,bool hog = false){
     double lambda=polya.getAlpha().sum();
-    vector<float> tmp_weights;
+    vector<double> tmp_weights;
     double eps= std::numeric_limits<double>::epsilon();
     double prob = 0.0f;
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
-        particle state=states[time_stamp][i];
-
-        // Fix when points are not in proper order (negative width or height)
+        particle state=states[i];
         if (state.width < 0){
-          state.x += state.width;
-          state.width *= -1;
+          state.width = reference_roi.width;
         }
         if (state.height < 0){
-          state.y += state.height;
-          state.height *= -1;
+          state.height = reference_roi.width;
         }
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
         part_roi=image(boundingBox);
-        Mat smoothed_mask = Mat(fgmask,boundingBox);
         calc_hist_hsv(part_roi,part_hist);
         calc_hog(part_roi,part_hog);
         Eigen::VectorXd counts,hog_counts;
@@ -290,12 +221,12 @@ void particle_filter::update_discrete(Mat& image,Mat& fgmask,int distribution=MU
                 k+=val;
                 counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
+
         float poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
         if(distribution==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts)+poisson_log_prior;
         else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts)+poisson_log_prior;
         else prob=poisson.log_likelihood(counts);
-        float weight=log(weights[time_stamp-1][i])+prob;
-        //cout << "weight:" << prob << "; hist:" << counts.transpose() << endl;
+        float weight=weights[i]+prob;
         if(hog){
             calc_hog(part_roi,part_hog);
             hog_counts.setOnes(part_hog.total());
@@ -313,42 +244,34 @@ void particle_filter::update_discrete(Mat& image,Mat& fgmask,int distribution=MU
                 weight+=prob_hog;
             }
         }
-        //cout << weight << ";" << counts.transpose() << endl;
-        //cout << weight << ";"  << endl;
         tmp_weights.push_back(weight);
     }
-    weights.push_back(tmp_weights);
-    resample(true);
+    weights.swap(tmp_weights);
+    tmp_weights = vector<double>();
+    resample();
 }
 
-void particle_filter::resample(bool log_scale=false){
-    vector<float> cumulative_sum(n_particles);
-    vector<float> normalized_weights(n_particles);
-    vector<float> squared_normalized_weights(n_particles);
+void particle_filter::resample(){
+    vector<double> cumulative_sum(n_particles);
+    vector<double> normalized_weights(n_particles);
+    vector<double> squared_normalized_weights(n_particles);
     float logsumexp=0.0;
-    if(log_scale){
-        float max_value = *max_element(weights[time_stamp].begin(), weights[time_stamp].end());
-        for (unsigned int i=0; i<weights[time_stamp].size(); i++) {
-            logsumexp+=exp(weights[time_stamp][i]-max_value);
-        }
-        logsumexp=max_value+log(logsumexp);
+    float max_value = *max_element(weights.begin(), weights.end());
+    for (unsigned int i=0; i<weights.size(); i++) {
+        logsumexp+=exp(weights[i]-max_value);
     }
-    Scalar s = sum(weights[time_stamp]);
-    for (unsigned int i=0; i<weights[time_stamp].size(); i++) {
-        if(log_scale){
-            normalized_weights[i] = exp(weights[time_stamp][i]-logsumexp);
-            }
-        else{
-            normalized_weights[i] = weights[time_stamp][i] / s[0];
-        }
+    float norm_const=max_value+log(logsumexp);
+    for (unsigned int i=0; i<weights.size(); i++) {
+        normalized_weights[i] = exp(weights[i]-norm_const);
     }
-    for (unsigned int i=0; i<weights[time_stamp].size(); i++) {
+    marginal_likelihood = marginal_likelihood + logsumexp - log(n_particles); 
+    for (unsigned int i=0; i<weights.size(); i++) {
         squared_normalized_weights[i]=pow(normalized_weights[i],2.0f);
         if (i==0) {
             cumulative_sum[i] = normalized_weights[i];
         } else {
-                cumulative_sum[i] = cumulative_sum[i-1] + normalized_weights[i];
-            }
+            cumulative_sum[i] = cumulative_sum[i-1] + normalized_weights[i];
+        }
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     ESS=1.0f/sum_squared_weights[0];
@@ -356,16 +279,16 @@ void particle_filter::resample(bool log_scale=false){
         vector<particle> new_states;
         for (int i=0; i<n_particles; i++) {
             float uni_rand = rng.uniform(0.0f,1.0f);
-            vector<float>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
+            vector<double>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
             int ipos = distance(cumulative_sum.begin(), pos);
-            particle state=states[time_stamp][ipos];
+            particle state=states[ipos];
             new_states.push_back(state);
-            weights[time_stamp][i]=1.0f/n_particles;
+            weights[i]=1.0f/n_particles;
         }
-        states[time_stamp].swap(new_states);
+        states.swap(new_states);
     }
     else{
-        weights[time_stamp].swap(normalized_weights);
+        weights.swap(normalized_weights);
     }
 }
 
@@ -373,12 +296,11 @@ float particle_filter::getESS(){
     return ESS/n_particles;
 }
 
-void particle_filter::update_model(Mat& previous_frame,Mat& fgmask,Rect& smoothed_estimate){
+void particle_filter::update_model(Mat& previous_frame,Rect& smoothed_estimate){
 
     double eps= std::numeric_limits<double>::epsilon();
     Mat smoothed_hist;
     Mat smoothed_roi = Mat(previous_frame,smoothed_estimate);
-    Mat smoothed_mask = Mat(fgmask,smoothed_estimate);
     calc_hist_hsv(smoothed_roi,smoothed_hist);
     Eigen::VectorXd counts;
     counts.setOnes(smoothed_hist.total());

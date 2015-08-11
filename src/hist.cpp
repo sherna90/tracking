@@ -17,8 +17,8 @@ void calc_hist_hsv(Mat& image,  Mat& Mask, Mat& hist)
     int channels[] = { 0, 1 };
     Mat hsv_base;
     cvtColor( image, hsv_base, COLOR_BGR2HSV );
-    erode(hsv_base, hsv_base, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)) );
-    dilate( hsv_base, hsv_base, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)) ); 
+    //erode(hsv_base, hsv_base, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)) );
+    //dilate( hsv_base, hsv_base, getStructuringElement(MORPH_ELLIPSE, Size(4, 4)) ); 
     calcHist(&hsv_base, 1, channels, Mask, hist, 2, hist_size, ranges, true, false);
 }
 
@@ -31,7 +31,7 @@ void calc_hist_hsv(Mat& image, Mat& hist)
     int channels[] = { 0, 1 };
     Mat hsv_base;
     cvtColor( image, hsv_base, COLOR_BGR2HSV );
-    //colorReduce(image,64);
+    colorReduce(image,(int) H_BINS*S_BINS);
     calcHist(&hsv_base, 1, channels, Mat(), hist, 2, hist_size, ranges, true, false);
     //normalize(hist, hist,1.0);
 }

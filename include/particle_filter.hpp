@@ -63,7 +63,7 @@ public:
     void update(Mat& image,bool hog);
     void update_discrete(Mat& image,int distribution,bool hog);
     void smoother(int fixed_lag);
-    void update_model(Mat& previous_frame,Rect& smoothed_estimate);
+    void update_model(VectorXd alpha);
     float getESS();
     
 

@@ -43,7 +43,6 @@ private:
     int keyboard;
     Rect2d boundingBox; //added
     Ptr<Tracker> tracker; //added
-    Ptr<BackgroundSubtractor> fgbg;
 
 };
 
@@ -80,7 +79,6 @@ int main(int argc, char* argv[]){
 App::App(string _firstFrameFilename, string _gtFilename){
     firstFrameFilename=_firstFrameFilename;
     gtFilename=_gtFilename;
-    fgbg = cv::bgsegm::createBackgroundSubtractorGMG(5, 0.7);
 }
 
 void App::run(int num_particles, int fixed_lag){
@@ -106,12 +104,8 @@ void App::run(int num_particles, int fixed_lag){
     //test object performance
     Performance track_algorithm;
     Performance particle_filter_algorithm;
-    Performance smoother_algorithm;
     namedWindow("Tracker");
     while( (char)keyboard != 'q' && (char)keyboard != 27 ){
-        fgbg->apply(current_frame, fgmask);
-        current_frame.convertTo(segm, CV_8U, 0.5);
-        add(current_frame, Scalar(100, 100, 0), segm, fgmask);
         groundtruth_file >> current_gt;
         num_frames++;
         if(!filter.is_initialized())
@@ -135,29 +129,11 @@ void App::run(int num_particles, int fixed_lag){
             tracker->update( current_frame, boundingBox );
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict();
-            filter.update_discrete(current_frame,fgmask,MULTINOMIAL_LIKELIHOOD,WITHOUT_HOG);
-            //filter.update(current_frame,fgmask,WITHOUT_HOG);
+            filter.update(current_frame,WITHOUT_HOG);
             filter.draw_particles(segm);
             estimate=filter.estimate(segm,true);
             // fixed-lag backward pass
-            ground_truth_stack.push(ground_truth);
-            if(fixed_lag<(num_frames)){
-                string previous_filename=current_filename;
-                for(int l=(num_frames);l>(num_frames-fixed_lag);--l){
-                    getPreviousFilename(previous_filename);
-                }
-                Mat previous_frame = imread(previous_filename);
-                filter.smoother(fixed_lag);
-                smoothed_estimate=filter.smoothed_estimate(fixed_lag);
-                if(smoothed_estimate.area()>0){
-                    filter.update_model(previous_frame,fgmask,smoothed_estimate);
-                    smoother_algorithm.calc(ground_truth_stack.front(),smoothed_estimate);
-                }
-                ground_truth_stack.pop();
-            }
-            rectangle( segm, boundingBox, Scalar( 255, 0, 0 ), 2, 1 );
             particle_filter_algorithm.calc(ground_truth,estimate);
-
             Rect IntboundingBox;
             IntboundingBox.x = (int)boundingBox.x;
             IntboundingBox.y = (int)boundingBox.y;
@@ -165,7 +141,7 @@ void App::run(int num_particles, int fixed_lag){
             IntboundingBox.height = (int)boundingBox.height;
             track_algorithm.calc(ground_truth,IntboundingBox);
         }
-        imshow("Tracker", segm);
+        imshow("Tracker", current_frame);
         keyboard = waitKey( 30 );
         getNextFilename(current_filename);
         current_frame = imread(current_filename);

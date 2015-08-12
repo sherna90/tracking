@@ -34,7 +34,10 @@ public:
     void run(int num_particles);
 
 private:
-    particle_filter marginal_likelihood(int num_particles,int time_step);
+    particle_filter marginal_likelihood(
+    int num_particles,int time_step,VectorXd alpha);
+    double gamma_prior(VectorXd x,VectorXd a,double b);
+    VectorXd proposal(VectorXd alpha);
     string FrameFilename, gtFilename, firstFrameFilename;
     void getNextFilename(string& fn);
     Rect updateGroundTruth(Mat frame, string str, bool draw);
@@ -44,6 +47,7 @@ private:
     Rect estimate;
     MatND reference_hist,reference_hog;
     Rect2d boundingBox;
+    default_random_engine generator;
 };
 
 int main(int argc, char* argv[]){
@@ -105,7 +109,7 @@ PMMH::PMMH(string _firstFrameFilename, string _gtFilename){
 
 }
 
-particle_filter PMMH::marginal_likelihood(int num_particles,int time_step){
+particle_filter PMMH::marginal_likelihood(int num_particles,int time_step,VectorXd alpha){
     particle_filter pmmh_filter(num_particles);
     MatND reference_hist,reference_hog;
     for(int k=0;k <time_step;k++){    
@@ -117,6 +121,7 @@ particle_filter PMMH::marginal_likelihood(int num_particles,int time_step){
             calc_hist_hsv(current_roi,reference_hist);
             calc_hog(current_roi,reference_hog);
             pmmh_filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows),reference_hist,reference_hog);
+            pmmh_filter.update_model(alpha);
         }
         else if(pmmh_filter.is_initialized()){
             pmmh_filter.predict();
@@ -126,22 +131,71 @@ particle_filter PMMH::marginal_likelihood(int num_particles,int time_step){
     return pmmh_filter;
 }
 
+VectorXd PMMH::proposal(VectorXd alpha){
+    VectorXd proposal(alpha.size());
+    uniform_int_distribution<int> unif_rnd(-1.0,1.0);
+    for(int i=0;i<alpha.size();i++){
+        proposal[i]=alpha[i]+unif_rnd(generator);
+    }
+    return proposal;
+}
+
+double PMMH::gamma_prior(VectorXd x, VectorXd a, double b)
+{
+    double loglike=0.0; 
+    for(int i=0;i<a.size();i++){   
+        if (x(i) >= 0 || a(i) >= 0 || b >= 0){
+            loglike+=-x(i)*b+(a(i)-1.0)*log(x(i))+a(i)*log(b)-lgamma(a(i));
+        }
+    }
+    return loglike;
+}
+
 void PMMH::run(int num_particles){
     string current_filename;
     MatND reference_hist,reference_hog;
-    VectorXd alpha_prop;
+    uniform_real_distribution<double> unif_rnd(0.0,1.0);
+    double eps= std::numeric_limits<double>::epsilon();
     namedWindow("Tracker");
-    for(int t=0;t < (int) images.size();t++){
+    Rect ground_truth=updateGroundTruth(images[0],gt_vect[0],true);
+    Mat current_roi = Mat(images[0],ground_truth);
+    calc_hist_hsv(current_roi,reference_hist);
+    calc_hog(current_roi,reference_hog);
+    VectorXd alpha0,alpha,alpha_prop;
+    alpha.setOnes(reference_hist.total());
+    for(int h=0;h<H_BINS;h++)
+        for( int s = 0; s < S_BINS; s++ ){
+            double val=reference_hist.at<float>(h, s);
+            gamma_distribution<double> color_prior(val,1.0);
+            alpha[h*S_BINS+s] = (val!=0.0) ? color_prior(generator) : eps;
+    }
+    alpha0=alpha;
+    Performance pmmh_algorithm;      
+    for(int t=1;t < (int) images.size();t++){
         cout << "---------------" << endl;
         cout << "Time Step t=" << t << endl;
-        particle_filter filter = marginal_likelihood(num_particles,t);
+        particle_filter filter = marginal_likelihood(num_particles,t,alpha);
         cout << "Filter Marginal Likelihood : " << filter.marginal_likelihood  << endl;
-        //for(int n=0;n<10<n++){
-
-        //}
-        //imshow("Tracker",current_frame);
-        //waitKey(30); 
+        Mat current_frame = images[t];
+        filter.draw_particles(current_frame);
+        Rect estimate=filter.estimate(current_frame,true);
+        Rect ground_truth=updateGroundTruth(current_frame,gt_vect[t],true);
+        pmmh_algorithm.calc(ground_truth,estimate);
+        for(int n=0;n<3;n++){
+            alpha_prop=proposal(alpha);
+            particle_filter proposal_filter = marginal_likelihood(num_particles,t,alpha_prop);
+            double acceptprob = proposal_filter.marginal_likelihood - filter.marginal_likelihood;
+            acceptprob+=gamma_prior(alpha_prop,alpha0,1.0)-gamma_prior(alpha,alpha0,1.0);
+            double u=unif_rnd(generator);
+            if(u < exp(acceptprob)){
+                cout << "Proposal Marginal Likelihood : " << proposal_filter.marginal_likelihood  << endl;
+                alpha=alpha_prop;
+            }
+        }
+        imshow("Tracker",current_frame);
+        waitKey(30); 
     }
+    cout << "PMMH algorithm >> " <<"average precision:" << pmmh_algorithm.get_avg_precision()/images.size() << ",average recall:" << pmmh_algorithm.get_avg_recall()/images.size() << endl;
 }
 
 void PMMH::getNextFilename(string& fn){

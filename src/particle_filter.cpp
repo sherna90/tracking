@@ -78,7 +78,7 @@ void particle_filter::predict(){
             _y=cvRound(state.y+state.dy+rng.gaussian(POS_STD));
             _width=cvRound(state.width*state.scale);
             _height=cvRound(state.height*state.scale);
-            if((_x+_width)<im_size.width && _x>=0 && (_y+_height)<im_size.height && _y>=0 && isless(getESS(),(float)THRESHOLD)){
+            if((_x+_width)<im_size.width && _x>=0 && (_y+_height)<im_size.height && _y>=0){
                 state.x=_x;
                 state.y=_y;
                 state.width=_width;
@@ -161,7 +161,7 @@ void particle_filter::update(Mat& image,bool hog=false)
     for (int i=0;i<n_particles;i++){
         Mat part_hist,part_roi,part_hog;
         particle state=states[i];
-        cout << "state : x=" << state.x << ",y=" << state.y << ",width=" << state.width << ",height="<< state.height << endl;
+        //cout << "state : x=" << state.x << ",y=" << state.y << ",width=" << state.width << ",height="<< state.height << endl;
         if (state.width < 0){
           state.width = reference_roi.width;
         }
@@ -221,7 +221,7 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
                 k+=val;
                 counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
-
+        //counts=100*counts/counts.sum();
         float poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
         if(distribution==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts)+poisson_log_prior;
         else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts)+poisson_log_prior;
@@ -298,6 +298,6 @@ float particle_filter::getESS(){
 
 void particle_filter::update_model(VectorXd alpha_new){
     //double alpha=0.1;
-    //discrete.addTheta(counts,alpha);
+    discrete.setTheta(alpha_new);
     poisson.setLambda(alpha_new);
 }

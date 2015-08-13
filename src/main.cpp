@@ -129,9 +129,9 @@ void App::run(int num_particles, int fixed_lag){
             tracker->update( current_frame, boundingBox );
             updateGroundTruth(current_frame,current_gt,true);
             filter.predict();
-            filter.update(current_frame,WITHOUT_HOG);
-            filter.draw_particles(segm);
-            estimate=filter.estimate(segm,true);
+            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,WITHOUT_HOG);
+            filter.draw_particles(current_frame);
+            estimate=filter.estimate(current_frame,true);
             // fixed-lag backward pass
             particle_filter_algorithm.calc(ground_truth,estimate);
             Rect IntboundingBox;
@@ -150,7 +150,6 @@ void App::run(int num_particles, int fixed_lag){
             //test performance object
             cout << "track algorithm >> " << "average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
             cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
-            cout << "smoothing algorithm >> " <<"average precision:" << smoother_algorithm.get_avg_precision()/num_frames << ",average recall:" << smoother_algorithm.get_avg_recall()/num_frames << endl;
             exit(EXIT_FAILURE);
         }
     }

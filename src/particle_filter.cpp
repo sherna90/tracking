@@ -78,7 +78,9 @@ void particle_filter::predict(){
             _y=cvRound(state.y+state.dy+rng.gaussian(POS_STD));
             _width=cvRound(state.width*state.scale);
             _height=cvRound(state.height*state.scale);
-            if((_x+_width)<im_size.width && _x>=0 && (_y+_height)<im_size.height && _y>=0){
+            if((_x+_width)<im_size.width && _x>=0 && 
+                (_y+_height)<im_size.height && _y>=0 && 
+                isless(ESS/n_particles,(float)THRESHOLD)){
                 state.x=_x;
                 state.y=_y;
                 state.width=_width;
@@ -169,7 +171,6 @@ void particle_filter::update(Mat& image,bool hog=false)
           state.height = reference_roi.width;
         }
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
-        cout << boundingBox << endl;
         part_roi=image(boundingBox);
         calc_hist_hsv(part_roi,part_hist);
         double bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);

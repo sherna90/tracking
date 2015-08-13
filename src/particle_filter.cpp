@@ -169,7 +169,6 @@ void particle_filter::update(Mat& image,bool hog=false)
           state.height = reference_roi.width;
         }
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
-        cout << boundingBox << endl;
         part_roi=image(boundingBox);
         calc_hist_hsv(part_roi,part_hist);
         double bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
@@ -177,7 +176,7 @@ void particle_filter::update(Mat& image,bool hog=false)
         if(bc_color != 1.0f ){
             prob = color_lilekihood.log_likelihood(bc_color);
         }
-        float weight=weights[i]+prob;
+        double weight=weights[i]+prob;
         if(hog){
             calc_hog(part_roi,part_hog);
             if(part_hog.size()==reference_hog.size()){

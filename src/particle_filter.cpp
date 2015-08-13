@@ -178,7 +178,7 @@ void particle_filter::update(Mat& image,bool hog=false)
         if(bc_color != 1.0f ){
             prob = color_lilekihood.log_likelihood(bc_color);
         }
-        float weight=weights[i]+prob;
+        double weight=weights[i]+prob;
         if(hog){
             calc_hog(part_roi,part_hog);
             if(part_hog.size()==reference_hog.size()){

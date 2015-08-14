@@ -7,12 +7,11 @@ SET (CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
 SET (CMAKE_CXX_FLAGS_RELEASE        "-O4 -DNDEBUG")
 SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
 find_package( OpenCV REQUIRED)
-find_package(OpenMP)
 include_directories( ${OpenCV_INCLUDE_DIRS} )
-<<<<<<< HEAD
-include_directories( "/usr/include/eigen3/" )
-=======
+#include_directories( "/usr/include/eigen3/" )
 include_directories( "/usr/local/include/eigen3/" )
->>>>>>> 30c498e6e5b739bb754c0df44f22ec727498383c
+
+add_executable( pmmh pmmh.cpp particle_filter.cpp hist.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp)
+target_link_libraries( pmmh ${OpenCV_LIBS} )
 add_executable( tracker main.cpp particle_filter.cpp hist.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp)
 target_link_libraries( tracker ${OpenCV_LIBS} )

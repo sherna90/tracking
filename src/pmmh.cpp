@@ -38,7 +38,7 @@ private:
     int num_particles,int time_step,VectorXd alpha);
     double gamma_prior(VectorXd x,VectorXd a,double b);
     VectorXd proposal(VectorXd alpha);
-    string FrameFilename, gtFilename, firstFrameFilename;
+    string FrameFilename,gtFilename;
     void getNextFilename(string& fn);
     Rect updateGroundTruth(Mat frame, string str, bool draw);
     vector<Mat> images;
@@ -81,8 +81,7 @@ int main(int argc, char* argv[]){
 }
 
 PMMH::PMMH(string _firstFrameFilename, string _gtFilename){
-    FrameFilename=_firstFrameFilename;
-    firstFrameFilename = _firstFrameFilename;
+    FrameFilename = _firstFrameFilename;
     Mat current_frame = imread(FrameFilename);
     images.push_back(current_frame);
     while(1){
@@ -106,27 +105,28 @@ PMMH::PMMH(string _firstFrameFilename, string _gtFilename){
         cerr << "Maybe you typed wrong filenames" << endl;
         exit(EXIT_FAILURE);
     }
-
+    Rect ground_truth=updateGroundTruth(images[0],gt_vect[0],true);
+    Mat current_roi = Mat(images[0],ground_truth);
+    calc_hist_hsv(current_roi,reference_hist);
+    calc_hog(current_roi,reference_hog);
 }
 
 particle_filter PMMH::marginal_likelihood(int num_particles,int time_step,VectorXd alpha){
     particle_filter pmmh_filter(num_particles);
-    MatND reference_hist,reference_hog;
-    for(int k=0;k <time_step;k++){    
-        Mat current_frame = images[k];
+    for(int k=0;k <=time_step;k++){    
+        Mat current_frame = images[k].clone();
         string current_gt = gt_vect[k];
         if(!pmmh_filter.is_initialized()){
-            Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
-            Mat current_roi = Mat(current_frame,ground_truth);
-            calc_hist_hsv(current_roi,reference_hist);
-            calc_hog(current_roi,reference_hog);
+            Rect ground_truth=updateGroundTruth(current_frame,current_gt,false);
             pmmh_filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows),reference_hist,reference_hog);
             pmmh_filter.update_model(alpha);
         }
         else if(pmmh_filter.is_initialized()){
             pmmh_filter.predict();
-            pmmh_filter.update_discrete(current_frame,POISSON_LIKELIHOOD,false);
+            pmmh_filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
+            //pmmh_filter.update(current_frame,false);
         }
+        cout << "PMMH Time step : " << k << endl;
     }
     return pmmh_filter;
 }
@@ -153,14 +153,9 @@ double PMMH::gamma_prior(VectorXd x, VectorXd a, double b)
 
 void PMMH::run(int num_particles){
     string current_filename;
-    MatND reference_hist,reference_hog;
     uniform_real_distribution<double> unif_rnd(0.0,1.0);
     double eps= std::numeric_limits<double>::epsilon();
     namedWindow("Tracker");
-    Rect ground_truth=updateGroundTruth(images[0],gt_vect[0],true);
-    Mat current_roi = Mat(images[0],ground_truth);
-    calc_hist_hsv(current_roi,reference_hist);
-    calc_hog(current_roi,reference_hog);
     VectorXd alpha0,alpha,alpha_prop;
     alpha.setOnes(reference_hist.total());
     for(int h=0;h<H_BINS;h++)
@@ -176,7 +171,7 @@ void PMMH::run(int num_particles){
         cout << "Time Step t=" << t << endl;
         particle_filter filter = marginal_likelihood(num_particles,t,alpha);
         cout << "Filter Marginal Likelihood : " << filter.marginal_likelihood  << endl;
-        Mat current_frame = images[t];
+        Mat current_frame = images[t].clone();
         filter.draw_particles(current_frame);
         Rect estimate=filter.estimate(current_frame,true);
         Rect ground_truth=updateGroundTruth(current_frame,gt_vect[t],true);

@@ -222,7 +222,6 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
                 k+=val;
                 counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
-        //counts=100*counts/counts.sum();
         float poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
         if(distribution==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts)+poisson_log_prior;
         else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts)+poisson_log_prior;

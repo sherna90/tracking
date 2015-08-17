@@ -299,6 +299,6 @@ float particle_filter::getESS(){
 
 void particle_filter::update_model(VectorXd alpha_new){
     //double alpha=0.1;
-    discrete.setTheta(alpha_new);
+    discrete.setTheta(alpha_new/alpha_new.sum());
     poisson.setLambda(alpha_new);
 }

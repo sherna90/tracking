@@ -33,7 +33,7 @@ void calc_hist_hsv(Mat& image, Mat& hist)
     cvtColor( image, hsv_base, COLOR_BGR2HSV );
     colorReduce(image,(int) H_BINS*S_BINS);
     calcHist(&hsv_base, 1, channels, Mat(), hist, 2, hist_size, ranges, true, false);
-    //normalize(hist, hist,1.0);
+    normalize(hist, hist,0, image.rows, NORM_MINMAX, -1, Mat());
 }
 
 void calc_hog(Mat& image,Mat& hist)

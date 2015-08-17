@@ -211,8 +211,7 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
         part_roi=image(boundingBox);
         calc_hist_hsv(part_roi,part_hist);
-        calc_hog(part_roi,part_hog);
-        Eigen::VectorXd counts,hog_counts;
+        VectorXd counts;
         counts.setOnes(part_hist.total());
         double k=0.0;
         for(int h=0;h<H_BINS;h++)
@@ -228,6 +227,8 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
         else prob=poisson.log_likelihood(counts);
         float weight=weights[i]+prob;
         if(hog){
+            calc_hog(part_roi,part_hog);
+            VectorXd hog_counts;
             calc_hog(part_roi,part_hog);
             hog_counts.setOnes(part_hog.total());
             if(part_hog.size()==reference_hog.size()){

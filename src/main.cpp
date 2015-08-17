@@ -108,7 +108,7 @@ void App::run(int num_particles){
     Performance track_algorithm;
     Performance particle_filter_algorithm;
     namedWindow("Tracker");
-    for(int k=0;k <num_frames;++k){    
+    for(int k=0;k <10;++k){    
         Mat current_frame = images[k].clone();
         string current_gt = gt_vect[k];
         Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
@@ -139,8 +139,8 @@ void App::run(int num_particles){
         IntboundingBox.width = (int)boundingBox.width;
         IntboundingBox.height = (int)boundingBox.height;
         track_algorithm.calc(ground_truth,IntboundingBox);
-        cout << "time : " << k << endl;
-        cout << current_frame.size() << endl;
+        //cout << "time : " << k << endl;
+        //cout << current_frame.size() << endl;
         //imshow("Tracker",current_frame);
         //waitKey(30); 
     }

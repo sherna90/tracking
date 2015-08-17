@@ -169,7 +169,7 @@ void PMMH::run(int num_particles){
     }
     //theta=theta/theta.sum();
     alpha0.setOnes(reference_hist.total());
-    dirichlet prior=dirichlet(alpha0/alpha0.sum());
+    dirichlet prior=dirichlet(alpha0);
     Performance pmmh_algorithm;      
     for(int t=1;t < 10;++t){
         cout << "---------------" << endl;

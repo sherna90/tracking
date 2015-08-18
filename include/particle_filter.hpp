@@ -51,7 +51,6 @@ typedef struct particle {
 class particle_filter {
 public:
     int n_particles;
-    double marginal_likelihood;
     vector<particle> states;
     vector<double>  weights;
     particle_filter(int _n_particles);
@@ -64,10 +63,13 @@ public:
     void update_discrete(Mat& image,int distribution,bool hog);
     void smoother(int fixed_lag);
     void update_model(VectorXd alpha);
+    VectorXd get_model();
     float getESS();
+    double getMarginalLikelihood();
     
 
 private:
+    double marginal_likelihood;
     dirichlet polya,polya_hog;
     int time_stamp;
     void resample();

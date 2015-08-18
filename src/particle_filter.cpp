@@ -25,6 +25,7 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
     reference_hog=_reference_hog;
     reference_roi=roi;
     im_size=_im_size;
+    marginal_likelihood=0.0;
     for (int i=0;i<n_particles;i++){
         particle state;
         state.x=rng.uniform(0, im_size.width-roi.width);
@@ -228,7 +229,6 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
 	else prob=poisson.log_likelihood(counts);
         double weight=weights[i]+prob;
         if(hog){
-            calc_hog(part_roi,part_hog);
             VectorXd hog_counts;
             calc_hog(part_roi,part_hog);
             hog_counts.setOnes(part_hog.total());
@@ -275,7 +275,7 @@ void particle_filter::resample(){
         }
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    marginal_likelihood+=logsumexp-log(n_particles); 
+    marginal_likelihood+=norm_const-log(n_particles); 
     ESS=1.0f/sum_squared_weights[0];
     if(isless(ESS/n_particles,(float)THRESHOLD)){
         vector<particle> new_states;
@@ -304,4 +304,14 @@ void particle_filter::update_model(VectorXd alpha_new){
     alpha_new.normalize();
     discrete.setTheta(alpha_new);
 
+}
+
+VectorXd particle_filter::get_model(){
+    //double alpha=0.1;
+    return discrete.getTheta();
+
+}
+
+double particle_filter::getMarginalLikelihood(){
+    return marginal_likelihood;
 }

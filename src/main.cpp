@@ -129,7 +129,7 @@ void App::run(int num_particles){
 	    //filter.update(current_frame,false);
 	    //filter.draw_particles(current_frame);
             //add to MIL algorithm
-            tracker->update( current_frame, boundingBox );
+            //tracker->update( current_frame, boundingBox );
         }
         Rect estimate=filter.estimate(current_frame,true);
         // fixed-lag backward pass

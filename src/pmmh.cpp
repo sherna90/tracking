@@ -32,10 +32,10 @@ class PMMH
 {
 public:
     PMMH(string _firstFrameFilename, string _gtFilename);
-    void run(int num_particles);
+    void run(int num_particles,int fixed_lag);
 
 private:
-    double marginal_likelihood(int num_particles,int time_step,VectorXd alpha);
+    double marginal_likelihood(int num_particles,int time_step,int fixed_lag,VectorXd alpha);
     double gamma_prior(VectorXd x,VectorXd a,double b);
     VectorXd proposal(VectorXd alpha);
     string FrameFilename,gtFilename;
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         PMMH pmmh(_firstFrameFilename, _gtFilename);
-        pmmh.run(num_particles);
+        pmmh.run(num_particles,3);
     }
 }
 
@@ -107,9 +107,9 @@ PMMH::PMMH(string _firstFrameFilename, string _gtFilename){
     }
 }
 
-double PMMH::marginal_likelihood(int num_particles,int time_step,VectorXd theta){
+double PMMH::marginal_likelihood(int num_particles,int time_step,int fixed_lag,VectorXd theta){
     particle_filter pmmh_filter(num_particles);
-    for(int k=0;k<=time_step;k++){    
+    for(int k=(time_step-fixed_lag);k<=time_step;k++){    
         Mat current_frame = images[k].clone();
         string current_gt = gt_vect[k];
         if(!pmmh_filter.is_initialized()){
@@ -149,7 +149,7 @@ double PMMH::gamma_prior(VectorXd x, VectorXd a, double b)
     return loglike;
 }
 
-void PMMH::run(int num_particles){
+void PMMH::run(int num_particles,int fixed_lag){
     particle_filter filter(num_particles);
     int num_frames=(int)images.size();
     Performance track_algorithm;
@@ -174,22 +174,23 @@ void PMMH::run(int num_particles){
         else if(filter.is_initialized()){
             filter.predict();
             filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
-            //if(k>10){
-            double forward_filter = marginal_likelihood(num_particles,k,theta);
+            if(k>fixed_lag){
+            double forward_filter = marginal_likelihood(num_particles,k,fixed_lag,theta);
             for(int n=0;n<3;n++){
                 theta_prop=proposal(theta);
-                double proposal_filter = marginal_likelihood(num_particles,k,theta_prop);
+                double proposal_filter = marginal_likelihood(num_particles,k,fixed_lag,theta_prop);
                 double acceptprob = proposal_filter - forward_filter;
                 acceptprob+=prior.log_likelihood(theta_prop)-prior.log_likelihood(theta);
                 double u=unif_rnd(generator);
                 //RNG rng;
                 //float uni_rand = rng.uniform(0.0f,1.0f);
                 if(isfinite(exp(acceptprob)) && u < exp(acceptprob)){
+                    cout << "gotcha!" << endl;
                     theta=theta_prop;
                     filter.update_model(theta);
                     }
                 }
-            //}
+            }
         }
         Rect estimate=filter.estimate(current_frame,true);
         particle_filter_algorithm.calc(ground_truth,estimate);

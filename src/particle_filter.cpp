@@ -58,10 +58,10 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
     }
     polya = dirichlet(alpha);
     poisson = Poisson(alpha);
-    alpha /=alpha.sum();
+    alpha.normalize();
     discrete = Multinomial(alpha);
     polya_hog = dirichlet(alpha_hog);
-    alpha_hog /=alpha_hog.sum();
+    alpha_hog.normalize();
     discrete_hog = Multinomial(alpha_hog);
     //cout << "Particle filter initialized" << endl;
     initialized=true;
@@ -221,11 +221,12 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
                 k+=val;
                 counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
-        float poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
+        double poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
         if(distribution==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts)+poisson_log_prior;
-        else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts)+poisson_log_prior;
-        else prob=poisson.log_likelihood(counts);
-        float weight=weights[i]+prob;
+        //else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts)+poisson_log_prior;
+	else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts);        
+	else prob=poisson.log_likelihood(counts);
+        double weight=weights[i]+prob;
         if(hog){
             calc_hog(part_roi,part_hog);
             VectorXd hog_counts;
@@ -265,7 +266,6 @@ void particle_filter::resample(){
     for (unsigned int i=0; i<weights.size(); i++) {
         normalized_weights[i] = exp(weights[i]-norm_const);
     }
-    marginal_likelihood = marginal_likelihood + logsumexp - log(n_particles); 
     for (unsigned int i=0; i<weights.size(); i++) {
         squared_normalized_weights[i]=pow(normalized_weights[i],2.0f);
         if (i==0) {
@@ -275,6 +275,7 @@ void particle_filter::resample(){
         }
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
+    marginal_likelihood+=logsumexp-log(n_particles); 
     ESS=1.0f/sum_squared_weights[0];
     if(isless(ESS/n_particles,(float)THRESHOLD)){
         vector<particle> new_states;
@@ -299,6 +300,8 @@ float particle_filter::getESS(){
 
 void particle_filter::update_model(VectorXd alpha_new){
     //double alpha=0.1;
-    discrete.setTheta(alpha_new/alpha_new.sum());
     poisson.setLambda(alpha_new);
+    alpha_new.normalize();
+    discrete.setTheta(alpha_new);
+
 }

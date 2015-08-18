@@ -103,12 +103,12 @@ void App::run(int num_particles){
     MatND reference_hist,reference_hog;
     Rect2d boundingBox; //added
     int num_frames=(int)images.size();
-    string track_algorithm_selected="MIL";
+    string track_algorithm_selected="TLD";
     tracker = Tracker::create( track_algorithm_selected );
     Performance track_algorithm;
     Performance particle_filter_algorithm;
     namedWindow("Tracker");
-    for(int k=0;k <10;++k){    
+    for(int k=0;k <num_frames;++k){    
         Mat current_frame = images[k].clone();
         string current_gt = gt_vect[k];
         Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
@@ -126,7 +126,8 @@ void App::run(int num_particles){
         else if(filter.is_initialized()){
             filter.predict();
             filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
-            //filter.draw_particles(current_frame);
+	    //filter.update(current_frame,false);
+	    //filter.draw_particles(current_frame);
             //add to MIL algorithm
             tracker->update( current_frame, boundingBox );
         }
@@ -141,8 +142,8 @@ void App::run(int num_particles){
         track_algorithm.calc(ground_truth,IntboundingBox);
         //cout << "time : " << k << endl;
         //cout << current_frame.size() << endl;
-        //imshow("Tracker",current_frame);
-        //waitKey(30); 
+        imshow("Tracker",current_frame);
+        waitKey(30); 
     }
     cout << "track algorithm >> " << "average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
     cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;

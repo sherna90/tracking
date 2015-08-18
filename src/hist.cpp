@@ -30,8 +30,8 @@ void calc_hist_hsv(Mat& image, Mat& hist)
     const float* ranges[] = { h_ranges, s_ranges };
     int channels[] = { 0, 1 };
     Mat hsv_base;
+    //colorReduce(image,H_BINS*S_BINS);
     cvtColor( image, hsv_base, COLOR_BGR2HSV );
-    colorReduce(image,(int) H_BINS*S_BINS);
     calcHist(&hsv_base, 1, channels, Mat(), hist, 2, hist_size, ranges, true, false);
     normalize(hist, hist,0, image.rows, NORM_MINMAX, -1, Mat());
 }

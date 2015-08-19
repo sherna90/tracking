@@ -134,7 +134,7 @@ VectorXd PMMH::proposal(VectorXd alpha){
     for(int i=0;i<alpha.size();i++){
         proposal[i]=abs(alpha[i]+unif_rnd(generator));
     }
-    //proposal.normalize();
+    proposal.normalize();
     return proposal;
 }
 
@@ -185,7 +185,6 @@ void PMMH::run(int num_particles,int fixed_lag){
                 //RNG rng;
                 //float uni_rand = rng.uniform(0.0f,1.0f);
                 if(isfinite(exp(acceptprob)) && u < exp(acceptprob)){
-                    cout << "gotcha!" << endl;
                     theta=theta_prop;
                     filter.update_model(theta);
                     }

@@ -223,10 +223,9 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
                 counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
         double poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
-        if(distribution==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts)+poisson_log_prior;
-        //else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts)+poisson_log_prior;
-	else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts);        
-	else prob=poisson.log_likelihood(counts);
+        if(distribution==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts);
+        else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts);        
+	    else prob=poisson.log_likelihood(counts);
         double weight=weights[i]+prob;
         if(hog){
             VectorXd hog_counts;
@@ -256,10 +255,12 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
 void particle_filter::resample(){
     vector<double> cumulative_sum(n_particles);
     vector<double> normalized_weights(n_particles);
+    vector<double> new_weights(n_particles);
     vector<double> squared_normalized_weights(n_particles);
     float logsumexp=0.0;
     float max_value = *max_element(weights.begin(), weights.end());
     for (unsigned int i=0; i<weights.size(); i++) {
+        new_weights[i]=weights[i]-max_value;
         logsumexp+=exp(weights[i]-max_value);
     }
     float norm_const=max_value+log(logsumexp);
@@ -290,7 +291,7 @@ void particle_filter::resample(){
         states.swap(new_states);
     }
     else{
-        weights.swap(normalized_weights);
+        weights.swap(new_weights);
     }
 }
 

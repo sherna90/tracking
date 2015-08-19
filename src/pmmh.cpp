@@ -32,7 +32,7 @@ class PMMH
 {
 public:
     PMMH(string _firstFrameFilename, string _gtFilename);
-    void run(int num_particles,int fixed_lag);
+    void run(int num_particles,int fixed_lag,int mcmc_steps);
 
 private:
     double marginal_likelihood(int num_particles,int time_step,int fixed_lag,VectorXd alpha);
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         PMMH pmmh(_firstFrameFilename, _gtFilename);
-        pmmh.run(num_particles,3);
+        pmmh.run(num_particles,10,3);
     }
 }
 
@@ -109,7 +109,9 @@ PMMH::PMMH(string _firstFrameFilename, string _gtFilename){
 
 double PMMH::marginal_likelihood(int num_particles,int time_step,int fixed_lag,VectorXd theta){
     particle_filter pmmh_filter(num_particles);
-    for(int k=(time_step-fixed_lag);k<=time_step;k++){    
+    int start_time;
+    (fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
+    for(int k=start_time;k<=time_step;k++){    
         Mat current_frame = images[k].clone();
         string current_gt = gt_vect[k];
         if(!pmmh_filter.is_initialized()){
@@ -149,7 +151,7 @@ double PMMH::gamma_prior(VectorXd x, VectorXd a, double b)
     return loglike;
 }
 
-void PMMH::run(int num_particles,int fixed_lag){
+void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
     particle_filter filter(num_particles);
     int num_frames=(int)images.size();
     Performance track_algorithm;
@@ -176,7 +178,7 @@ void PMMH::run(int num_particles,int fixed_lag){
             filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
             if(k>fixed_lag){
             double forward_filter = marginal_likelihood(num_particles,k,fixed_lag,theta);
-            for(int n=0;n<3;n++){
+            for(int n=0;n<mcmc_steps;n++){
                 theta_prop=proposal(theta);
                 double proposal_filter = marginal_likelihood(num_particles,k,fixed_lag,theta_prop);
                 double acceptprob = proposal_filter - forward_filter;

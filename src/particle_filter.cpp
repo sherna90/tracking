@@ -32,7 +32,7 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
         state.y=rng.uniform(0, im_size.height-roi.height);
         state.dx=rng.gaussian(VEL_STD);
         state.dy=rng.gaussian(VEL_STD);
-        state.scale=1.f+rng.gaussian(SCALE_STD);
+        state.scale=1.0f;
         states.push_back(state);
         weights.push_back(1.f/n_particles);
         ESS=0.0f;
@@ -74,11 +74,13 @@ void particle_filter::predict(){
         vector<particle> tmp_new_states;
         for (int i=0;i<n_particles;i++){
             particle state=states[i];
-            float _x,_y,_width,_height;
-            _x=cvRound(state.x+state.dx+rng.gaussian(POS_STD));
-            _y=cvRound(state.y+state.dy+rng.gaussian(POS_STD));
-            _width=cvRound(state.width*state.scale);
-            _height=cvRound(state.height*state.scale);
+            float _x,_y,_dx,_dy,_width,_height;
+            _dx=state.dx;
+            _dy=state.dy;
+            _x=cvRound(state.x+_dx+rng.gaussian(POS_STD));
+            _y=cvRound(state.y+_dy+rng.gaussian(POS_STD));
+            _width=cvRound(state.width);
+            _height=cvRound(state.height);
             if((_x+_width)<im_size.width && _x>=0 && 
                 (_y+_height)<im_size.height && _y>=0 && 
                 isless(ESS/n_particles,(float)THRESHOLD)){
@@ -86,9 +88,9 @@ void particle_filter::predict(){
                 state.y=_y;
                 state.width=_width;
                 state.height=_height;
-                state.dx+=rng.gaussian(VEL_STD);
-                state.dy+=rng.gaussian(VEL_STD);
-                state.scale+=rng.gaussian(SCALE_STD);
+                state.dx=_dx;
+                state.dy=_dy;
+                //state.scale+=rng.gaussian(SCALE_STD);
             }
             else{
                 state.dx=rng.gaussian(VEL_STD);
@@ -97,7 +99,7 @@ void particle_filter::predict(){
                 state.height=reference_roi.height;
                 state.x=rng.uniform(0, (int)(im_size.width-state.width));
                 state.y=rng.uniform(0, (int)(im_size.height-state.height));
-                state.scale=1.f+rng.gaussian(SCALE_STD);
+                //state.scale=1.f+rng.gaussian(SCALE_STD);
             }
             tmp_new_states.push_back(state);
         }
@@ -196,7 +198,7 @@ void particle_filter::update(Mat& image,bool hog=false)
 }
 
 void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LIKELIHOOD,bool hog = false){
-    double lambda=polya.getAlpha().sum();
+    //double lambda=polya.getAlpha().sum();
     vector<double> tmp_weights;
     double eps= std::numeric_limits<double>::epsilon();
     double prob = 0.0f;
@@ -214,15 +216,16 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
         calc_hist_hsv(part_roi,part_hist);
         VectorXd counts;
         counts.setOnes(part_hist.total());
-        double k=0.0;
+        //double k=0.0;
         for(int h=0;h<H_BINS;h++)
             for( int s = 0; s < S_BINS; s++ )
             {
                 double val=part_hist.at<float>(h, s);
-                k+=val;
+                //k+=val;
                 counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
-        double poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
+        //counts=counts/counts.squaredNorm();
+        //double poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
         if(distribution==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts);
         else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts);        
 	    else prob=poisson.log_likelihood(counts);

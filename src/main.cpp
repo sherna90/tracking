@@ -103,7 +103,7 @@ void App::run(int num_particles){
     MatND reference_hist,reference_hog;
     Rect2d boundingBox; //added
     int num_frames=(int)images.size();
-    string track_algorithm_selected="TLD";
+    string track_algorithm_selected="MIL";
     tracker = Tracker::create( track_algorithm_selected );
     Performance track_algorithm;
     Performance particle_filter_algorithm;
@@ -126,10 +126,9 @@ void App::run(int num_particles){
         else if(filter.is_initialized()){
             filter.predict();
             filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
-	    //filter.update(current_frame,false);
-	    //filter.draw_particles(current_frame);
-            //add to MIL algorithm
-            //tracker->update( current_frame, boundingBox );
+	        //filter.update(current_frame,false);
+            filter.draw_particles(current_frame);
+            tracker->update( current_frame, boundingBox );
         }
         Rect estimate=filter.estimate(current_frame,true);
         // fixed-lag backward pass

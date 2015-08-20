@@ -221,10 +221,8 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
             for( int s = 0; s < S_BINS; s++ )
             {
                 double val=part_hist.at<float>(h, s);
-                //k+=val;
                 counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
-        //counts=counts/counts.squaredNorm();
         //double poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
         if(distribution==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts);
         else if(distribution==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts);        
@@ -235,16 +233,12 @@ void particle_filter::update_discrete(Mat& image,int distribution=MULTINOMIAL_LI
             calc_hog(part_roi,part_hog);
             hog_counts.setOnes(part_hog.total());
             if(part_hog.size()==reference_hog.size()){
-                for(unsigned int g=0;g<part_hog.total();g++){
-                    double val=part_hog.at<float>(0, g);
-                    hog_counts[g] = (val!=0.0) ? val : eps;
-                }
-                double prob_hog;
-                if(distribution==DIRICHLET_LIKELIHOOD){
-                    prob_hog = polya_hog.log_likelihood(hog_counts);
-                }else{
-                    prob_hog = discrete_hog.log_likelihood(hog_counts);
-                }
+                //for(unsigned int g=0;g<part_hog.total();g++){
+                //    double val=part_hog.at<float>(0, g);
+                //    hog_counts[g] = (val!=0.0) ? val : eps;
+                //}
+                double bc_hog = compareHist(reference_hog, part_hog, HISTCMP_BHATTACHARYYA);
+                double prob_hog = hog_likelihood.log_likelihood(bc_hog);
                 weight+=prob_hog;
             }
         }

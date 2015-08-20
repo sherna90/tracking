@@ -121,7 +121,7 @@ double PMMH::marginal_likelihood(int num_particles,int time_step,int fixed_lag,V
         }
         else if(pmmh_filter.is_initialized()){
             pmmh_filter.predict();
-            pmmh_filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
+            pmmh_filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,true);
             //pmmh_filter.update(current_frame,false);
         }
         //cout << "PMMH time step:" << k << endl;
@@ -180,7 +180,7 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
         }
         else if(filter.is_initialized()){
             filter.predict();
-            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
+            filter.update_discrete(current_frame,POISSON_LIKELIHOOD,true);
             filter.draw_particles(current_frame);
             if(k>fixed_lag){
             double forward_filter = marginal_likelihood(num_particles,k,fixed_lag,theta);

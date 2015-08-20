@@ -131,10 +131,15 @@ double PMMH::marginal_likelihood(int num_particles,int time_step,int fixed_lag,V
 
 VectorXd PMMH::proposal(VectorXd alpha){
     VectorXd proposal(alpha.size());
-    uniform_int_distribution<int> unif_rnd(-1.0,1.0);
-    normal_distribution<double> norm_rnd(0.0,0.1);
+    double eps= std::numeric_limits<double>::epsilon();
+    //for(int i=0;i<alpha.size();i++){
+    //    proposal[i]=abs(alpha[i]+unif_rnd(generator));
+    //}
     for(int i=0;i<alpha.size();i++){
-        proposal[i]=abs(alpha[i]+unif_rnd(generator));
+        normal_distribution<double> random_walk(alpha[i],0.01);
+        gamma_distribution<double> color_prior(alpha[i],0.1);
+        double val=random_walk(generator);
+        proposal[i] = (val>0.0) ? val : eps;
     }
     proposal.normalize();
     return proposal;
@@ -176,6 +181,7 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
         else if(filter.is_initialized()){
             filter.predict();
             filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
+            filter.draw_particles(current_frame);
             if(k>fixed_lag){
             double forward_filter = marginal_likelihood(num_particles,k,fixed_lag,theta);
             for(int n=0;n<mcmc_steps;n++){
@@ -184,11 +190,11 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
                 double acceptprob = proposal_filter - forward_filter;
                 acceptprob+=prior.log_likelihood(theta_prop)-prior.log_likelihood(theta);
                 double u=unif_rnd(generator);
-                //RNG rng;
-                //float uni_rand = rng.uniform(0.0f,1.0f);
-                if(isfinite(exp(acceptprob)) && u < exp(acceptprob)){
+                if( log(u) < acceptprob){
+                    cout << "u : " << log(u) << ",alpha : " <<  acceptprob << endl;
                     theta=theta_prop;
                     filter.update_model(theta);
+                    forward_filter=proposal_filter;
                     }
                 }
             }

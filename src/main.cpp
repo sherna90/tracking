@@ -125,8 +125,8 @@ void App::run(int num_particles){
         }
         else if(filter.is_initialized()){
             filter.predict();
-            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,true);
-	        //filter.update(current_frame,true);
+            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
+	        //filter.update(current_frame,false);
             filter.draw_particles(current_frame);
             tracker->update( current_frame, boundingBox );
         }

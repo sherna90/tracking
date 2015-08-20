@@ -23,7 +23,6 @@
 #include <fstream>
 #include <sstream>
 #include <queue>
-#include <random>
 
 using namespace cv;
 using namespace std;
@@ -32,10 +31,11 @@ class PMMH
 {
 public:
     PMMH(string _firstFrameFilename, string _gtFilename);
-    void run(int num_particles,int fixed_lag,int mcmc_steps);
+    void run(int num_particles);
 
 private:
-    double marginal_likelihood(int num_particles,int time_step,int fixed_lag,VectorXd alpha);
+    particle_filter marginal_likelihood(
+    int num_particles,int time_step,VectorXd alpha);
     double gamma_prior(VectorXd x,VectorXd a,double b);
     VectorXd proposal(VectorXd alpha);
     string FrameFilename,gtFilename;
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         PMMH pmmh(_firstFrameFilename, _gtFilename);
-        pmmh.run(num_particles,10,5);
+        pmmh.run(num_particles);
     }
 }
 
@@ -107,11 +107,9 @@ PMMH::PMMH(string _firstFrameFilename, string _gtFilename){
     }
 }
 
-double PMMH::marginal_likelihood(int num_particles,int time_step,int fixed_lag,VectorXd theta){
+particle_filter PMMH::marginal_likelihood(int num_particles,int time_step,VectorXd theta){
     particle_filter pmmh_filter(num_particles);
-    int start_time;
-    (fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
-    for(int k=start_time;k<=time_step;k++){    
+    for(int k=0;k <time_step;k++){    
         Mat current_frame = images[k].clone();
         string current_gt = gt_vect[k];
         if(!pmmh_filter.is_initialized()){
@@ -124,24 +122,19 @@ double PMMH::marginal_likelihood(int num_particles,int time_step,int fixed_lag,V
             pmmh_filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
             //pmmh_filter.update(current_frame,false);
         }
-        //cout << "PMMH time step:" << k << endl;
+        //cout << "PMMH Time step : " << k << endl;
     }
-    return pmmh_filter.getMarginalLikelihood();
+    return pmmh_filter;
 }
 
 VectorXd PMMH::proposal(VectorXd alpha){
     VectorXd proposal(alpha.size());
-    double eps= std::numeric_limits<double>::epsilon();
-    //for(int i=0;i<alpha.size();i++){
-    //    proposal[i]=abs(alpha[i]+unif_rnd(generator));
-    //}
+    uniform_int_distribution<int> unif_rnd(-10.0,10.0);
+    normal_distribution<double> norm_rnd(0.0,1.0);
     for(int i=0;i<alpha.size();i++){
-        normal_distribution<double> random_walk(alpha[i],0.01);
-        gamma_distribution<double> color_prior(alpha[i],0.1);
-        double val=random_walk(generator);
-        proposal[i] = (val>0.0) ? val : eps;
+        proposal[i]=abs(alpha[i]+norm_rnd(generator));
     }
-    proposal.normalize();
+    //proposal=proposal/proposal.sum();
     return proposal;
 }
 
@@ -156,55 +149,57 @@ double PMMH::gamma_prior(VectorXd x, VectorXd a, double b)
     return loglike;
 }
 
-void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
-    particle_filter filter(num_particles);
-    int num_frames=(int)images.size();
-    Performance track_algorithm;
-    Performance particle_filter_algorithm;
-    VectorXd theta,theta_prop,alpha;
-    alpha.setOnes((int)H_BINS*S_BINS);
-    alpha.normalize();
-    dirichlet prior=dirichlet(alpha);
-    uniform_real_distribution<double> unif_rnd(0.0,1.0);
+void PMMH::run(int num_particles){
+    Rect ground_truth=updateGroundTruth(images[0],gt_vect[0],true);
+    Mat current_roi = Mat(images[0],ground_truth);
+    calc_hist_hsv(current_roi,reference_hist);
+    calc_hog(current_roi,reference_hog);
+    string current_filename;
+    uniform_real_distribution<double> unif_rnd(-1.0,1.0);
+    double eps= std::numeric_limits<double>::epsilon();
     namedWindow("Tracker");
-    for(int k=0;k <num_frames;++k){    
-        Mat current_frame = images[k].clone();
-        string current_gt = gt_vect[k];
-        Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
-        if(!filter.is_initialized()){
-            Mat current_roi = Mat(current_frame,ground_truth);
-            calc_hist_hsv(current_roi,reference_hist);
-            calc_hog(current_roi,reference_hog);         
-            filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows),reference_hist,reference_hog);
-            theta=filter.get_model();
-        }
-        else if(filter.is_initialized()){
-            filter.predict();
-            filter.update_discrete(current_frame,POISSON_LIKELIHOOD,true);
-            filter.draw_particles(current_frame);
-            if(k>fixed_lag){
-            double forward_filter = marginal_likelihood(num_particles,k,fixed_lag,theta);
-            for(int n=0;n<mcmc_steps;n++){
-                theta_prop=proposal(theta);
-                double proposal_filter = marginal_likelihood(num_particles,k,fixed_lag,theta_prop);
-                double acceptprob = proposal_filter - forward_filter;
-                acceptprob+=prior.log_likelihood(theta_prop)-prior.log_likelihood(theta);
-                double u=unif_rnd(generator);
-                if( log(u) < acceptprob){
-                    //cout << "u : " << log(u) << ",alpha : " <<  acceptprob << endl;
-                    theta=theta_prop;
-                    filter.update_model(theta);
-                    forward_filter=proposal_filter;
-                    }
-                }
+    VectorXd alpha0,theta,theta_prop;
+    theta.setOnes(reference_hist.total());
+    int num_frames=(int)images.size();
+    for(int h=0;h<H_BINS;h++)
+        for( int s = 0; s < S_BINS; s++ ){
+            double val=reference_hist.at<float>(h, s);
+            gamma_distribution<double> color_prior(val,1.0);
+            theta[h*S_BINS+s] = (val!=0.0) ? color_prior(generator) : eps;
+    }
+    //theta=theta/theta.sum();
+    alpha0.setOnes(reference_hist.total());
+    dirichlet prior=dirichlet(alpha0);
+    Performance pmmh_algorithm;      
+    for(int t=1;t < 10;++t){
+        cout << "---------------" << endl;
+        cout << "Time Step t=" << t << endl;
+        cout << "alpha=" << theta.transpose() << endl;
+        
+        particle_filter filter = marginal_likelihood(num_particles,t,theta);
+        cout << "Filter Marginal Likelihood : " << filter.marginal_likelihood  << endl;
+        Mat current_frame = images[t].clone();
+        filter.draw_particles(current_frame);
+        Rect estimate=filter.estimate(current_frame,true);
+        Rect ground_truth=updateGroundTruth(current_frame,gt_vect[t],true);
+        pmmh_algorithm.calc(ground_truth,estimate);
+        for(int n=0;n<3;n++){
+            theta_prop=proposal(theta);
+            cout << "alpha*=" << theta_prop.transpose() << endl;
+            particle_filter proposal_filter = marginal_likelihood(num_particles,t,theta_prop);
+            double acceptprob = proposal_filter.marginal_likelihood - filter.marginal_likelihood;
+            //acceptprob+=gamma_prior(theta_prop,alpha0/alpha0.sum(),1.0)-gamma_prior(theta,alpha0/alpha0.sum(),1.0);
+            acceptprob+=prior.log_likelihood(theta_prop)-prior.log_likelihood(theta);
+            double u=unif_rnd(generator);
+            if(u < exp(acceptprob)){
+                cout << "Proposal Marginal Likelihood : " << proposal_filter.marginal_likelihood  << endl;
+                theta=theta_prop;
             }
         }
-        Rect estimate=filter.estimate(current_frame,true);
-        particle_filter_algorithm.calc(ground_truth,estimate);
         imshow("Tracker",current_frame);
         waitKey(30); 
     }
-    cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
+    cout << "PMMH algorithm >> " <<"average precision:" << pmmh_algorithm.get_avg_precision()/num_frames << ",average recall:" << pmmh_algorithm.get_avg_recall()/images.size() << endl;
 }
 
 void PMMH::getNextFilename(string& fn){

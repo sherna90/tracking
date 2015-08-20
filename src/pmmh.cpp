@@ -111,7 +111,7 @@ double PMMH::marginal_likelihood(int num_particles,int time_step,int fixed_lag,V
     particle_filter pmmh_filter(num_particles);
     int start_time;
     (fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
-    for(int k=start_time;k<=time_step;k++){    
+    for(int k=start_time;k<=time_step;k++){
         Mat current_frame = images[k].clone();
         string current_gt = gt_vect[k];
         if(!pmmh_filter.is_initialized()){
@@ -147,8 +147,8 @@ VectorXd PMMH::proposal(VectorXd alpha){
 
 double PMMH::gamma_prior(VectorXd x, VectorXd a, double b)
 {
-    double loglike=0.0; 
-    for(int i=0;i<a.size();i++){   
+    double loglike=0.0;
+    for(int i=0;i<a.size();i++){
         if (x(i) >= 0 || a(i) >= 0 || b >= 0){
             loglike+=-x(i)*b+(a(i)-1.0)*log(x(i))+a(i)*log(b)-lgamma(a(i));
         }
@@ -167,14 +167,14 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
     dirichlet prior=dirichlet(alpha);
     uniform_real_distribution<double> unif_rnd(0.0,1.0);
     namedWindow("Tracker");
-    for(int k=0;k <num_frames;++k){    
+    for(int k=0;k <num_frames;++k){
         Mat current_frame = images[k].clone();
         string current_gt = gt_vect[k];
         Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
         if(!filter.is_initialized()){
             Mat current_roi = Mat(current_frame,ground_truth);
             calc_hist_hsv(current_roi,reference_hist);
-            calc_hog(current_roi,reference_hog);         
+            calc_hog(current_roi,reference_hog);
             filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows),reference_hist,reference_hog);
             theta=filter.get_model();
         }
@@ -202,7 +202,7 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
         Rect estimate=filter.estimate(current_frame,true);
         particle_filter_algorithm.calc(ground_truth,estimate);
         imshow("Tracker",current_frame);
-        waitKey(30); 
+        waitKey(30);
     }
     cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
 }

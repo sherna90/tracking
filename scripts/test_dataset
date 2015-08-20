@@ -1,0 +1,8 @@
+#!/bin/bash
+echo "Dataset test"
+YEAR=$1
+NAME=$2
+PROGRAM=$3
+echo 'Testing vot'$YEAR'/'$NAME' with program '$PROGRAM
+echo 'Running: ../build/'$PROGRAM' -img vot'$YEAR'/'$NAME'/00000001.jpg -gt vot'$YEAR'/'$NAME'/groundtruth.txt'
+../build/$PROGRAM -img ../vot$YEAR/$NAME/00000001.jpg -gt ../vot$YEAR/$NAME/groundtruth.txt

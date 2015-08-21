@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         PMMH pmmh(_firstFrameFilename, _gtFilename);
-        pmmh.run(num_particles,30,3);
+        pmmh.run(num_particles,10,3);
     }
 }
 

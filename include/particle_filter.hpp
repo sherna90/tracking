@@ -21,7 +21,7 @@
 #define TRANS_Y_STD 1.0
 #define TRANS_S_STD 0.01
 #define POS_STD 1.0
-#define VEL_STD 0.1
+#define VEL_STD 0.5
 #define SCALE_STD 0.1
 #define DT 1.0
 #define SIGMA_COLOR 0.1

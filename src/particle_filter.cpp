@@ -28,16 +28,18 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
     marginal_likelihood=0.0;
     for (int i=0;i<n_particles;i++){
         particle state;
-        state.x=rng.uniform(0, im_size.width-roi.width);
-        state.y=rng.uniform(0, im_size.height-roi.height);
+        //state.x=rng.uniform(0, im_size.width-roi.width);
+        //state.y=rng.uniform(0, im_size.height-roi.height);
+        state.x=cvRound(roi.x+rng.gaussian(POS_STD));
+        state.y=cvRound(roi.y+rng.gaussian(POS_STD));
         state.dx=rng.gaussian(VEL_STD);
         state.dy=rng.gaussian(VEL_STD);
-        state.scale=1.0f;
+        state.scale=1.0f+rng.gaussian(SCALE_STD);
         states.push_back(state);
         weights.push_back(1.f/n_particles);
         ESS=0.0f;
-        state.width=reference_roi.width;
-        state.height=reference_roi.height;
+        state.width=reference_roi.width*state.scale;
+        state.height=reference_roi.height*state.scale;
     }
     color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
     hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
@@ -90,16 +92,18 @@ void particle_filter::predict(){
                 state.height=_height;
                 state.dx=_dx;
                 state.dy=_dy;
-                //state.scale+=rng.gaussian(SCALE_STD);
+                state.scale+=rng.gaussian(SCALE_STD);
             }
             else{
                 state.dx=rng.gaussian(VEL_STD);
                 state.dy=rng.gaussian(VEL_STD);
                 state.width=reference_roi.width;
                 state.height=reference_roi.height;
-                state.x=rng.uniform(0, (int)(im_size.width-state.width));
-                state.y=rng.uniform(0, (int)(im_size.height-state.height));
-                //state.scale=1.f+rng.gaussian(SCALE_STD);
+                state.x=cvRound(reference_roi.x+rng.gaussian(POS_STD));
+                state.y=cvRound(reference_roi.y+rng.gaussian(POS_STD));
+                //state.x=rng.uniform(0, (int)(im_size.width-state.width));
+                //state.y=rng.uniform(0, (int)(im_size.height-state.height));
+                state.scale=1.f+rng.gaussian(SCALE_STD);
             }
             tmp_new_states.push_back(state);
         }
@@ -152,9 +156,6 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 1, LINE_AA );
     if(pt2.x<im_size.width && pt1.x>=0 && pt2.y<im_size.height && pt1.y>=0){
         estimate=Rect(pt1.x,pt1.y,cvRound(pt2.x-pt1.x),cvRound(pt2.y-pt1.y));
-    }
-    else{
-        cout << "oops!" << endl;
     }
     return estimate;
 }

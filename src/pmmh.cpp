@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         PMMH pmmh(_firstFrameFilename, _gtFilename);
-        pmmh.run(num_particles,10,5);
+        pmmh.run(num_particles,30,3);
     }
 }
 
@@ -180,7 +180,7 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
         }
         else if(filter.is_initialized()){
             filter.predict();
-            filter.update_discrete(current_frame,POISSON_LIKELIHOOD,true);
+            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,true);
             filter.draw_particles(current_frame);
             if(k>fixed_lag){
             double forward_filter = marginal_likelihood(num_particles,k,fixed_lag,theta);
@@ -202,7 +202,7 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
         Rect estimate=filter.estimate(current_frame,true);
         particle_filter_algorithm.calc(ground_truth,estimate);
         imshow("Tracker",current_frame);
-        waitKey(30);
+        waitKey(1);
     }
     cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
 }

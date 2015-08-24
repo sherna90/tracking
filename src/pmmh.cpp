@@ -52,8 +52,6 @@ private:
 };
 
 int main(int argc, char* argv[]){
-    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed1);
     int num_particles = 300;
     if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
@@ -84,6 +82,8 @@ int main(int argc, char* argv[]){
 }
 
 PMMH::PMMH(string _firstFrameFilename, string _gtFilename){
+    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed1);
     FrameFilename = _firstFrameFilename;
     Mat current_frame = imread(FrameFilename);
     images.push_back(current_frame);

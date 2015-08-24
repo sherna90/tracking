@@ -75,7 +75,8 @@ private:
     void resample();
     float ESS;
     bool initialized;
-    RNG rng;
+    default_random_engine generator;
+    //RNG rng;
     Rect reference_roi;
     Size im_size;
     Gaussian color_lilekihood,hog_likelihood;

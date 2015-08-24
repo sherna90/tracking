@@ -26,15 +26,18 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
     reference_roi=roi;
     im_size=_im_size;
     marginal_likelihood=0.0;
+    normal_distribution<double> position_random_walk(0.0,POS_STD);
+    normal_distribution<double> velocity_random_walk(0.0,VEL_STD);
+    normal_distribution<double> scale_random_walk(0.0,SCALE_STD);
     for (int i=0;i<n_particles;i++){
         particle state;
         //state.x=rng.uniform(0, im_size.width-roi.width);
         //state.y=rng.uniform(0, im_size.height-roi.height);
-        state.x=cvRound(roi.x+rng.gaussian(POS_STD));
-        state.y=cvRound(roi.y+rng.gaussian(POS_STD));
-        state.dx=rng.gaussian(VEL_STD);
-        state.dy=rng.gaussian(VEL_STD);
-        state.scale=1.0f+rng.gaussian(SCALE_STD);
+        state.x=cvRound(roi.x+position_random_walk(generator));
+        state.y=cvRound(roi.y+position_random_walk(generator));
+        state.dx=velocity_random_walk(generator);
+        state.dy=velocity_random_walk(generator);
+        state.scale=1.0f+scale_random_walk(generator);
         states.push_back(state);
         weights.push_back(1.f/n_particles);
         ESS=0.0f;
@@ -46,7 +49,6 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
     double eps= std::numeric_limits<double>::epsilon();
     Eigen::VectorXd alpha,alpha_hog;
     alpha.setOnes(reference_hist.total());
-    default_random_engine generator;
     for(int h=0;h<H_BINS;h++)
         for( int s = 0; s < S_BINS; s++ ){
             double val=reference_hist.at<float>(h, s);
@@ -74,13 +76,19 @@ void particle_filter::predict(){
     if(initialized==true){
         time_stamp++;
         vector<particle> tmp_new_states;
+        normal_distribution<double> position_random_walk(0.0,POS_STD);
+        normal_distribution<double> velocity_random_walk(0.0,VEL_STD);
+        normal_distribution<double> scale_random_walk(0.0,SCALE_STD);
+        uniform_int_distribution<int> unif_width(0,(int)(im_size.width-state.width-1));
+        uniform_int_distribution<int> unif_height(0,(int)(im_size.height-state.height-1));
+        uniform_real_distribution<double> unif_rnd(0.0,1.0);       
         for (int i=0;i<n_particles;i++){
             particle state=states[i];
             float _x,_y,_dx,_dy,_width,_height;
             _dx=state.dx;
             _dy=state.dy;
-            _x=cvRound(state.x+_dx+rng.gaussian(POS_STD));
-            _y=cvRound(state.y+_dy+rng.gaussian(POS_STD));
+            _x=cvRound(state.x+_dx+position_random_walk(generator));
+            _y=cvRound(state.y+_dy+position_random_walk(generator));
             _width=cvRound(state.width);
             _height=cvRound(state.height);
             if((_x+_width)<im_size.width && _x>=0 && 
@@ -92,23 +100,23 @@ void particle_filter::predict(){
                 state.height=_height;
                 state.dx=_dx;
                 state.dy=_dy;
-                state.scale+=rng.gaussian(SCALE_STD);
+                state.scale+=scale_random_walk(generator);
             }
             else{
-                state.dx=rng.gaussian(VEL_STD);
-                state.dy=rng.gaussian(VEL_STD);
+                state.dx=velocity_random_walk(generator);
+                state.dy=velocity_random_walk(generator);
                 state.width=reference_roi.width;
                 state.height=reference_roi.height;
-                double u=rng.uniform(0.0,1.0);
+                double u=unif_rnd(generator);
                 if(u<0.8){
-                    state.x=cvRound(reference_roi.x+rng.gaussian(POS_STD));
-                    state.y=cvRound(reference_roi.y+rng.gaussian(POS_STD));
+                    state.x=cvRound(reference_roi.x+position_random_walk(generator));
+                    state.y=cvRound(reference_roi.y+position_random_walk(generator));
                 }
                 else{
-                    state.x=rng.uniform(0, (int)(im_size.width-state.width-1));
-                    state.y=rng.uniform(0, (int)(im_size.height-state.height-1));
+                    state.x=unif_width(generator);
+                    state.y=unif_height(generator);
                 }
-                state.scale=1.f+rng.gaussian(SCALE_STD);
+                state.scale=1.f+scale_random_walk(generator);
             }
             tmp_new_states.push_back(state);
         }
@@ -260,6 +268,7 @@ void particle_filter::resample(){
     vector<double> normalized_weights(n_particles);
     vector<double> new_weights(n_particles);
     vector<double> squared_normalized_weights(n_particles);
+    uniform_real_distribution<double> unif_rnd(0.0,1.0); 
     float logsumexp=0.0;
     float max_value = *max_element(weights.begin(), weights.end());
     for (unsigned int i=0; i<weights.size(); i++) {
@@ -284,7 +293,7 @@ void particle_filter::resample(){
     if(isless(ESS/n_particles,(float)THRESHOLD)){
         vector<particle> new_states;
         for (int i=0; i<n_particles; i++) {
-            float uni_rand = rng.uniform(0.0f,1.0f);
+            double uni_rand = unif_rnd(generator);
             vector<double>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
             int ipos = distance(cumulative_sum.begin(), pos);
             particle state=states[ipos];

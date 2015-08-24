@@ -99,10 +99,15 @@ void particle_filter::predict(){
                 state.dy=rng.gaussian(VEL_STD);
                 state.width=reference_roi.width;
                 state.height=reference_roi.height;
-                state.x=cvRound(reference_roi.x+rng.gaussian(POS_STD));
-                state.y=cvRound(reference_roi.y+rng.gaussian(POS_STD));
-                //state.x=rng.uniform(0, (int)(im_size.width-state.width));
-                //state.y=rng.uniform(0, (int)(im_size.height-state.height));
+                double u=rng.uniform(0.0,1.0);
+                if(u<0.8){
+                    state.x=cvRound(reference_roi.x+rng.gaussian(POS_STD));
+                    state.y=cvRound(reference_roi.y+rng.gaussian(POS_STD));
+                }
+                else{
+                    state.x=rng.uniform(0, (int)(im_size.width-state.width-1));
+                    state.y=rng.uniform(0, (int)(im_size.height-state.height-1));
+                }
                 state.scale=1.f+rng.gaussian(SCALE_STD);
             }
             tmp_new_states.push_back(state);

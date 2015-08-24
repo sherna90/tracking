@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         PMMH pmmh(_firstFrameFilename, _gtFilename);
-        pmmh.run(num_particles,30,3);
+        pmmh.run(num_particles,10,10);
     }
 }
 
@@ -136,9 +136,9 @@ VectorXd PMMH::proposal(VectorXd alpha){
     //    proposal[i]=abs(alpha[i]+unif_rnd(generator));
     //}
     for(int i=0;i<alpha.size();i++){
-        normal_distribution<double> random_walk(alpha[i],0.01);
+        normal_distribution<double> random_walk(alpha[i],0.1);
         gamma_distribution<double> color_prior(alpha[i],0.1);
-        double val=random_walk(generator);
+        double val=color_prior(generator);
         proposal[i] = (val>0.0) ? val : eps;
     }
     proposal.normalize();
@@ -163,7 +163,7 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
     Performance particle_filter_algorithm;
     VectorXd theta,theta_prop,alpha;
     alpha.setOnes((int)H_BINS*S_BINS);
-    alpha.normalize();
+    //alpha.normalize();
     dirichlet prior=dirichlet(alpha);
     uniform_real_distribution<double> unif_rnd(0.0,1.0);
     namedWindow("Tracker");
@@ -180,7 +180,7 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
         }
         else if(filter.is_initialized()){
             filter.predict();
-            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,true);
+            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
             filter.draw_particles(current_frame);
             if(k>fixed_lag){
             double forward_filter = marginal_likelihood(num_particles,k,fixed_lag,theta);
@@ -204,7 +204,7 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
         imshow("Tracker",current_frame);
         waitKey(1);
     }
-    cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
+    cout << "PMMH algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
 }
 
 void PMMH::getNextFilename(string& fn){

@@ -16,6 +16,7 @@
 #include <vector>
 #include <iostream>
 #include <random>
+#include <chrono>
 
 #define TRANS_X_STD 1.0
 #define TRANS_Y_STD 1.0
@@ -70,13 +71,13 @@ public:
 
 private:
     double marginal_likelihood;
+    VectorXd theta;
     dirichlet polya,polya_hog;
     int time_stamp;
     void resample();
     float ESS;
     bool initialized;
     default_random_engine generator;
-    //RNG rng;
     Rect reference_roi;
     Size im_size;
     Gaussian color_lilekihood,hog_likelihood;

@@ -5,6 +5,7 @@
  * @author Sergio Hernandez
  */
 #include <iostream>
+#include <chrono>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <Eigen/Dense>
@@ -51,6 +52,8 @@ private:
 };
 
 int main(int argc, char* argv[]){
+    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed1);
     int num_particles = 300;
     if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
@@ -76,11 +79,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         PMMH pmmh(_firstFrameFilename, _gtFilename);
-<<<<<<< HEAD
-        pmmh.run(num_particles,10,10);
-=======
-        pmmh.run(num_particles,10,3);
->>>>>>> 5dc165560c8e4fad991acd9ec9250f23742a521f
+        pmmh.run(num_particles,3,3);
     }
 }
 
@@ -148,6 +147,7 @@ VectorXd PMMH::proposal(VectorXd alpha){
     proposal.normalize();
     return proposal;
 }
+
 
 double PMMH::gamma_prior(VectorXd x, VectorXd a, double b)
 {

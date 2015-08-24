@@ -5,12 +5,15 @@
  */
  #include "../include/particle_filter.hpp"
 
-
 particle_filter::particle_filter(int _n_particles) {
     n_particles = _n_particles;
     time_stamp=0;
     initialized=false;
     marginal_likelihood=0.0;
+    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed1);
+    theta.resize(3);
+    theta << POS_STD,VEL_STD,SCALE_STD;
     //rng(0xFFFFFFFF);
 }
 
@@ -26,23 +29,23 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
     reference_roi=roi;
     im_size=_im_size;
     marginal_likelihood=0.0;
-    normal_distribution<double> position_random_walk(0.0,POS_STD);
-    normal_distribution<double> velocity_random_walk(0.0,VEL_STD);
-    normal_distribution<double> scale_random_walk(0.0,SCALE_STD);
+    normal_distribution<double> position_random_walk(0.0,theta(0));
+    normal_distribution<double> velocity_random_walk(0.0,theta(1));
+    normal_distribution<double> scale_random_walk(0.0,theta(2));
     for (int i=0;i<n_particles;i++){
         particle state;
         //state.x=rng.uniform(0, im_size.width-roi.width);
         //state.y=rng.uniform(0, im_size.height-roi.height);
         state.x=cvRound(roi.x+position_random_walk(generator));
         state.y=cvRound(roi.y+position_random_walk(generator));
-        state.dx=velocity_random_walk(generator);
-        state.dy=velocity_random_walk(generator);
+        state.dx+=velocity_random_walk(generator);
+        state.dy+=velocity_random_walk(generator);
         state.scale=1.0f+scale_random_walk(generator);
         states.push_back(state);
         weights.push_back(1.f/n_particles);
         ESS=0.0f;
-        state.width=reference_roi.width*state.scale;
-        state.height=reference_roi.height*state.scale;
+        state.width=reference_roi.width;
+        state.height=reference_roi.height;
     }
     color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
     hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
@@ -79,11 +82,11 @@ void particle_filter::predict(){
         normal_distribution<double> position_random_walk(0.0,POS_STD);
         normal_distribution<double> velocity_random_walk(0.0,VEL_STD);
         normal_distribution<double> scale_random_walk(0.0,SCALE_STD);
-        uniform_int_distribution<int> unif_width(0,(int)(im_size.width-state.width-1));
-        uniform_int_distribution<int> unif_height(0,(int)(im_size.height-state.height-1));
         uniform_real_distribution<double> unif_rnd(0.0,1.0);       
         for (int i=0;i<n_particles;i++){
             particle state=states[i];
+            uniform_int_distribution<int> unif_width(0,(int)(im_size.width-state.width));
+            uniform_int_distribution<int> unif_height(0,(int)(im_size.height-state.height));
             float _x,_y,_dx,_dy,_width,_height;
             _dx=state.dx;
             _dy=state.dy;
@@ -91,6 +94,7 @@ void particle_filter::predict(){
             _y=cvRound(state.y+_dy+position_random_walk(generator));
             _width=cvRound(state.width);
             _height=cvRound(state.height);
+            
             if((_x+_width)<im_size.width && _x>=0 && 
                 (_y+_height)<im_size.height && _y>=0 && 
                 isless(ESS/n_particles,(float)THRESHOLD)){
@@ -100,7 +104,7 @@ void particle_filter::predict(){
                 state.height=_height;
                 state.dx=_dx;
                 state.dy=_dy;
-                state.scale+=scale_random_walk(generator);
+                //state.scale+=scale_random_walk(generator);
             }
             else{
                 state.dx=velocity_random_walk(generator);
@@ -108,13 +112,15 @@ void particle_filter::predict(){
                 state.width=reference_roi.width;
                 state.height=reference_roi.height;
                 double u=unif_rnd(generator);
-                if(u<0.8){
+                if(u<0.5){
                     state.x=cvRound(reference_roi.x+position_random_walk(generator));
                     state.y=cvRound(reference_roi.y+position_random_walk(generator));
                 }
                 else{
-                    state.x=unif_width(generator);
-                    state.y=unif_height(generator);
+                    double val_x=unif_width(generator);
+                    state.x= (val_x>0 && val_x <(im_size.width-state.width)) ? val_x : reference_roi.x;
+                    double val_y=unif_height(generator);
+                    state.y= (val_y>0 && val_y <(im_size.height-state.height)) ? val_y : reference_roi.y;
                 }
                 state.scale=1.f+scale_random_walk(generator);
             }

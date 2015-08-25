@@ -3,6 +3,7 @@ declare -a vot2015=(bag ball1 ball2 basketball birds1 birds2 blanket bmx bolt1 b
 echo "Testing ${#vot2015[@]} datasets"
 for i in "${vot2015[@]}"
 do
+  echo "--------------------------------------------------"	
   echo "Testing element \"$i\" with pmmh:"
   /bin/bash $PWD/../scripts/test_dataset 2015 $i pmmh
   echo "Testing element \"$i\" with tracker:"

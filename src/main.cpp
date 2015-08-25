@@ -125,7 +125,7 @@ void App::run(int num_particles){
         }
         else if(filter.is_initialized()){
             filter.predict();
-            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,true);
+            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
 	        //filter.update(current_frame,true);
             filter.draw_particles(current_frame);
             tracker->update( current_frame, boundingBox );
@@ -142,9 +142,9 @@ void App::run(int num_particles){
         //cout << "time : " << k << endl;
         //cout << current_frame.size() << endl;
         imshow("Tracker",current_frame);
-        waitKey(30); 
+        waitKey(1); 
     }
-    cout << "track algorithm >> " << "average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
+    cout << track_algorithm_selected << " average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
     cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
 }
 

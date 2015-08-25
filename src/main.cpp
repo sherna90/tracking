@@ -5,7 +5,6 @@
  */
 
 #include <opencv2/video/tracking.hpp>
- #include <opencv2/bgsegm.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
 #include <opencv2/tracking.hpp> //added
@@ -115,7 +114,7 @@ void App::run(int num_particles){
         if(!filter.is_initialized()){
             Mat current_roi = Mat(current_frame,ground_truth);
             calc_hist_hsv(current_roi,reference_hist);
-            calc_hog(current_roi,reference_hog);         
+            calc_hog(current_roi,reference_hog);
             filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows),reference_hist,reference_hog);
             boundingBox.x = ground_truth.x;
             boundingBox.y = ground_truth.y;
@@ -125,24 +124,23 @@ void App::run(int num_particles){
         }
         else if(filter.is_initialized()){
             filter.predict();
-            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
+            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,true);
 	        //filter.update(current_frame,true);
-            filter.draw_particles(current_frame);
             tracker->update( current_frame, boundingBox );
         }
+        filter.draw_particles(current_frame);
         Rect estimate=filter.estimate(current_frame,true);
         // fixed-lag backward pass
-        particle_filter_algorithm.calc(ground_truth,estimate);
+        double r1=particle_filter_algorithm.calc(ground_truth,estimate);
         Rect IntboundingBox;
         IntboundingBox.x = (int)boundingBox.x;
         IntboundingBox.y = (int)boundingBox.y;
         IntboundingBox.width = (int)boundingBox.width;
         IntboundingBox.height = (int)boundingBox.height;
         track_algorithm.calc(ground_truth,IntboundingBox);
-        //cout << "time : " << k << endl;
-        //cout << current_frame.size() << endl;
+        if(r1<0.1) filter.reinitialize();
         imshow("Tracker",current_frame);
-        waitKey(1); 
+        waitKey(25); 
     }
     cout << track_algorithm_selected << " average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
     cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;

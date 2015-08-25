@@ -126,9 +126,7 @@ double PMMH::marginal_likelihood(int num_particles,int time_step,int fixed_lag,V
         else if(pmmh_filter.is_initialized()){
             pmmh_filter.predict();
             pmmh_filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
-            //pmmh_filter.update(current_frame,false);
         }
-        //cout << "PMMH time step:" << k << endl;
     }
     return pmmh_filter.getMarginalLikelihood();
 }
@@ -224,7 +222,8 @@ void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
             }
         }
         Rect estimate=filter.estimate(current_frame,true);
-        particle_filter_algorithm.calc(ground_truth,estimate);
+        double r1=particle_filter_algorithm.calc(ground_truth,estimate);
+        if(r1<0.1) filter.reinitialize();
         imshow("Tracker",current_frame);
         waitKey(1);
     }

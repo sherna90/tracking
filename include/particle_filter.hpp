@@ -19,7 +19,7 @@
 #include <chrono>
 
 #define POS_STD 1.0
-#define VEL_STD 0.5
+#define VEL_STD 0.1
 #define SCALE_STD 0.1
 #define DT 1.0
 #define SIGMA_COLOR 0.1
@@ -52,6 +52,7 @@ public:
     vector<double>  weights;
     particle_filter(int _n_particles);
     bool is_initialized();
+    void reinitialize();
     void initialize(Rect roi,Size im_size,Mat& reference_hist,Mat& reference_hog);
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);

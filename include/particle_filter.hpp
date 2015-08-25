@@ -18,16 +18,12 @@
 #include <random>
 #include <chrono>
 
-#define TRANS_X_STD 1.0
-#define TRANS_Y_STD 1.0
-#define TRANS_S_STD 0.01
 #define POS_STD 1.0
 #define VEL_STD 0.5
 #define SCALE_STD 0.1
 #define DT 1.0
 #define SIGMA_COLOR 0.1
 #define SIGMA_SHAPE 0.09
-#define ALPHA 0.7
 #define THRESHOLD 0.7
 #define DIRICHLET_LIKELIHOOD 0
 #define MULTINOMIAL_LIKELIHOOD 1
@@ -63,8 +59,9 @@ public:
     void update(Mat& image,bool hog);
     void update_discrete(Mat& image,int distribution,bool hog);
     void smoother(int fixed_lag);
-    void update_model(VectorXd alpha);
-    VectorXd get_model();
+    void update_model(VectorXd theta_x,VectorXd theta_y);
+    VectorXd get_discrete_model();
+    VectorXd get_continuous_model();
     float getESS();
     double getMarginalLikelihood();
     

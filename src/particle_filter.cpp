@@ -34,8 +34,6 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
     normal_distribution<double> scale_random_walk(0.0,theta(2));
     for (int i=0;i<n_particles;i++){
         particle state;
-        //state.x=rng.uniform(0, im_size.width-roi.width);
-        //state.y=rng.uniform(0, im_size.height-roi.height);
         state.x=cvRound(roi.x+position_random_walk(generator));
         state.y=cvRound(roi.y+position_random_walk(generator));
         state.dx+=velocity_random_walk(generator);
@@ -44,8 +42,8 @@ void particle_filter::initialize(Rect roi,Size _im_size,Mat& _reference_hist,Mat
         states.push_back(state);
         weights.push_back(1.f/n_particles);
         ESS=0.0f;
-        state.width=reference_roi.width;
-        state.height=reference_roi.height;
+        state.width=cvRound(reference_roi.width*abs(state.scale));
+        state.height=cvRound(reference_roi.height*abs(state.scale));
     }
     color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
     hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
@@ -79,9 +77,9 @@ void particle_filter::predict(){
     if(initialized==true){
         time_stamp++;
         vector<particle> tmp_new_states;
-        normal_distribution<double> position_random_walk(0.0,POS_STD);
-        normal_distribution<double> velocity_random_walk(0.0,VEL_STD);
-        normal_distribution<double> scale_random_walk(0.0,SCALE_STD);
+        normal_distribution<double> position_random_walk(0.0,theta(0));
+        normal_distribution<double> velocity_random_walk(0.0,theta(1));
+        normal_distribution<double> scale_random_walk(0.0,theta(2));
         uniform_real_distribution<double> unif_rnd(0.0,1.0);       
         for (int i=0;i<n_particles;i++){
             particle state=states[i];
@@ -109,8 +107,8 @@ void particle_filter::predict(){
             else{
                 state.dx=velocity_random_walk(generator);
                 state.dy=velocity_random_walk(generator);
-                state.width=reference_roi.width;
-                state.height=reference_roi.height;
+                state.width=cvRound(reference_roi.width*abs(state.scale));
+                state.height=cvRound(reference_roi.height*abs(state.scale));
                 double u=unif_rnd(generator);
                 if(u<0.5){
                     state.x=cvRound(reference_roi.x+position_random_walk(generator));
@@ -317,17 +315,22 @@ float particle_filter::getESS(){
     return ESS/n_particles;
 }
 
-void particle_filter::update_model(VectorXd alpha_new){
+void particle_filter::update_model(VectorXd theta_new,VectorXd alpha_new){
     //double alpha=0.1;
     poisson.setLambda(alpha_new);
     alpha_new.normalize();
     discrete.setTheta(alpha_new);
+    theta=theta_new;
+}
+
+VectorXd particle_filter::get_discrete_model(){
+    //double alpha=0.1;
+    return discrete.getTheta();
 
 }
 
-VectorXd particle_filter::get_model(){
-    //double alpha=0.1;
-    return discrete.getTheta();
+VectorXd particle_filter::get_continuous_model(){
+    return theta;
 
 }
 

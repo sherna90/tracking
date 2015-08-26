@@ -8,8 +8,8 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
 #include <opencv2/tracking.hpp> //added
-#include "../include/hist.hpp"
 #include "../include/particle_filter.hpp"
+#include "../include/utils.hpp"
 
 //C
 #include <stdio.h>
@@ -99,7 +99,6 @@ App::App(string _firstFrameFilename, string _gtFilename){
 
 void App::run(int num_particles){
     particle_filter filter(num_particles);
-    MatND reference_hist,reference_hog;
     Rect2d boundingBox; //added
     int num_frames=(int)images.size();
     string track_algorithm_selected="MIL";
@@ -124,7 +123,7 @@ void App::run(int num_particles){
             filter.update_discrete(current_frame);
             tracker->update( current_frame, boundingBox );
         }
-        filter.draw_particles(current_frame);
+        //filter.draw_particles(current_frame);
         Rect estimate=filter.estimate(current_frame,true);
         // fixed-lag backward pass
         double r1=particle_filter_algorithm.calc(ground_truth,estimate);

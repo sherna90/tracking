@@ -6,9 +6,8 @@
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
-#include "../include/hist.hpp"
+#include "../include/utils.hpp"
 #include "../include/pmmh.hpp"
-
 //C
 #include <stdio.h>
 //C++
@@ -25,7 +24,7 @@ class App
 public:
     App(string _firstFrameFilename,string _gtFilename);
     void help();
-    void run(int);
+    void run(int num_particles,int fixed_lag,int num_mcmc);
 
 private:
     string FrameFilename,gtFilename;
@@ -63,7 +62,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         App app(_firstFrameFilename,_gtFilename);
-        app.run(num_particles);
+        app.run(num_particles,3,3);
     }
 }
 
@@ -95,9 +94,10 @@ App::App(string _firstFrameFilename, string _gtFilename){
 
 }
 
-void App::run(int num_particles){
-    PMMH filter(images,gt_vect);
+void App::run(int num_particles,int fixed_lag,int num_mcmc){
+    pmmh filter(num_particles,fixed_lag,num_mcmc);
     Performance particle_filter_algorithm;
+    int num_frames=(int)images.size();
     namedWindow("Tracker");
     for(int k=0;k <num_frames;++k){    
         Mat current_frame = images[k].clone();
@@ -105,33 +105,19 @@ void App::run(int num_particles){
         Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
         if(!filter.is_initialized()){
             filter.initialize(current_frame,ground_truth);
-            boundingBox.x = ground_truth.x;
-            boundingBox.y = ground_truth.y;
-            boundingBox.width = ground_truth.width;
-            boundingBox.height = ground_truth.height;
-            tracker->init( current_frame, boundingBox );
         }
         else if(filter.is_initialized()){
-            filter.predict();
-            filter.update_discrete(current_frame);
-            tracker->update( current_frame, boundingBox );
+            filter.update(current_frame);
         }
-        filter.draw_particles(current_frame);
         Rect estimate=filter.estimate(current_frame,true);
-        // fixed-lag backward pass
+        cout << estimate << endl;
         double r1=particle_filter_algorithm.calc(ground_truth,estimate);
-        Rect IntboundingBox;
-        IntboundingBox.x = (int)boundingBox.x;
-        IntboundingBox.y = (int)boundingBox.y;
-        IntboundingBox.width = (int)boundingBox.width;
-        IntboundingBox.height = (int)boundingBox.height;
-        track_algorithm.calc(ground_truth,IntboundingBox);
+        cout << "ratio : " << r1 << endl;
         if(r1<0.1) filter.reinitialize();
         imshow("Tracker",current_frame);
         waitKey(25); 
     }
-    cout << track_algorithm_selected << " average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
-    cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
+   cout << "PMMH >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
 }
 
 void App::getNextFilename(string& fn){

@@ -3,7 +3,29 @@
  * @brief particle filter
  * @author Sergio Hernandez
  */
- #include "../include/particle_filter.hpp"
+#include "../include/particle_filter.hpp"
+
+const float POS_STD=1.0;
+const float VEL_STD=0.1;
+const float SCALE_STD=0.1;
+const float  DT=1.0;
+const float  SIGMA_COLOR=0.1;
+const float  SIGMA_SHAPE=0.09;
+const float  THRESHOLD=0.7;
+const int  DIRICHLET_LIKELIHOOD=0;
+const int MULTINOMIAL_LIKELIHOOD=1;
+const int POISSON_LIKELIHOOD=2;
+const int LIKELIHOOD=MULTINOMIAL_LIKELIHOOD;
+const bool HOG=false;
+
+particle_filter::particle_filter() {
+}
+
+
+particle_filter::~particle_filter() {
+    states=vector<particle>();
+    weights=vector<double>();
+}
 
 particle_filter::particle_filter(int _n_particles) {
     n_particles = _n_particles;
@@ -14,7 +36,6 @@ particle_filter::particle_filter(int _n_particles) {
     generator.seed(seed1);
     theta.resize(3);
     theta << POS_STD,VEL_STD,SCALE_STD;
-    //rng(0xFFFFFFFF);
 }
 
 bool particle_filter::is_initialized() {
@@ -31,7 +52,11 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     weights = vector<double>();
     Mat current_roi = Mat(current_frame,ground_truth);
     calc_hist_hsv(current_roi,reference_hist);
-    reference_roi=ground_truth;
+    int left = MAX(ground_truth.x, 0);
+    int top = MAX(ground_truth.y, 0);
+    int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
+    int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
+    reference_roi=Rect(left, top, right - left, bottom - top);
     im_size=current_frame.size();
     marginal_likelihood=0.0;
     normal_distribution<double> position_random_walk(0.0,theta(0));
@@ -51,8 +76,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         states.push_back(state);
         weights.push_back(weight);
         ESS=0.0f;
-        state.width=cvRound(reference_roi.width+state.scale);
-        state.height=cvRound(reference_roi.height+state.scale);
+        state.width=cvRound(right-left+state.scale);
+        state.height=cvRound(bottom-top+state.scale);
     }
     alpha.setOnes(reference_hist.total());
     for(int h=0;h<H_BINS;h++)
@@ -98,8 +123,8 @@ void particle_filter::predict(){
             _dy=state.dy;
             _x=MAX(cvRound(state.x+_dx+position_random_walk(generator)),0);
             _y=MAX(cvRound(state.y+_dy+position_random_walk(generator)),0);
-            _width=MAX(cvRound(state.width),0);
-            _height=MAX(cvRound(state.height),0);
+            _width=MAX(cvRound(state.width+state.scale),0);
+            _height=MAX(cvRound(state.height+state.scale),0);
             
             if((_x+_width)<im_size.width && _x>=0 && 
                 (_y+_height)<im_size.height && _y>=0 && 
@@ -110,7 +135,7 @@ void particle_filter::predict(){
                 state.height=_height;
                 state.dx=_dx;
                 state.dy=_dy;
-                //state.scale+=scale_random_walk(generator);
+                state.scale+=scale_random_walk(generator);
             }
             else{
                 state.dx=velocity_random_walk(generator);
@@ -133,7 +158,7 @@ void particle_filter::predict(){
             tmp_new_states.push_back(state);
         }
         states.swap(tmp_new_states);
-        tmp_new_states.clear();;
+        tmp_new_states = vector<particle>();
     }
 }
 
@@ -160,6 +185,7 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
         _y+=weight*state.y;
         _width+=weight*state.width;
         _height+=weight*state.height;
+        //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
     }
     Point pt1,pt2;
     pt1.x=cvRound(_x);
@@ -208,7 +234,7 @@ void particle_filter::update(Mat& image)
         tmp_weights.push_back(weight);
     }
     weights.swap(tmp_weights);
-    tmp_weights.clear();;
+    tmp_weights=vector<double>();
     resample();
 }
 
@@ -263,7 +289,7 @@ void particle_filter::update_discrete(Mat& image){
         tmp_weights.push_back(weight);
     }
     weights.swap(tmp_weights);
-    tmp_weights.clear();;
+    tmp_weights=vector<double>();
     resample();
 }
 
@@ -309,10 +335,10 @@ void particle_filter::resample(){
     else{
         weights.swap(new_weights);
     }
-    cumulative_sum.clear();
-    normalized_weights.clear();;
-    new_weights.clear();;
-    squared_normalized_weights.clear();;
+    cumulative_sum=vector<double>();
+    normalized_weights=vector<double>();
+    new_weights=vector<double>();
+    squared_normalized_weights=vector<double>();
 }
 
 float particle_filter::getESS(){

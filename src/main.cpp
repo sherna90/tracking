@@ -8,8 +8,8 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
 #include <opencv2/tracking.hpp> //added
-#include "../include/hist.hpp"
 #include "../include/particle_filter.hpp"
+#include "../include/utils.hpp"
 
 //C
 #include <stdio.h>
@@ -50,33 +50,6 @@ private:
 
 int main(int argc, char* argv[]){
     int num_particles=300;
-    /*
-    if(argc != 5) {
-        cerr <<"Incorrect input list" << endl;
-        cerr <<"exiting..." << endl;
-        return EXIT_FAILURE;
-    }
-    else{
-        string _firstFrameFilename,_gtFilename;
-        if(strcmp(argv[1], "-img") == 0) {
-            _firstFrameFilename=argv[2];
-        }
-        else{
-            cerr <<"No images given" << endl;
-            cerr <<"exiting..." << endl;
-            return EXIT_FAILURE;
-        }
-        if(strcmp(argv[3], "-gt") == 0) {
-            _gtFilename=argv[4];
-        }
-        else{
-            cerr <<"No ground truth given" << endl;
-            cerr <<"exiting..." << endl;
-            return EXIT_FAILURE;
-        }
-        App app(_firstFrameFilename,_gtFilename);
-        app.run(num_particles);
-    }*/
 
     App app(num_particles);
     app.run();
@@ -85,34 +58,6 @@ int main(int argc, char* argv[]){
 
 App::App(int _num_particles){
     num_particles = _num_particles;
-
-    //tracker.init(image, initialization);
-    /*
-    FrameFilename = _firstFrameFilename;
-    Mat current_frame = imread(FrameFilename);
-
-    images.push_back(current_frame);
-    while(1){
-        getNextFilename(FrameFilename);
-        current_frame = imread(FrameFilename );
-        if(current_frame.empty()){
-            break;
-        }else{
-          images.push_back(current_frame);
-        }
-    }
-    cout << "Number of images: " << int(images.size()) << endl;
-    //Stores all ground-truth strings in a vector
-    ifstream gt_file(_gtFilename.c_str(), ios::in);
-    string line;
-    while (getline(gt_file, line)) gt_vect.push_back(line);
-    cout << "Stored " << int(gt_vect.size()) << " ground-truth data" << endl;
-
-    if(images.size() != gt_vect.size()){
-        cerr << "There is not the same quantity of images and ground-truth data" << endl;
-        cerr << "Maybe you typed wrong filenames" << endl;
-        exit(EXIT_FAILURE);
-    }*/
 }
 
 App::~App(){
@@ -125,52 +70,20 @@ void App::run(){
     Mat initial_frame = imread(vot.frame());
     particle_filter filter(num_particles);
     filter.initialize(initial_frame, initialization);
-
-    /*
-    MatND reference_hist,reference_hog;
-    Rect2d boundingBox; //added
-    string track_algorithm_selected="MIL";
-    tracker = Tracker::create( track_algorithm_selected );
-    Performance track_algorithm;
-    Performance particle_filter_algorithm;*/
     namedWindow("Tracker");
     while(!vot.end()){
         string image_path = vot.frame();
         if (image_path.empty()) break;
         Mat current_frame = imread(image_path);
-        /*
-        if(!filter.is_initialized()){
-            filter.initialize(current_frame,ground_truth);
-            boundingBox.x = ground_truth.x;
-            boundingBox.y = ground_truth.y;
-            boundingBox.width = ground_truth.width;
-            boundingBox.height = ground_truth.height;
-            tracker->init( current_frame, boundingBox );
-        }
-        else if(filter.is_initialized()){
-            filter.predict();
-            filter.update_discrete(current_frame);
-            tracker->update( current_frame, boundingBox );
-        }*/
         filter.predict();
         filter.update_discrete(current_frame);
         filter.draw_particles(current_frame);
         Rect estimate = filter.estimate(current_frame,true);
         vot.report(estimate);
-        // fixed-lag backward pass
-        /*double r1=particle_filter_algorithm.calc(ground_truth,estimate);
-        Rect IntboundingBox;
-        IntboundingBox.x = (int)boundingBox.x;
-        IntboundingBox.y = (int)boundingBox.y;
-        IntboundingBox.width = (int)boundingBox.width;
-        IntboundingBox.height = (int)boundingBox.height;
-        track_algorithm.calc(ground_truth,IntboundingBox);
-        if(r1<0.1) filter.reinitialize();*/
+        Rect estimate=filter.estimate(current_frame,true);
         imshow("Tracker",current_frame);
         waitKey(25);
     }
-    //cout << track_algorithm_selected << " average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
-    //cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
 }
 
 void App::getNextFilename(string& fn){

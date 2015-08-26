@@ -1,5 +1,5 @@
-#ifndef PARTICLE_FILTER
-#define PARTICLE_FILTER
+#ifndef PARTICLE_SMOOTHER
+#define PARTICLE_SMOOTHER
 
 
 #include <opencv2/core.hpp>

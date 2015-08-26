@@ -1,27 +1,54 @@
-/**
- * @file pmmh.cpp
- * @brief particle marginal metropolis hastings 
- * @author Sergio Hernandez
- */
-
 #include "../include/pmmh.hpp"
 
-
-PMMH::PMMH(vector<Mat>& _images, vector<string>& _gt_vect){
-    images=_images;
-    gt_vect=_gt_vect;
+pmmh::pmmh(int _num_particles,int _fixed_lag,int _mcmc_steps){
+    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed1);
+    num_particles=_num_particles;
+    fixed_lag=_fixed_lag;
+    mcmc_steps=_mcmc_steps;
+    filter=new particle_filter(num_particles);
+    alpha.setOnes((int)H_BINS*S_BINS);
+    alpha.normalize();
+    color_prior=dirichlet(alpha);
+    pos_prior=Gaussian(0.0,POS_STD);
+    vel_prior=Gaussian(0.0,VEL_STD);
+    scale_prior=Gaussian(0.0,SCALE_STD);
+    initialized=false;
 }
 
-double PMMH::marginal_likelihood(int num_particles,int time_step,int fixed_lag,VectorXd theta_x,VectorXd theta_y){
+pmmh::~pmmh(){
+    images = vector<Mat>();
+}
+
+void pmmh::initialize(Mat& current_frame, Rect ground_truth){
+    images = vector<Mat>();
+    filter->initialize(current_frame,ground_truth);
+    images.push_back(current_frame);
+    reference_roi=ground_truth;
+    theta_y=filter->get_discrete_model();
+    theta_x=filter->get_continuous_model();
+    initialized=true;
+}
+
+bool pmmh::is_initialized(){
+    return initialized;
+}
+
+void pmmh::reinitialize(){
+    initialized=false;
+}
+
+double pmmh::marginal_likelihood(VectorXd theta_x,VectorXd theta_y){
     particle_filter pmmh_filter(num_particles);
-    int start_time;
-    (fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
-    for(int k=start_time;k<=time_step;k++){
+    //int start_time;
+    //(fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
+    //cout << images.size() << endl;
+    //cout << "--------------" << endl;
+    for(int k=0;k<(int)images.size();k++){
+        //cout << "time step:" << k << endl;
         Mat current_frame = images[k].clone();
-        string current_gt = gt_vect[k];
         if(!pmmh_filter.is_initialized()){
-            Rect ground_truth=updateGroundTruth(current_frame,current_gt,false);
-            pmmh_filter.initialize(current_frame,ground_truth);
+            pmmh_filter.initialize(current_frame,reference_roi);
             pmmh_filter.update_model(theta_x,theta_y);
         }
         else if(pmmh_filter.is_initialized()){
@@ -32,7 +59,7 @@ double PMMH::marginal_likelihood(int num_particles,int time_step,int fixed_lag,V
     return pmmh_filter.getMarginalLikelihood();
 }
 
-VectorXd PMMH::discrete_proposal(VectorXd alpha){
+VectorXd pmmh::discrete_proposal(VectorXd alpha){
     VectorXd proposal(alpha.size());
     double eps= std::numeric_limits<double>::epsilon();
     for(int i=0;i<alpha.size();i++){
@@ -44,7 +71,7 @@ VectorXd PMMH::discrete_proposal(VectorXd alpha){
     return proposal;
 }
 
-VectorXd PMMH::continuous_proposal(VectorXd alpha){
+VectorXd pmmh::continuous_proposal(VectorXd alpha){
     VectorXd proposal(alpha.size());
     for(int i=0;i<alpha.size();i++){
         normal_distribution<double> random_walk(alpha[i],0.1);
@@ -54,7 +81,7 @@ VectorXd PMMH::continuous_proposal(VectorXd alpha){
     return proposal;
 }
 
-double PMMH::gamma_prior(VectorXd x, VectorXd a, double b)
+double pmmh::gamma_prior(VectorXd x, VectorXd a, double b)
 {
     double loglike=0.0;
     for(int i=0;i<a.size();i++){
@@ -65,55 +92,32 @@ double PMMH::gamma_prior(VectorXd x, VectorXd a, double b)
     return loglike;
 }
 
-void PMMH::run(int num_particles,int fixed_lag,int mcmc_steps){
-    particle_filter filter(num_particles);
-    int num_frames=(int)images.size();
-    Performance track_algorithm;
-    Performance particle_filter_algorithm;
-    VectorXd theta_x,theta_x_prop,theta_y,theta_y_prop,alpha;
-    alpha.setOnes((int)H_BINS*S_BINS);
-    //alpha.normalize();
-    dirichlet prior=dirichlet(alpha);
-    Gaussian pos_prior=Gaussian(0.0,POS_STD);
-    Gaussian vel_prior=Gaussian(0.0,VEL_STD);
-    Gaussian scale_prior=Gaussian(0.0,SCALE_STD);
+void pmmh::update(Mat& current_frame){
     uniform_real_distribution<double> unif_rnd(0.0,1.0);
-    for(int k=0;k <num_frames;++k){
-        Mat current_frame = images[k].clone();
-        string current_gt = gt_vect[k];
-        Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
-        if(!filter.is_initialized()){
-            filter.initialize(current_frame,ground_truth);
-            theta_y=filter.get_discrete_model();
-            theta_x=filter.get_continuous_model();
-        }
-        else if(filter.is_initialized()){
-            filter.predict();
-            filter.update_discrete(current_frame);
-            if(k>fixed_lag){
-            double forward_filter = marginal_likelihood(num_particles,k,fixed_lag,theta_x,theta_y);
-            for(int n=0;n<mcmc_steps;n++){
-                theta_y_prop=discrete_proposal(theta_y);
-                theta_x_prop=continuous_proposal(theta_x);
-                double proposal_filter = marginal_likelihood(num_particles,k,fixed_lag,theta_x_prop,theta_y_prop);
-                double acceptprob = proposal_filter - forward_filter;
-                acceptprob+=prior.log_likelihood(theta_y_prop)-prior.log_likelihood(theta_y);
-                acceptprob+=pos_prior.log_likelihood(theta_x_prop(0))-pos_prior.log_likelihood(theta_x(0));
-                acceptprob+=vel_prior.log_likelihood(theta_x_prop(1))-vel_prior.log_likelihood(theta_x(1));
-                acceptprob+=scale_prior.log_likelihood(theta_x_prop(2))-scale_prior.log_likelihood(theta_x(2));
-                double u=unif_rnd(generator);
-                if( log(u) < acceptprob){
-                    theta_y=theta_y_prop;
-                    theta_x=theta_x_prop;
-                    filter.update_model(theta_x_prop,theta_y_prop);
-                    forward_filter=proposal_filter;
-                    }
-                }
+    filter->predict();
+    filter->update_discrete(current_frame);
+    double forward_filter = filter->getMarginalLikelihood();
+    images.push_back(current_frame);
+    for(int n=0;n<mcmc_steps;n++){
+        theta_y_prop=discrete_proposal(theta_y);
+        theta_x_prop=continuous_proposal(theta_x);
+        double proposal_filter = marginal_likelihood(theta_x_prop,theta_y_prop);
+        double acceptprob = proposal_filter - forward_filter;
+        acceptprob+=color_prior.log_likelihood(theta_y_prop)-color_prior.log_likelihood(theta_y);
+        acceptprob+=pos_prior.log_likelihood(theta_x_prop(0))-pos_prior.log_likelihood(theta_x(0));
+        acceptprob+=vel_prior.log_likelihood(theta_x_prop(1))-vel_prior.log_likelihood(theta_x(1));
+        acceptprob+=scale_prior.log_likelihood(theta_x_prop(2))-scale_prior.log_likelihood(theta_x(2));
+        double u=unif_rnd(generator);
+        if( log(u) < acceptprob){
+            theta_y=theta_y_prop;
+            theta_x=theta_x_prop;
+            filter->update_model(theta_x_prop,theta_y_prop);
+            forward_filter=proposal_filter;
             }
-        }
-        Rect estimate=filter.estimate(current_frame,true);
-        double r1=particle_filter_algorithm.calc(ground_truth,estimate);
-        if(r1<0.1) filter.reinitialize();
     }
-    cout << "PMMH algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
+    
+}
+
+Rect pmmh::estimate(Mat& image,bool draw){
+    return filter->estimate(image,draw);
 }

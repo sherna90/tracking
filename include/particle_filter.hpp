@@ -18,21 +18,24 @@
 #include <random>
 #include <chrono>
 
-#define POS_STD 1.0
-#define VEL_STD 0.1
-#define SCALE_STD 0.1
-#define DT 1.0
-#define SIGMA_COLOR 0.1
-#define SIGMA_SHAPE 0.09
-#define THRESHOLD 0.7
-#define DIRICHLET_LIKELIHOOD 0
-#define MULTINOMIAL_LIKELIHOOD 1
-#define POISSON_LIKELIHOOD 2
-#define LIKELIHOOD MULTINOMIAL_LIKELIHOOD
-#define HOG false
+extern const float POS_STD; 
+extern const float VEL_STD; 
+extern const float SCALE_STD; 
+extern const float  DT; 
+extern const float  SIGMA_COLOR; 
+extern const float  SIGMA_SHAPE; 
+extern const float  THRESHOLD; 
+extern const int  DIRICHLET_LIKELIHOOD; 
+extern const int MULTINOMIAL_LIKELIHOOD; 
+extern const int POISSON_LIKELIHOOD; 
+extern const int LIKELIHOOD;
+extern const bool HOG; 
+extern const int H_BINS;
+extern const int S_BINS;
 
 using namespace cv;
 using namespace std;
+using namespace Eigen;
 
 typedef struct particle {
     float x; /** current x coordinate */
@@ -50,7 +53,9 @@ public:
     int n_particles;
     vector<particle> states;
     vector<double>  weights;
+    ~particle_filter();
     particle_filter(int _n_particles);
+    particle_filter();
     bool is_initialized();
     void reinitialize();
     void initialize(Mat& current_frame, Rect ground_truth);

@@ -5,6 +5,7 @@
  */
 
 #include <opencv2/video/tracking.hpp>
+ #include <opencv2/bgsegm.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
 #include <opencv2/tracking.hpp> //added
@@ -22,22 +23,14 @@
 using namespace cv;
 using namespace std;
 
-#define VOT_RECTANGLE
-#include "vot.h"
-
 class App
 {
 public:
-    VOT vot;
-    particle_filter filter(int _n_particles);
-
-    App(int num_particles);
+    App(string _firstFrameFilename,string _gtFilename);
     void help();
-    void run();
-    ~App();
+    void run(int);
 
 private:
-    int num_particles;
     string FrameFilename,gtFilename;
     Rect updateGroundTruth(Mat frame,string str,bool draw);
     void getNextFilename(string& fn);
@@ -50,7 +43,6 @@ private:
 
 int main(int argc, char* argv[]){
     int num_particles=300;
-    /*
     if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
@@ -76,21 +68,12 @@ int main(int argc, char* argv[]){
         }
         App app(_firstFrameFilename,_gtFilename);
         app.run(num_particles);
-    }*/
-
-    App app(num_particles);
-    app.run();
-    return 0;
+    }
 }
 
-App::App(int _num_particles){
-    num_particles = _num_particles;
-
-    //tracker.init(image, initialization);
-    /*
+App::App(string _firstFrameFilename, string _gtFilename){
     FrameFilename = _firstFrameFilename;
     Mat current_frame = imread(FrameFilename);
-
     images.push_back(current_frame);
     while(1){
         getNextFilename(FrameFilename);
@@ -112,35 +95,28 @@ App::App(int _num_particles){
         cerr << "There is not the same quantity of images and ground-truth data" << endl;
         cerr << "Maybe you typed wrong filenames" << endl;
         exit(EXIT_FAILURE);
-    }*/
+    }
 }
 
-App::~App(){
-  //delete &vot;
-}
-
-void App::run(){
-    Rect initialization;
-    initialization << vot.region();
-    Mat initial_frame = imread(vot.frame());
+void App::run(int num_particles){
     particle_filter filter(num_particles);
-    filter.initialize(initial_frame, initialization);
-
-    /*
     MatND reference_hist,reference_hog;
     Rect2d boundingBox; //added
+    int num_frames=(int)images.size();
     string track_algorithm_selected="MIL";
     tracker = Tracker::create( track_algorithm_selected );
     Performance track_algorithm;
-    Performance particle_filter_algorithm;*/
+    Performance particle_filter_algorithm;
     namedWindow("Tracker");
-    while(!vot.end()){
-        string image_path = vot.frame();
-        if (image_path.empty()) break;
-        Mat current_frame = imread(image_path);
-        /*
+    for(int k=0;k <num_frames;++k){
+        Mat current_frame = images[k].clone();
+        string current_gt = gt_vect[k];
+        Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
         if(!filter.is_initialized()){
-            filter.initialize(current_frame,ground_truth);
+            Mat current_roi = Mat(current_frame,ground_truth);
+            calc_hist_hsv(current_roi,reference_hist);
+            calc_hog(current_roi,reference_hog);
+            filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows),reference_hist,reference_hog);
             boundingBox.x = ground_truth.x;
             boundingBox.y = ground_truth.y;
             boundingBox.width = ground_truth.width;
@@ -149,28 +125,27 @@ void App::run(){
         }
         else if(filter.is_initialized()){
             filter.predict();
-            filter.update_discrete(current_frame);
+            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
+	        //filter.update(current_frame,true);
+            filter.draw_particles(current_frame);
             tracker->update( current_frame, boundingBox );
-        }*/
-        filter.predict();
-        filter.update_discrete(current_frame);
-        filter.draw_particles(current_frame);
-        Rect estimate = filter.estimate(current_frame,true);
-        vot.report(estimate);
+        }
+        Rect estimate=filter.estimate(current_frame,true);
         // fixed-lag backward pass
-        /*double r1=particle_filter_algorithm.calc(ground_truth,estimate);
+        particle_filter_algorithm.calc(ground_truth,estimate);
         Rect IntboundingBox;
         IntboundingBox.x = (int)boundingBox.x;
         IntboundingBox.y = (int)boundingBox.y;
         IntboundingBox.width = (int)boundingBox.width;
         IntboundingBox.height = (int)boundingBox.height;
         track_algorithm.calc(ground_truth,IntboundingBox);
-        if(r1<0.1) filter.reinitialize();*/
+        //cout << "time : " << k << endl;
+        //cout << current_frame.size() << endl;
         imshow("Tracker",current_frame);
-        waitKey(25);
+        waitKey(1);
     }
-    //cout << track_algorithm_selected << " average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
-    //cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
+    cout << track_algorithm_selected << " average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
+    cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
 }
 
 void App::getNextFilename(string& fn){

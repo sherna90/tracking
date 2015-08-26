@@ -80,7 +80,6 @@ void App::run(){
         filter.draw_particles(current_frame);
         Rect estimate = filter.estimate(current_frame,true);
         vot.report(estimate);
-        Rect estimate=filter.estimate(current_frame,true);
         imshow("Tracker",current_frame);
         waitKey(25);
     }

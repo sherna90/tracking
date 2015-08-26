@@ -20,7 +20,7 @@ class Performance
         double avg_precision,avg_recall,ratio;
     public:
         Performance(void);
-        void calc(Rect ground_truth, Rect estimate);
+        double calc(Rect ground_truth, Rect estimate);
         double get_avg_precision(void);
         double get_avg_recall(void);
 };

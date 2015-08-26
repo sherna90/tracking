@@ -4,12 +4,10 @@
  * @author Sergio Hernandez
  */
 
-#include <opencv2/video/tracking.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
-#include <opencv2/tracking.hpp> //added
 #include "../include/hist.hpp"
-#include "../include/particle_filter.hpp"
+#include "../include/pmmh.hpp"
 
 //C
 #include <stdio.h>
@@ -36,7 +34,6 @@ private:
     vector<Mat> images;
     //Stores ground-truth data
     vector<string> gt_vect;
-    Ptr<Tracker> tracker; //added
 
 };
 
@@ -95,16 +92,11 @@ App::App(string _firstFrameFilename, string _gtFilename){
         cerr << "Maybe you typed wrong filenames" << endl;
         exit(EXIT_FAILURE);
     }
+
 }
 
 void App::run(int num_particles){
-    particle_filter filter(num_particles);
-    MatND reference_hist,reference_hog;
-    Rect2d boundingBox; //added
-    int num_frames=(int)images.size();
-    string track_algorithm_selected="MIL";
-    tracker = Tracker::create( track_algorithm_selected );
-    Performance track_algorithm;
+    PMMH filter(images,gt_vect);
     Performance particle_filter_algorithm;
     namedWindow("Tracker");
     for(int k=0;k <num_frames;++k){    

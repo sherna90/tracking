@@ -19,7 +19,7 @@
 #include <chrono>
 
 #define POS_STD 1.0
-#define VEL_STD 0.5
+#define VEL_STD 0.1
 #define SCALE_STD 0.1
 #define DT 1.0
 #define SIGMA_COLOR 0.1
@@ -28,8 +28,8 @@
 #define DIRICHLET_LIKELIHOOD 0
 #define MULTINOMIAL_LIKELIHOOD 1
 #define POISSON_LIKELIHOOD 2
-#define WITH_HOG true
-#define WITHOUT_HOG false
+#define LIKELIHOOD MULTINOMIAL_LIKELIHOOD
+#define HOG false
 
 using namespace cv;
 using namespace std;
@@ -52,12 +52,13 @@ public:
     vector<double>  weights;
     particle_filter(int _n_particles);
     bool is_initialized();
-    void initialize(Rect roi,Size im_size,Mat& reference_hist,Mat& reference_hog);
+    void reinitialize();
+    void initialize(Mat& current_frame, Rect ground_truth);
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);
     void predict();
-    void update(Mat& image,bool hog);
-    void update_discrete(Mat& image,int distribution,bool hog);
+    void update(Mat& image);
+    void update_discrete(Mat& image);
     void smoother(int fixed_lag);
     void update_model(VectorXd theta_x,VectorXd theta_y);
     VectorXd get_discrete_model();

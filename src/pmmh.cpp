@@ -109,7 +109,7 @@ void pmmh::update(Mat& current_frame){
         acceptprob+=scale_prior.log_likelihood(theta_x_prop(2))-scale_prior.log_likelihood(theta_x(2));
         double u=unif_rnd(generator);
         if( log(u) < acceptprob){
-            cout << "accept!" << endl;
+            //cout << "accept!" << endl;
             theta_y=theta_y_prop;
             theta_x=theta_x_prop;
             filter->update_model(theta_x_prop,theta_y_prop);

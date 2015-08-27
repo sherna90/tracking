@@ -56,7 +56,6 @@ public:
     ~particle_filter();
     particle_filter(int _n_particles);
     particle_filter();
-    particle_filter(const particle_filter &obj);
     bool is_initialized();
     void reinitialize();
     void initialize(Mat& current_frame, Rect ground_truth);
@@ -88,6 +87,8 @@ private:
     Mat reference_hist,reference_hog;
     Multinomial discrete,discrete_hog;
     Poisson poisson;
+    normal_distribution<double> position_random_walk,velocity_random_walk,scale_random_walk;
+    double eps;
 
 };
 

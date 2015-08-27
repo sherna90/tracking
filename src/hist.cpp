@@ -8,8 +8,8 @@
 using namespace cv;
 using namespace std;
 
-const int H_BINS=8;
-const int S_BINS=8;
+const int H_BINS=3;
+const int S_BINS=3;
 
 void calc_hist_hsv(Mat& image,  Mat& Mask, Mat& hist)
 {

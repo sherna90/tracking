@@ -110,9 +110,7 @@ void App::run(int num_particles,int fixed_lag,int num_mcmc){
             filter.update(current_frame);
         }
         Rect estimate=filter.estimate(current_frame,true);
-        cout << estimate << endl;
         double r1=particle_filter_algorithm.calc(ground_truth,estimate);
-        cout << "ratio : " << r1 << endl;
         if(r1<0.1) filter.reinitialize();
         imshow("Tracker",current_frame);
         waitKey(25); 

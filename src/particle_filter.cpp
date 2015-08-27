@@ -119,8 +119,8 @@ void particle_filter::predict(){
         for (int i=0;i<n_particles;i++){
             particle state=states[i];
             float _x,_y,_dx,_dy,_width,_height;
-            _dx=state.dx;
-            _dy=state.dy;
+            _dx=state.dx+velocity_random_walk(generator);
+            _dy=state.dy+velocity_random_walk(generator);
             _x=MAX(cvRound(state.x+_dx+position_random_walk(generator)),0);
             _y=MAX(cvRound(state.y+_dy+position_random_walk(generator)),0);
             _width=MAX(cvRound(state.width+state.scale),0);
@@ -128,7 +128,8 @@ void particle_filter::predict(){
             
             if((_x+_width)<im_size.width && _x>=0 && 
                 (_y+_height)<im_size.height && _y>=0 && 
-                isless(ESS/n_particles,(float)THRESHOLD)){
+                _width<im_size.width && _height<im_size.height 
+                && isless(ESS/n_particles,(float)THRESHOLD)){
                 state.x=_x;
                 state.y=_y;
                 state.width=_width;
@@ -140,8 +141,8 @@ void particle_filter::predict(){
             else{
                 state.dx=velocity_random_walk(generator);
                 state.dy=velocity_random_walk(generator);
-                state.width=cvRound(reference_roi.width);
-                state.height=cvRound(reference_roi.height);
+                state.width=cvRound(reference_roi.width+state.scale);
+                state.height=cvRound(reference_roi.height+state.scale);
                 double u=unif_rnd(generator);
                 if(u<0.5){
                     state.x=cvRound(reference_roi.x+position_random_walk(generator));

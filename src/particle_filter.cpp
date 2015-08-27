@@ -57,56 +57,59 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     weights = vector<double>();
     //cout << "INIT!!!!!" << endl;
     //cout << ground_truth << endl;
+    im_size=current_frame.size();
     int left = MAX(ground_truth.x, 1);
     int top = MAX(ground_truth.y, 1);
     int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
     int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
     reference_roi=Rect(left, top, right - left, bottom - top);
-    Mat current_roi = Mat(current_frame,ground_truth);
-    calc_hist_hsv(current_roi,reference_hist);
-    im_size=current_frame.size();
-    marginal_likelihood=0.0;
-    Eigen::VectorXd alpha,alpha_hog;
-    color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
-    double weight=log(1.0/n_particles);
-    for (int i=0;i<n_particles;i++){
-        particle state;
-        state.x=cvRound(reference_roi.x+position_random_walk(generator));
-        state.y=cvRound(reference_roi.y+position_random_walk(generator));
-        state.dx+=velocity_random_walk(generator);
-        state.dy+=velocity_random_walk(generator);
-        state.scale=1.0f+scale_random_walk(generator);
-        states.push_back(state);
-        weights.push_back(weight);
-        ESS=0.0f;
-        state.width=cvRound(right-left+state.scale);
-        state.height=cvRound(bottom-top+state.scale);
-    }
-    alpha.setOnes(reference_hist.total());
-    for(int h=0;h<H_BINS;h++)
-        for( int s = 0; s < S_BINS; s++ ){
-            double val=reference_hist.at<float>(h, s);
-            gamma_distribution<double> color_prior(val,1.0);
-            alpha[h*S_BINS+s] = (val!=0.0) ? color_prior(generator) : eps;
+    if(reference_roi.width>0 && reference_roi.width<im_size.width && 
+        reference_roi.height>0 && reference_roi.height<im_size.height){
+        Mat current_roi = Mat(current_frame,ground_truth);
+        calc_hist_hsv(current_roi,reference_hist);
+        marginal_likelihood=0.0;
+        Eigen::VectorXd alpha,alpha_hog;
+        color_lilekihood=Gaussian(0.0,SIGMA_COLOR);
+        double weight=log(1.0/n_particles);
+        for (int i=0;i<n_particles;i++){
+            particle state;
+            state.x=cvRound(reference_roi.x+position_random_walk(generator));
+            state.y=cvRound(reference_roi.y+position_random_walk(generator));
+            state.dx+=velocity_random_walk(generator);
+            state.dy+=velocity_random_walk(generator);
+            state.scale=1.0f+scale_random_walk(generator);
+            states.push_back(state);
+            weights.push_back(weight);
+            ESS=0.0f;
+            state.width=cvRound(right-left+state.scale);
+            state.height=cvRound(bottom-top+state.scale);
         }
-    polya = dirichlet(alpha);
-    poisson = Poisson(alpha);
-    alpha.normalize();
-    discrete = Multinomial(alpha);
-    if(HOG){
-        calc_hog(current_roi,reference_hog);            
-        hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
-        alpha_hog.setOnes(reference_hog.total());
-        for(unsigned int g=0;g<reference_hog.total();g++){
-            double val=reference_hog.at<float>(0,g);
-            gamma_distribution<double> hog_prior(val,1.0);
-            alpha_hog[g] = (val!=0.0) ? hog_prior(generator) : eps;
+        alpha.setOnes(reference_hist.total());
+        for(int h=0;h<H_BINS;h++)
+            for( int s = 0; s < S_BINS; s++ ){
+                double val=reference_hist.at<float>(h, s);
+                gamma_distribution<double> color_prior(val,1.0);
+                alpha[h*S_BINS+s] = (val!=0.0) ? color_prior(generator) : eps;
+            }
+        polya = dirichlet(alpha);
+        poisson = Poisson(alpha);
+        alpha.normalize();
+        discrete = Multinomial(alpha);
+        if(HOG){
+            calc_hog(current_roi,reference_hog);            
+            hog_likelihood=Gaussian(0.0,SIGMA_SHAPE);
+            alpha_hog.setOnes(reference_hog.total());
+            for(unsigned int g=0;g<reference_hog.total();g++){
+                double val=reference_hog.at<float>(0,g);
+                gamma_distribution<double> hog_prior(val,1.0);
+                alpha_hog[g] = (val!=0.0) ? hog_prior(generator) : eps;
+            }
+            polya_hog = dirichlet(alpha_hog);
+            alpha_hog.normalize();
+            discrete_hog = Multinomial(alpha_hog);
         }
-        polya_hog = dirichlet(alpha_hog);
-        alpha_hog.normalize();
-        discrete_hog = Multinomial(alpha_hog);
+        initialized=true;
     }
-    initialized=true;
 }
 
 void particle_filter::predict(){
@@ -195,8 +198,8 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     _height=cvRound(_height);
     pt2.x=cvRound(pt1.x+_width);
     pt2.y=cvRound(pt1.y+_height); 
-    if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 1, LINE_AA );
     if(pt2.x<im_size.width && pt1.x>=0 && pt2.y<im_size.height && pt1.y>=0){
+        if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 1, LINE_AA );
         estimate=Rect(pt1.x,pt1.y,_width,_height);
     }
     return estimate;
@@ -247,13 +250,14 @@ void particle_filter::update_discrete(Mat& image){
     for (int i=0;i<n_particles;i++){
         particle state=states[i];
         if (state.width < 0 || state.width > im_size.width){
-          state.width = reference_roi.width+state.scale;
+          state.width = reference_roi.width;
         }
         if (state.height < 0 ||  state.height > im_size.height){
-          state.height = reference_roi.width+state.scale;
+          state.height = reference_roi.width;
         }
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
-        if(boundingBox.area()>0 && boundingBox.area()<(im_size.area()/2.0)){
+        if(boundingBox.width>0 && boundingBox.width<im_size.width && 
+            boundingBox.height>0 && boundingBox.height<im_size.height){
             Mat part_hist,part_roi,part_hog;
             part_roi=image(boundingBox);
             calc_hist_hsv(part_roi,part_hist);

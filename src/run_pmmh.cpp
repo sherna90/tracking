@@ -54,7 +54,7 @@ App::App(int _num_particles,int _fixed_lag,int _mcmc_steps){
 }
 
 App::~App(){
-  delete &vot;
+  //delete &vot;
 }
 
 void App::run(){
@@ -63,15 +63,15 @@ void App::run(){
     Mat initial_frame = imread(vot.frame());
     pmmh filter(num_particles,fixed_lag,mcmc_steps);
     filter.initialize(initial_frame, initialization);
-    namedWindow("Tracker");
+    //namedWindow("Tracker");
     while(!vot.end()){
         string image_path = vot.frame();
         if (image_path.empty()) break;
         Mat current_frame = imread(image_path);
         filter.update(current_frame);
-        Rect estimate = filter.estimate(current_frame,true);
+        Rect estimate = filter.estimate(current_frame,false);
         vot.report(estimate);
-        imshow("Tracker",current_frame);
-        waitKey(25);
+        //imshow("Tracker",current_frame);
+        //waitKey(25);
     }
 }

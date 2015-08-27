@@ -41,11 +41,13 @@ void pmmh::reinitialize(){
 
 double pmmh::marginal_likelihood(VectorXd theta_x,VectorXd theta_y){
     particle_filter pmmh_filter(num_particles);
-    //int start_time;
-    //(fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
+    pmmh_filter.update_model(theta_x,theta_y);
+    int time_step=(int)images.size();
+    int start_time;
+    (fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
     //cout << images.size() << endl;
     //cout << "--------------" << endl;
-    for(int k=0;k<(int)images.size();k++){
+    for(int k=start_time;k<time_step;k++){
         //cout << "time step:" << k << endl;
         Mat current_frame = images[k].clone();
         if(!pmmh_filter.is_initialized()){

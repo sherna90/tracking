@@ -38,16 +38,10 @@ public:
 
 private:
     int num_particles;
-    vector<Mat> images;
-    //Stores ground-truth data
-    vector<string> gt_vect;
-    Ptr<Tracker> tracker; //added
-
 };
 
 int main(int argc, char* argv[]){
     int num_particles=300;
-
     App app(num_particles);
     app.run();
     return 0;
@@ -80,21 +74,4 @@ void App::run(){
         imshow("Tracker",current_frame);
         waitKey(25);
     }
-}
-
-
-
-
-void App::help(){
-    cout
-    << "--------------------------------------------------------------------------" << endl
-    << "This program shows how to use color tracking provided by "  << endl
-    << " OpenCV. You can process both videos (-vid) and images (-img)."             << endl
-                                                                                    << endl
-    << "Usage:"                                                                     << endl
-    << "./tracker {-vid <video filename>|-img <image filename> -gt <groundtruth filename>}"                         << endl
-    << "for example: ./tracker -vid video.avi -gt groundtruth.txt"                                           << endl
-    << "or: ./tracker -img /data/images/1.png -gt groundtruth.txt"                                           << endl
-    << "--------------------------------------------------------------------------" << endl
-    << endl;
 }

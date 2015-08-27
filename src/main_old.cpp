@@ -113,10 +113,7 @@ void App::run(int num_particles){
         string current_gt = gt_vect[k];
         Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
         if(!filter.is_initialized()){
-            Mat current_roi = Mat(current_frame,ground_truth);
-            calc_hist_hsv(current_roi,reference_hist);
-            calc_hog(current_roi,reference_hog);
-            filter.initialize(ground_truth,Size(current_frame.cols,current_frame.rows),reference_hist,reference_hog);
+            filter.initialize(current_frame,ground_truth);
             boundingBox.x = ground_truth.x;
             boundingBox.y = ground_truth.y;
             boundingBox.width = ground_truth.width;
@@ -125,7 +122,7 @@ void App::run(int num_particles){
         }
         else if(filter.is_initialized()){
             filter.predict();
-            filter.update_discrete(current_frame,MULTINOMIAL_LIKELIHOOD,false);
+            filter.update_discrete(current_frame);
 	        //filter.update(current_frame,true);
             filter.draw_particles(current_frame);
             tracker->update( current_frame, boundingBox );

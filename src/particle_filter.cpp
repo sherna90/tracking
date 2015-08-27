@@ -38,6 +38,15 @@ particle_filter::particle_filter(int _n_particles) {
     theta << POS_STD,VEL_STD,SCALE_STD;
 }
 
+particle_filter::particle_filter(const particle_filter &obj){
+    states=obj.states;
+    weights=obj.weights;
+    reference_roi=obj.reference_roi;
+    im_size=obj.im_size;
+    marginal_likelihood=obj.marginal_likelihood;
+    initialized=true;
+}
+
 bool particle_filter::is_initialized() {
     return initialized;
 }
@@ -184,8 +193,8 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
         double weight=exp(weights[i]);
         _x+=weight*state.x;
         _y+=weight*state.y;
-        _width+=weight*state.width;
-        _height+=weight*state.height;
+        _width+=(weight*state.width > 0 && weight*state.width < im_size.width) ? weight*state.width : weight*reference_roi.width; 
+        _height+=(weight*state.height > 0 && weight*state.height < im_size.height) ? weight*state.height : weight*reference_roi.height; 
         //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
     }
     Point pt1,pt2;
@@ -244,48 +253,48 @@ void particle_filter::update_discrete(Mat& image){
     vector<double> tmp_weights;
     double eps= std::numeric_limits<double>::epsilon();
     double prob = 0.0f;
+    double weight=-10.0;
     for (int i=0;i<n_particles;i++){
-        Mat part_hist,part_roi,part_hog;
         particle state=states[i];
-        if (state.width < 0){
-          state.width = reference_roi.width;
+        if (state.width < 0 || state.width > im_size.width){
+          state.width = reference_roi.width+state.scale;
         }
-        if (state.height < 0){
-          state.height = reference_roi.width;
+        if (state.height < 0 ||  state.height > im_size.height){
+          state.height = reference_roi.width+state.scale;
         }
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
-        part_roi=image(boundingBox);
-        double weight=-10.0;
-        if(!part_roi.empty()){
-        calc_hist_hsv(part_roi,part_hist);
-        VectorXd counts;
-        counts.setOnes(part_hist.total());
-        //double k=0.0;
-        for(int h=0;h<H_BINS;h++)
-            for( int s = 0; s < S_BINS; s++ )
-            {
-                double val=part_hist.at<float>(h, s);
-                counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
+        if(boundingBox.area()>0 && boundingBox.area()<(im_size.area()/2.0)){
+            Mat part_hist,part_roi,part_hog;
+            part_roi=image(boundingBox);
+            calc_hist_hsv(part_roi,part_hist);
+            VectorXd counts;
+            counts.setOnes(part_hist.total());
+            //double k=0.0;
+            for(int h=0;h<H_BINS;h++)
+                for( int s = 0; s < S_BINS; s++ )
+                {
+                    double val=part_hist.at<float>(h, s);
+                    counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
+                }
+            //double poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
+            if(LIKELIHOOD==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts);
+            else if(LIKELIHOOD==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts);        
+    	    else prob=poisson.log_likelihood(counts);
+            weight=weights[i]+prob;
+            if(HOG){
+                VectorXd hog_counts;
+                calc_hog(part_roi,part_hog);
+                hog_counts.setOnes(part_hog.total());
+                if(part_hog.size()==reference_hog.size()){
+                    //for(unsigned int g=0;g<part_hog.total();g++){
+                    //    double val=part_hog.at<float>(0, g);
+                    //    hog_counts[g] = (val!=0.0) ? val : eps;
+                    //}
+                    double bc_hog = compareHist(reference_hog, part_hog, HISTCMP_BHATTACHARYYA);
+                    double prob_hog = hog_likelihood.log_likelihood(bc_hog);
+                    weight+=prob_hog;
+                }
             }
-        //double poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
-        if(LIKELIHOOD==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts);
-        else if(LIKELIHOOD==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts);        
-	    else prob=poisson.log_likelihood(counts);
-        weight=weights[i]+prob;
-        if(HOG){
-            VectorXd hog_counts;
-            calc_hog(part_roi,part_hog);
-            hog_counts.setOnes(part_hog.total());
-            if(part_hog.size()==reference_hog.size()){
-                //for(unsigned int g=0;g<part_hog.total();g++){
-                //    double val=part_hog.at<float>(0, g);
-                //    hog_counts[g] = (val!=0.0) ? val : eps;
-                //}
-                double bc_hog = compareHist(reference_hog, part_hog, HISTCMP_BHATTACHARYYA);
-                double prob_hog = hog_likelihood.log_likelihood(bc_hog);
-                weight+=prob_hog;
-            }
-        }
         }
         tmp_weights.push_back(weight);
     }

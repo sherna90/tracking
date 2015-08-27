@@ -40,26 +40,22 @@ void pmmh::reinitialize(){
 }
 
 double pmmh::marginal_likelihood(VectorXd theta_x,VectorXd theta_y){
-    particle_filter pmmh_filter(num_particles);
-    pmmh_filter.update_model(theta_x,theta_y);
+    filter->update_model(theta_x,theta_y);
     int time_step=(int)images.size();
     int start_time;
     (fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
-    //cout << images.size() << endl;
-    //cout << "--------------" << endl;
     for(int k=start_time;k<time_step;k++){
-        //cout << "time step:" << k << endl;
         Mat current_frame = images[k].clone();
-        if(!pmmh_filter.is_initialized()){
-            pmmh_filter.initialize(current_frame,reference_roi);
-            pmmh_filter.update_model(theta_x,theta_y);
+        if(!filter->is_initialized()){
+            filter->initialize(current_frame,reference_roi);
+            filter->update_model(theta_x,theta_y);
         }
-        else if(pmmh_filter.is_initialized()){
-            pmmh_filter.predict();
-            pmmh_filter.update_discrete(current_frame);
+        else if(filter->is_initialized()){
+            filter->predict();
+            filter->update_discrete(current_frame);
         }
     }
-    return pmmh_filter.getMarginalLikelihood();
+    return filter->getMarginalLikelihood();
 }
 
 VectorXd pmmh::discrete_proposal(VectorXd alpha){
@@ -105,6 +101,7 @@ void pmmh::update(Mat& current_frame){
         theta_y_prop=discrete_proposal(theta_y);
         theta_x_prop=continuous_proposal(theta_x);
         double proposal_filter = marginal_likelihood(theta_x_prop,theta_y_prop);
+        filter->update_model(theta_x,theta_y);
         double acceptprob = proposal_filter - forward_filter;
         acceptprob+=color_prior.log_likelihood(theta_y_prop)-color_prior.log_likelihood(theta_y);
         acceptprob+=pos_prior.log_likelihood(theta_x_prop(0))-pos_prior.log_likelihood(theta_x(0));
@@ -112,6 +109,7 @@ void pmmh::update(Mat& current_frame){
         acceptprob+=scale_prior.log_likelihood(theta_x_prop(2))-scale_prior.log_likelihood(theta_x(2));
         double u=unif_rnd(generator);
         if( log(u) < acceptprob){
+            cout << "accept!" << endl;
             theta_y=theta_y_prop;
             theta_x=theta_x_prop;
             filter->update_model(theta_x_prop,theta_y_prop);

@@ -56,6 +56,7 @@ public:
     ~particle_filter();
     particle_filter(int _n_particles);
     particle_filter();
+    particle_filter(const particle_filter &obj);
     bool is_initialized();
     void reinitialize();
     void initialize(Mat& current_frame, Rect ground_truth);

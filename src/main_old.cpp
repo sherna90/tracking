@@ -128,14 +128,17 @@ void App::run(int num_particles){
             tracker->update( current_frame, boundingBox );
         }
         Rect estimate=filter.estimate(current_frame,true);
+        //cout << "-------------------------" << endl;
+        //cout << estimate << endl;
         // fixed-lag backward pass
-        particle_filter_algorithm.calc(ground_truth,estimate);
+        double r1=particle_filter_algorithm.calc(ground_truth,estimate);
         Rect IntboundingBox;
         IntboundingBox.x = (int)boundingBox.x;
         IntboundingBox.y = (int)boundingBox.y;
         IntboundingBox.width = (int)boundingBox.width;
         IntboundingBox.height = (int)boundingBox.height;
         track_algorithm.calc(ground_truth,IntboundingBox);
+        if(r1<0.1) filter.reinitialize();
         //cout << "time : " << k << endl;
         //cout << current_frame.size() << endl;
         imshow("Tracker",current_frame);

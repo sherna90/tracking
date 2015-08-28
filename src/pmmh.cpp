@@ -40,22 +40,19 @@ void pmmh::reinitialize(){
 }
 
 double pmmh::marginal_likelihood(VectorXd theta_x,VectorXd theta_y){
-    filter->update_model(theta_x,theta_y);
-    int time_step=(int)images.size();
-    int start_time;
-    (fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
-    for(int k=start_time;k<time_step;k++){
+    particle_filter pmmh(num_particles);
+    Mat current_frame = images[0].clone(); 
+    pmmh.initialize(current_frame,reference_roi);
+    pmmh.update_model(theta_x,theta_y);
+    int time_step=MIN((int)images.size(),fixed_lag);
+    //int start_time;
+    //(fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
+    for(int k=1;k<time_step;k++){
         Mat current_frame = images[k].clone();
-        if(!filter->is_initialized()){
-            filter->initialize(current_frame,reference_roi);
-            filter->update_model(theta_x,theta_y);
-        }
-        else if(filter->is_initialized()){
-            filter->predict();
-            filter->update_discrete(current_frame);
-        }
+        pmmh.predict();
+        pmmh.update_discrete(current_frame);
     }
-    return filter->getMarginalLikelihood();
+    return pmmh.getMarginalLikelihood();
 }
 
 VectorXd pmmh::discrete_proposal(VectorXd alpha){
@@ -73,8 +70,8 @@ VectorXd pmmh::discrete_proposal(VectorXd alpha){
 VectorXd pmmh::continuous_proposal(VectorXd alpha){
     VectorXd proposal(alpha.size());
     for(int i=0;i<alpha.size();i++){
-        normal_distribution<double> random_walk(alpha[i],0.1);
-        double val=random_walk(generator);
+        normal_distribution<double> random_walk(alpha(i),0.1);
+        double val=MAX(random_walk(generator),0.1);
         proposal[i] = val;
     }
     return proposal;
@@ -101,15 +98,16 @@ void pmmh::update(Mat& current_frame){
         theta_y_prop=discrete_proposal(theta_y);
         theta_x_prop=continuous_proposal(theta_x);
         double proposal_filter = marginal_likelihood(theta_x_prop,theta_y_prop);
-        filter->update_model(theta_x,theta_y);
+        //
         double acceptprob = proposal_filter - forward_filter;
         acceptprob+=color_prior.log_likelihood(theta_y_prop)-color_prior.log_likelihood(theta_y);
         acceptprob+=pos_prior.log_likelihood(theta_x_prop(0))-pos_prior.log_likelihood(theta_x(0));
         acceptprob+=vel_prior.log_likelihood(theta_x_prop(1))-vel_prior.log_likelihood(theta_x(1));
         acceptprob+=scale_prior.log_likelihood(theta_x_prop(2))-scale_prior.log_likelihood(theta_x(2));
+        cout << "forward_filter:" << forward_filter << ",proposal_filter:" << proposal_filter << endl;
         double u=unif_rnd(generator);
         if( log(u) < acceptprob){
-            //cout << "accept!" << endl;
+            cout << "accept!" << endl;
             theta_y=theta_y_prop;
             theta_x=theta_x_prop;
             filter->update_model(theta_x_prop,theta_y_prop);

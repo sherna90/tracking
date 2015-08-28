@@ -129,7 +129,7 @@ void App::run(int num_particles){
         }
         Rect estimate=filter.estimate(current_frame,true);
         //cout << "-------------------------" << endl;
-        //cout << estimate << endl;
+        cout << estimate << endl;
         // fixed-lag backward pass
         double r1=particle_filter_algorithm.calc(ground_truth,estimate);
         Rect IntboundingBox;

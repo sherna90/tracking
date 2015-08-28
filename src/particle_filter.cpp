@@ -31,9 +31,8 @@ particle_filter::particle_filter(int _n_particles) {
     n_particles = _n_particles;
     time_stamp=0;
     initialized=false;
-    marginal_likelihood=0.0;
-    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed1);
+    //unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    //generator.seed(seed1);
     theta.resize(3);
     theta << POS_STD,VEL_STD,SCALE_STD;
     normal_distribution<double> position_random_walk(0.0,theta(0));
@@ -53,6 +52,7 @@ void particle_filter::reinitialize() {
 
 
 void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
+    marginal_likelihood=0.0;
     states = vector<particle>();
     weights = vector<double>();
     //cout << "INIT!!!!!" << endl;
@@ -63,9 +63,9 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
     int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
     reference_roi=Rect(left, top, right - left, bottom - top);
-    if(reference_roi.width>0 && reference_roi.width<im_size.width && 
-        reference_roi.height>0 && reference_roi.height<im_size.height){
-        Mat current_roi = Mat(current_frame,ground_truth);
+    if(reference_roi.width>0 && (reference_roi.x+reference_roi.width)<im_size.width && 
+        reference_roi.height>0 && (reference_roi.y+reference_roi.height)<im_size.height){
+        Mat current_roi = Mat(current_frame,reference_roi);
         calc_hist_hsv(current_roi,reference_hist);
         marginal_likelihood=0.0;
         Eigen::VectorXd alpha,alpha_hog;
@@ -117,8 +117,8 @@ void particle_filter::predict(){
         time_stamp++;
         vector<particle> tmp_new_states;
         uniform_real_distribution<double> unif_rnd(0.0,1.0);
-        uniform_int_distribution<int> unif_width(0,(int)(im_size.width-reference_roi.width-1));
-        uniform_int_distribution<int> unif_height(0,(int)(im_size.height-reference_roi.height-1));                  
+        uniform_int_distribution<int> unif_width(reference_roi.width,(int)(im_size.width-reference_roi.width-1));
+        uniform_int_distribution<int> unif_height(reference_roi.height,(int)(im_size.height-reference_roi.height-1));                  
         for (int i=0;i<n_particles;i++){
             particle state=states[i];
             float _x,_y,_dx,_dy,_width,_height;
@@ -126,11 +126,11 @@ void particle_filter::predict(){
             _dy=state.dy;//+velocity_random_walk(generator);
             _x=MAX(cvRound(state.x+_dx+position_random_walk(generator)),0);
             _y=MAX(cvRound(state.y+_dy+position_random_walk(generator)),0);
-            _width=MAX(cvRound(state.width+scale_random_walk(generator)),0);
-            _height=MAX(cvRound(state.height+scale_random_walk(generator)),0);
+            _width=MAX(cvRound(state.width),0);
+            _height=MAX(cvRound(state.height),0);
             
-            if((_x+_width)<im_size.width && _x>=0 && 
-                (_y+_height)<im_size.height && _y>=0 && 
+            if((_x+_width)<im_size.width && _x>0 && 
+                (_y+_height)<im_size.height && _y>0 && 
                 _width<im_size.width && _height<im_size.height 
                 && isless(ESS/n_particles,(float)THRESHOLD)){
                 state.x=_x;
@@ -144,21 +144,22 @@ void particle_filter::predict(){
             else{
                 state.dx=velocity_random_walk(generator);
                 state.dy=velocity_random_walk(generator);
-                state.width=cvRound(reference_roi.width+scale_random_walk(generator));
-                state.height=cvRound(reference_roi.height+scale_random_walk(generator));
-                //double u=unif_rnd(generator);
-                //if(u<0.9){
+                state.width=cvRound(reference_roi.width);
+                state.height=cvRound(reference_roi.height);
+                double u=unif_rnd(generator);
+                if(u<0.5){
                 state.x=cvRound(reference_roi.x+position_random_walk(generator));
                 state.y=cvRound(reference_roi.y+position_random_walk(generator));
-                //}
-                //else{
-                //    double val_x=unif_width(generator);
-                //    state.x= (val_x>0 && val_x <(im_size.width-state.width)) ? val_x : reference_roi.x;
-                //    double val_y=unif_height(generator);
-                //    state.y= (val_y>0 && val_y <(im_size.height-state.height)) ? val_y : reference_roi.y;
-                //}
+                }
+                else{
+                    double val_x=unif_width(generator);
+                    state.x= (val_x>0 && val_x <(im_size.width-state.width)) ? val_x : reference_roi.x;
+                    double val_y=unif_height(generator);
+                    state.y= (val_y>0 && val_y <(im_size.height-state.height)) ? val_y : reference_roi.y;
+                }
                 state.scale=1.f+scale_random_walk(generator);
             }
+            //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
             tmp_new_states.push_back(state);
         }
         states.swap(tmp_new_states);
@@ -185,10 +186,11 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     for (int i=0;i<n_particles;i++){
         particle state=states[i];
         double weight=exp(weights[i]);
-        _x+=weight*state.x;
-        _y+=weight*state.y;
-        _width+=(weight*state.width > 0 && weight*state.width < im_size.width) ? weight*state.width : weight*reference_roi.width; 
-        _height+=(weight*state.height > 0 && weight*state.height < im_size.height) ? weight*state.height : weight*reference_roi.height; 
+        _x+=(weight*state.x > 0 && weight*state.x < im_size.width) ? weight*state.x : float(1/n_particles)*reference_roi.x; ;
+        _y+=(weight*state.y > 0 && weight*state.y < im_size.height) ? weight*state.y : float(1/n_particles)*reference_roi.y; ;
+        _width+=(weight*state.width > 0 && weight*state.width < im_size.width) ? weight*state.width : float(1/n_particles)*reference_roi.width; 
+        _height+=(weight*state.height > 0 && weight*state.height < im_size.height) ? weight*state.height : float(1/n_particles)*reference_roi.height; 
+        //cout << "ref x:" << reference_roi.x << ",y:" << reference_roi.y <<",w:" << reference_roi.width <<",h:" << reference_roi.height << endl;
         //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
     }
     Point pt1,pt2;
@@ -256,8 +258,8 @@ void particle_filter::update_discrete(Mat& image){
           state.height = reference_roi.width;
         }
         Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
-        if(boundingBox.width>0 && boundingBox.width<im_size.width && 
-            boundingBox.height>0 && boundingBox.height<im_size.height){
+        if(boundingBox.x>0 && boundingBox.width>0 && (boundingBox.x+boundingBox.width)<im_size.width && 
+            boundingBox.y>0 && boundingBox.height>0 && (boundingBox.y+boundingBox.height)<im_size.height){
             Mat part_hist,part_roi,part_hog;
             part_roi=image(boundingBox);
             calc_hist_hsv(part_roi,part_hist);

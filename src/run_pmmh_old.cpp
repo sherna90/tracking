@@ -62,7 +62,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         App app(_firstFrameFilename,_gtFilename);
-        app.run(num_particles,10,10);
+        app.run(num_particles,10,3);
     }
 }
 
@@ -96,6 +96,7 @@ App::App(string _firstFrameFilename, string _gtFilename){
 
 void App::run(int num_particles,int fixed_lag,int num_mcmc){
     pmmh filter(num_particles,fixed_lag,num_mcmc);
+    double reinit_rate=0.0;
     Performance particle_filter_algorithm;
     int num_frames=(int)images.size();
     namedWindow("Tracker");
@@ -111,11 +112,16 @@ void App::run(int num_particles,int fixed_lag,int num_mcmc){
         }
         Rect estimate=filter.estimate(current_frame,true);
         double r1=particle_filter_algorithm.calc(ground_truth,estimate);
-        if(r1<0.1) filter.reinitialize();
+        if(r1<0.1) {
+            filter.reinitialize();
+            reinit_rate+=1.0;
+        }
         imshow("Tracker",current_frame);
         waitKey(25); 
     }
-   cout << "PMMH >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
+   cout << "PMMH >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames; 
+   cout << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
+   cout << ",reinitialization rate:" << reinit_rate/num_frames << endl;
 }
 
 void App::getNextFilename(string& fn){

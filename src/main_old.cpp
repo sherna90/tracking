@@ -102,6 +102,8 @@ void App::run(int num_particles){
     particle_filter filter(num_particles);
     MatND reference_hist,reference_hog;
     Rect2d boundingBox; //added
+    Rect estimate;
+    double reinit_rate=0.0;
     int num_frames=(int)images.size();
     string track_algorithm_selected="MIL";
     tracker = Tracker::create( track_algorithm_selected );
@@ -124,12 +126,12 @@ void App::run(int num_particles){
             filter.predict();
             filter.update_discrete(current_frame);
 	        //filter.update(current_frame,true);
-            filter.draw_particles(current_frame);
+            //filter.draw_particles(current_frame);
             tracker->update( current_frame, boundingBox );
         }
-        Rect estimate=filter.estimate(current_frame,true);
+        estimate=filter.estimate(current_frame,true);
         //cout << "-------------------------" << endl;
-        cout << estimate << endl;
+        //cout << estimate << endl;
         // fixed-lag backward pass
         double r1=particle_filter_algorithm.calc(ground_truth,estimate);
         Rect IntboundingBox;
@@ -138,7 +140,10 @@ void App::run(int num_particles){
         IntboundingBox.width = (int)boundingBox.width;
         IntboundingBox.height = (int)boundingBox.height;
         track_algorithm.calc(ground_truth,IntboundingBox);
-        if(r1<0.1) filter.reinitialize();
+        if(r1<0.1) {
+            filter.reinitialize();
+            reinit_rate+=1.0;
+        }
         //cout << "time : " << k << endl;
         //cout << current_frame.size() << endl;
         imshow("Tracker",current_frame);
@@ -146,6 +151,7 @@ void App::run(int num_particles){
     }
     cout << track_algorithm_selected << " average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
     cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
+    cout << "reinitialization rate >> " << reinit_rate/num_frames << endl;
 }
 
 void App::getNextFilename(string& fn){

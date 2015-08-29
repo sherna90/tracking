@@ -5,7 +5,7 @@
  */
 #include "../include/particle_filter.hpp"
 
-const float POS_STD=1.0;
+const float POS_STD=0.1;
 const float VEL_STD=0.1;
 const float SCALE_STD=0.1;
 const float  DT=1.0;
@@ -89,7 +89,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             for( int s = 0; s < S_BINS; s++ ){
                 double val=reference_hist.at<float>(h, s);
                 gamma_distribution<double> color_prior(val,1.0);
-                alpha[h*S_BINS+s] = (val!=0.0) ? color_prior(generator) : eps;
+                //alpha[h*S_BINS+s] = (val!=0.0) ? color_prior(generator) : eps;
+                alpha[h*S_BINS+s] = (val!=0.0) ? val : eps;
             }
         polya = dirichlet(alpha);
         poisson = Poisson(alpha);

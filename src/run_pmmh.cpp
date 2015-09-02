@@ -42,7 +42,7 @@ private:
 
 int main(int argc, char* argv[]){
     int num_particles=300;
-    App app(num_particles,3,3);
+    App app(num_particles,10,3);
     app.run();
     return 0;
 }
@@ -72,6 +72,6 @@ void App::run(){
         Rect estimate = filter.estimate(current_frame,false);
         vot.report(estimate);
         //imshow("Tracker",current_frame);
-        //waitKey(25);
+        //waitKey(1);
     }
 }

@@ -23,6 +23,7 @@ class App
 {
 public:
     App(string _firstFrameFilename,string _gtFilename);
+    ~App();
     void help();
     void run(int num_particles,int fixed_lag,int num_mcmc);
 
@@ -62,7 +63,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         App app(_firstFrameFilename,_gtFilename);
-        app.run(num_particles,10,3);
+        app.run(num_particles,3,3);
     }
 }
 
@@ -92,6 +93,11 @@ App::App(string _firstFrameFilename, string _gtFilename){
         exit(EXIT_FAILURE);
     }
 
+}
+
+App::~App(){
+    images=vector<Mat>();
+    gt_vect=vector<string>();
 }
 
 void App::run(int num_particles,int fixed_lag,int num_mcmc){

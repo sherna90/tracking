@@ -99,33 +99,38 @@ App::App(string _firstFrameFilename, string _gtFilename){
 }
 
 void App::run(int num_particles){
-    particle_filter filter(num_particles);
+    Rect2d boundingBox; //added
     Rect estimate;
     double reinit_rate=0.0;
     int num_frames=(int)images.size();
-    Performance particle_filter_algorithm;
+    string track_algorithm_selected="MIL";
+    tracker = Tracker::create( track_algorithm_selected );
+    Performance track_algorithm;
     namedWindow("Tracker");
-    for(int k=0;k <num_frames;++k){
-        Mat current_frame = images[k].clone();
-        string current_gt = gt_vect[k];
-        Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
-        if(!filter.is_initialized()){
-            filter.initialize(current_frame,ground_truth);
-        }
-        else if(filter.is_initialized()){
-            filter.predict();
-            filter.update_discrete(current_frame);
-	    }
-        estimate=filter.estimate(current_frame,true);
-        double r1=particle_filter_algorithm.calc(ground_truth,estimate);
+    Mat current_frame = images[0].clone();
+    string current_gt = gt_vect[0];
+    Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
+    Rect boundingBox=ground_truth;
+    tracker->init(current_frame, boundingBox );
+    for(int k=1;k <num_frames;++k){
+        current_frame = images[k].clone();
+        current_gt = gt_vect[k];
+        ground_truth=updateGroundTruth(current_frame,current_gt,true);
+        tracker->update( current_frame, boundingBox );
+        Rect IntboundingBox;
+        IntboundingBox.x = (int)boundingBox.x;
+        IntboundingBox.y = (int)boundingBox.y;
+        IntboundingBox.width = (int)boundingBox.width;
+        IntboundingBox.height = (int)boundingBox.height;
+        track_algorithm.calc(ground_truth,IntboundingBox);
         if(r1<0.1) {
-            filter.reinitialize();
+            tracker->init(current_frame, ground_truth );
             reinit_rate+=1.0;
         }
         imshow("Tracker",current_frame);
         waitKey(1);
     }
-    cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
+    cout << track_algorithm_selected << " average precision:" << track_algorithm.get_avg_precision()/num_frames << ",average recall:" << track_algorithm.get_avg_recall()/num_frames << endl;
     cout << "reinitialization rate >> " << reinit_rate/num_frames << endl;
 }
 

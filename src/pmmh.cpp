@@ -16,7 +16,7 @@ pmmh::pmmh(int _num_particles,int _fixed_lag,int _mcmc_steps){
 }
 
 pmmh::~pmmh(){
-    delete filter;
+    //delete filter;
     images = vector<Mat>();
 }
 

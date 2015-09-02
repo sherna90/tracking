@@ -4,13 +4,10 @@
  * @author Sergio Hernandez
  */
 
-#include <opencv2/video/tracking.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
-#include <opencv2/tracking.hpp> //added
-#include "../include/particle_filter.hpp"
 #include "../include/utils.hpp"
-
+#include "../include/pmmh.hpp"
 //C
 #include <stdio.h>
 //C++
@@ -23,64 +20,59 @@ using namespace cv;
 using namespace std;
 
 #define VOT_RECTANGLE
-#include "vot.h"
+#include "../src/vot.h"
 
 class App
 {
 public:
     VOT vot;
-    particle_filter filter(int _n_particles);
-
-    App(int num_particles);
+    App();
     void help();
-    void run();
+    void run(int num_particles,int fixed_lag,int num_mcmc);
     ~App();
 
 private:
-    int num_particles;
     string FrameFilename,gtFilename;
     Rect updateGroundTruth(Mat frame,string str,bool draw);
     void getNextFilename(string& fn);
     vector<Mat> images;
     //Stores ground-truth data
     vector<string> gt_vect;
-    Ptr<Tracker> tracker; //added
-
 };
 
-int main(int argc, char* argv[]){
-    int num_particles=300;
-    App app(num_particles);
-    app.run();
-    return 0;
-}
+App::App(){
 
-App::App(int _num_particles){
-    num_particles = _num_particles;
 }
 
 App::~App(){
-  //delete &vot;
+
 }
 
-void App::run(){
+int main(int argc, char* argv[]){
+    int num_particles=300;
+    App app;
+    app.run(num_particles,3,3);
+    return 0;
+}
+
+void App::run(int num_particles,int fixed_lag,int num_mcmc){
+    pmmh filter(num_particles,fixed_lag,num_mcmc);
     Rect initialization;
     initialization << vot.region();
-    Mat initial_frame = imread(vot.frame());
-    particle_filter filter(num_particles);
-    filter.initialize(initial_frame, initialization);
+    Mat current_frame = imread(vot.frame());
+    filter.initialize(current_frame, initialization);
+
     namedWindow("Tracker");
     while(!vot.end()){
-        string image_path = vot.frame();
-        if (image_path.empty()) break;
-        Mat current_frame = imread(image_path);
-        filter.predict();
-        filter.update_discrete(current_frame);
-        filter.draw_particles(current_frame);
-        Rect estimate = filter.estimate(current_frame,true);
-        vot.report(estimate);
-        imshow("Tracker",current_frame);
-        waitKey(25);
+      string image_path = vot.frame();
+      if (image_path.empty()) break;
+      current_frame = imread(image_path);
+      filter.update(current_frame);
+      Rect estimate = filter.estimate(current_frame,true);
+      cout << estimate << endl;
+      vot.report(estimate);
+      imshow("Tracker",current_frame);
+      waitKey(25);
     }
 }
 

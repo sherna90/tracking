@@ -1,0 +1,1709 @@
+Testing 60 datasets
+--------------------------------------------------
+Testing element "bag" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/bag with program pmmh
+Running: ../build-intel/pmmh -img vot2015/bag/00000001.jpg -gt vot2015/bag/groundtruth.txt
+0.655548,0.573584,0.266304,12,196
+Testing element "bag" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/bag with program tracker
+Running: ../build-intel/tracker -img vot2015/bag/00000001.jpg -gt vot2015/bag/groundtruth.txt
+0.637696,0.613432,16.3333,18,196
+--------------------------------------------------
+Testing element "ball1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/ball1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/ball1/00000001.jpg -gt vot2015/ball1/groundtruth.txt
+0.488296,0.50686,2.91667,21,105
+Testing element "ball1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/ball1 with program tracker
+Running: ../build-intel/tracker -img vot2015/ball1/00000001.jpg -gt vot2015/ball1/groundtruth.txt
+0.491013,0.507523,52.5,16,105
+--------------------------------------------------
+Testing element "ball2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/ball2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/ball2/00000001.jpg -gt vot2015/ball2/groundtruth.txt
+0.484316,0.551848,13.6667,11,41
+Testing element "ball2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/ball2 with program tracker
+Running: ../build-intel/tracker -img vot2015/ball2/00000001.jpg -gt vot2015/ball2/groundtruth.txt
+0.4803,0.599786,inf,7,41
+--------------------------------------------------
+Testing element "basketball" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/basketball with program pmmh
+Running: ../build-intel/pmmh -img vot2015/basketball/00000001.jpg -gt vot2015/basketball/groundtruth.txt
+0.541935,0.562798,0.514549,49,725
+Testing element "basketball" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/basketball with program tracker
+Running: ../build-intel/tracker -img vot2015/basketball/00000001.jpg -gt vot2015/basketball/groundtruth.txt
+0.611326,0.634799,34.5238,44,725
+--------------------------------------------------
+Testing element "birds1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/birds1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/birds1/00000001.jpg -gt vot2015/birds1/groundtruth.txt
+0.51344,0.509199,14.125,92,339
+Testing element "birds1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/birds1 with program tracker
+Running: ../build-intel/tracker -img vot2015/birds1/00000001.jpg -gt vot2015/birds1/groundtruth.txt
+0.533857,0.52477,84.75,100,339
+--------------------------------------------------
+Testing element "birds2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/birds2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/birds2/00000001.jpg -gt vot2015/birds2/groundtruth.txt
+0.457497,0.451711,4.9,15,539
+Testing element "birds2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/birds2 with program tracker
+Running: ../build-intel/tracker -img vot2015/birds2/00000001.jpg -gt vot2015/birds2/groundtruth.txt
+0.438289,0.459676,44.9167,57,539
+--------------------------------------------------
+Testing element "blanket" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/blanket with program pmmh
+Running: ../build-intel/pmmh -img vot2015/blanket/00000001.jpg -gt vot2015/blanket/groundtruth.txt
+0.800641,0.777953,14.0625,2,225
+Testing element "blanket" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/blanket with program tracker
+Running: ../build-intel/tracker -img vot2015/blanket/00000001.jpg -gt vot2015/blanket/groundtruth.txt
+0.584889,0.651754,75,6,225
+--------------------------------------------------
+Testing element "bmx" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/bmx with program pmmh
+Running: ../build-intel/pmmh -img vot2015/bmx/00000001.jpg -gt vot2015/bmx/groundtruth.txt
+0.57344,0.439962,0.853933,4,76
+Testing element "bmx" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/bmx with program tracker
+Running: ../build-intel/tracker -img vot2015/bmx/00000001.jpg -gt vot2015/bmx/groundtruth.txt
+0.680806,0.476306,4.75,3,76
+--------------------------------------------------
+Testing element "bolt1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/bolt1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/bolt1/00000001.jpg -gt vot2015/bolt1/groundtruth.txt
+0.591272,0.616575,9.45946,11,350
+Testing element "bolt1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/bolt1 with program tracker
+Running: ../build-intel/tracker -img vot2015/bolt1/00000001.jpg -gt vot2015/bolt1/groundtruth.txt
+0.62681,0.596239,87.5,17,350
+--------------------------------------------------
+Testing element "bolt2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/bolt2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/bolt2/00000001.jpg -gt vot2015/bolt2/groundtruth.txt
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+0.59503,0.620548,12.7391,25,293
+Testing element "bolt2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/bolt2 with program tracker
+Running: ../build-intel/tracker -img vot2015/bolt2/00000001.jpg -gt vot2015/bolt2/groundtruth.txt
+0.555528,0.569925,97.6667,25,293
+--------------------------------------------------
+Testing element "book" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/book with program pmmh
+Running: ../build-intel/pmmh -img vot2015/book/00000001.jpg -gt vot2015/book/groundtruth.txt
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+0.511513,0.528403,6.48148,26,175
+Testing element "book" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/book with program tracker
+Running: ../build-intel/tracker -img vot2015/book/00000001.jpg -gt vot2015/book/groundtruth.txt
+0.531911,0.56962,58.3333,27,175
+--------------------------------------------------
+Testing element "butterfly" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/butterfly with program pmmh
+Running: ../build-intel/pmmh -img vot2015/butterfly/00000001.jpg -gt vot2015/butterfly/groundtruth.txt
+0.592643,0.504048,6.29167,10,151
+Testing element "butterfly" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/butterfly with program tracker
+Running: ../build-intel/tracker -img vot2015/butterfly/00000001.jpg -gt vot2015/butterfly/groundtruth.txt
+0.492383,0.461907,30.2,9,151
+--------------------------------------------------
+Testing element "car1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/car1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/car1/00000001.jpg -gt vot2015/car1/groundtruth.txt
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+accept!
+0.51564,0.533315,5.15278,81,742
+Testing element "car1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/car1 with program tracker
+Running: ../build-intel/tracker -img vot2015/car1/00000001.jpg -gt vot2015/car1/groundtruth.txt
+0.518716,0.535555,29.68,92,742
+--------------------------------------------------
+Testing element "car2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/car2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/car2/00000001.jpg -gt vot2015/car2/groundtruth.txt
+0.538124,0.589904,23.1176,26,393
+Testing element "car2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/car2 with program tracker
+Running: ../build-intel/tracker -img vot2015/car2/00000001.jpg -gt vot2015/car2/groundtruth.txt
+0.542818,0.628051,196.5,25,393
+--------------------------------------------------
+Testing element "crossing" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/crossing with program pmmh
+Running: ../build-intel/pmmh -img vot2015/crossing/00000001.jpg -gt vot2015/crossing/groundtruth.txt
+0.752254,0.535731,3.74286,10,131
+Testing element "crossing" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/crossing with program tracker
+Running: ../build-intel/tracker -img vot2015/crossing/00000001.jpg -gt vot2015/crossing/groundtruth.txt
+0.764588,0.496036,43.6667,10,131
+--------------------------------------------------
+Testing element "dinosaur" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/dinosaur with program pmmh
+Running: ../build-intel/pmmh -img vot2015/dinosaur/00000001.jpg -gt vot2015/dinosaur/groundtruth.txt
+0.553998,0.561742,3.58242,9,326
+Testing element "dinosaur" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/dinosaur with program tracker
+Running: ../build-intel/tracker -img vot2015/dinosaur/00000001.jpg -gt vot2015/dinosaur/groundtruth.txt
+0.578047,0.638067,32.6,12,326
+--------------------------------------------------
+Testing element "fernando" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/fernando with program pmmh
+Running: ../build-intel/pmmh -img vot2015/fernando/00000001.jpg -gt vot2015/fernando/groundtruth.txt
+0.616631,0.613808,1.55319,28,292
+Testing element "fernando" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/fernando with program tracker
+Running: ../build-intel/tracker -img vot2015/fernando/00000001.jpg -gt vot2015/fernando/groundtruth.txt
+0.576627,0.625617,11.2308,24,292
+--------------------------------------------------
+Testing element "fish1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/fish1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/fish1/00000001.jpg -gt vot2015/fish1/groundtruth.txt
+0.53822,0.540054,2.47297,15,366
+Testing element "fish1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/fish1 with program tracker
+Running: ../build-intel/tracker -img vot2015/fish1/00000001.jpg -gt vot2015/fish1/groundtruth.txt
+0.538575,0.606592,61,23,366
+--------------------------------------------------
+Testing element "fish2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/fish2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/fish2/00000001.jpg -gt vot2015/fish2/groundtruth.txt
+0.550285,0.525292,2.38462,20,310
+Testing element "fish2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/fish2 with program tracker
+Running: ../build-intel/tracker -img vot2015/fish2/00000001.jpg -gt vot2015/fish2/groundtruth.txt
+0.59517,0.598877,51.6667,25,310
+--------------------------------------------------
+Testing element "fish3" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/fish3 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/fish3/00000001.jpg -gt vot2015/fish3/groundtruth.txt
+0.595663,0.716523,7.41429,17,519
+Testing element "fish3" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/fish3 with program tracker
+Running: ../build-intel/tracker -img vot2015/fish3/00000001.jpg -gt vot2015/fish3/groundtruth.txt
+0.530087,0.736448,51.9,2,519
+--------------------------------------------------
+Testing element "fish4" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/fish4 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/fish4/00000001.jpg -gt vot2015/fish4/groundtruth.txt
+0.461353,0.506742,11.7586,23,682
+Testing element "fish4" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/fish4 with program tracker
+Running: ../build-intel/tracker -img vot2015/fish4/00000001.jpg -gt vot2015/fish4/groundtruth.txt
+0.602601,0.584786,62,35,682
+--------------------------------------------------
+Testing element "girl" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/girl with program pmmh
+Running: ../build-intel/pmmh -img vot2015/girl/00000001.jpg -gt vot2015/girl/groundtruth.txt
+0.628201,0.566398,3.95778,33,1500
+Testing element "girl" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/girl with program tracker
+Running: ../build-intel/tracker -img vot2015/girl/00000001.jpg -gt vot2015/girl/groundtruth.txt
+0.665664,0.569993,25.8621,25,1500
+--------------------------------------------------
+Testing element "glove" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/glove with program pmmh
+Running: ../build-intel/pmmh -img vot2015/glove/00000001.jpg -gt vot2015/glove/groundtruth.txt
+0.504479,0.546179,7.05882,17,120
+Testing element "glove" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/glove with program tracker
+Running: ../build-intel/tracker -img vot2015/glove/00000001.jpg -gt vot2015/glove/groundtruth.txt
+0.528363,0.54575,60,20,120
+--------------------------------------------------
+Testing element "godfather" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/godfather with program pmmh
+Running: ../build-intel/pmmh -img vot2015/godfather/00000001.jpg -gt vot2015/godfather/groundtruth.txt
+0.528298,0.560695,14.64,8,366
+Testing element "godfather" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/godfather with program tracker
+Running: ../build-intel/tracker -img vot2015/godfather/00000001.jpg -gt vot2015/godfather/groundtruth.txt
+0.542682,0.585805,73.2,22,366
+--------------------------------------------------
+Testing element "graduate" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/graduate with program pmmh
+Running: ../build-intel/pmmh -img vot2015/graduate/00000001.jpg -gt vot2015/graduate/groundtruth.txt
+0.620122,0.63786,5.94366,110,844
+Testing element "graduate" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/graduate with program tracker
+Running: ../build-intel/tracker -img vot2015/graduate/00000001.jpg -gt vot2015/graduate/groundtruth.txt
+0.596786,0.601224,40.1905,85,844
+--------------------------------------------------
+Testing element "gymnastics1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/gymnastics1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/gymnastics1/00000001.jpg -gt vot2015/gymnastics1/groundtruth.txt
+0.561835,0.57936,5.90625,15,567
+Testing element "gymnastics1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/gymnastics1 with program tracker
+Running: ../build-intel/tracker -img vot2015/gymnastics1/00000001.jpg -gt vot2015/gymnastics1/groundtruth.txt
+0.628028,0.581947,56.7,11,567
+--------------------------------------------------
+Testing element "gymnastics2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/gymnastics2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/gymnastics2/00000001.jpg -gt vot2015/gymnastics2/groundtruth.txt
+0.553269,0.510518,2.55319,12,240
+Testing element "gymnastics2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/gymnastics2 with program tracker
+Running: ../build-intel/tracker -img vot2015/gymnastics2/00000001.jpg -gt vot2015/gymnastics2/groundtruth.txt
+0.586417,0.522376,14.1176,12,240
+--------------------------------------------------
+Testing element "gymnastics3" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/gymnastics3 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/gymnastics3/00000001.jpg -gt vot2015/gymnastics3/groundtruth.txt
+0.444646,0.464114,0.819444,13,118
+Testing element "gymnastics3" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/gymnastics3 with program tracker
+Running: ../build-intel/tracker -img vot2015/gymnastics3/00000001.jpg -gt vot2015/gymnastics3/groundtruth.txt
+0.479293,0.480659,5.61905,8,118
+--------------------------------------------------
+Testing element "gymnastics4" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/gymnastics4 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/gymnastics4/00000001.jpg -gt vot2015/gymnastics4/groundtruth.txt
+0.587056,0.53079,3.12081,23,465
+Testing element "gymnastics4" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/gymnastics4 with program tracker
+Running: ../build-intel/tracker -img vot2015/gymnastics4/00000001.jpg -gt vot2015/gymnastics4/groundtruth.txt
+0.559253,0.50781,17.8846,16,465
+--------------------------------------------------
+Testing element "hand" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/hand with program pmmh
+Running: ../build-intel/pmmh -img vot2015/hand/00000001.jpg -gt vot2015/hand/groundtruth.txt
+0.552642,0.601787,8.09091,22,267
+Testing element "hand" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/hand with program tracker
+Running: ../build-intel/tracker -img vot2015/hand/00000001.jpg -gt vot2015/hand/groundtruth.txt
+0.581873,0.619116,66.75,27,267
+--------------------------------------------------
+Testing element "handball1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/handball1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/handball1/00000001.jpg -gt vot2015/handball1/groundtruth.txt
+0.540246,0.556938,34.2727,56,377
+Testing element "handball1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/handball1 with program tracker
+Running: ../build-intel/tracker -img vot2015/handball1/00000001.jpg -gt vot2015/handball1/groundtruth.txt
+0.522001,0.565949,377,55,377
+--------------------------------------------------
+Testing element "handball2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/handball2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/handball2/00000001.jpg -gt vot2015/handball2/groundtruth.txt
+0.519387,0.551066,21.1579,73,402
+Testing element "handball2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/handball2 with program tracker
+Running: ../build-intel/tracker -img vot2015/handball2/00000001.jpg -gt vot2015/handball2/groundtruth.txt
+0.512213,0.543054,134,67,402
+--------------------------------------------------
+Testing element "helicopter" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/helicopter with program pmmh
+Running: ../build-intel/pmmh -img vot2015/helicopter/00000001.jpg -gt vot2015/helicopter/groundtruth.txt
+0.607416,0.618923,2.20561,43,708
+Testing element "helicopter" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/helicopter with program tracker
+Running: ../build-intel/tracker -img vot2015/helicopter/00000001.jpg -gt vot2015/helicopter/groundtruth.txt
+0.6008,0.666521,11.6066,38,708
+--------------------------------------------------
+Testing element "iceskater1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/iceskater1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/iceskater1/00000001.jpg -gt vot2015/iceskater1/groundtruth.txt
+0.63562,0.601126,2.82479,27,661
+Testing element "iceskater1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/iceskater1 with program tracker
+Running: ../build-intel/tracker -img vot2015/iceskater1/00000001.jpg -gt vot2015/iceskater1/groundtruth.txt
+0.657008,0.626776,16.122,23,661
+--------------------------------------------------
+Testing element "iceskater2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/iceskater2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/iceskater2/00000001.jpg -gt vot2015/iceskater2/groundtruth.txt
+0.558373,0.563591,1.60317,7,707
+Testing element "iceskater2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/iceskater2 with program tracker
+Running: ../build-intel/tracker -img vot2015/iceskater2/00000001.jpg -gt vot2015/iceskater2/groundtruth.txt
+0.571383,0.51503,16.0682,22,707
+--------------------------------------------------
+Testing element "leaves" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/leaves with program pmmh
+Running: ../build-intel/pmmh -img vot2015/leaves/00000001.jpg -gt vot2015/leaves/groundtruth.txt
+0.446689,0.507865,9,11,63
+Testing element "leaves" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/leaves with program tracker
+Running: ../build-intel/tracker -img vot2015/leaves/00000001.jpg -gt vot2015/leaves/groundtruth.txt
+0.454633,0.503296,63,12,63
+--------------------------------------------------
+Testing element "marching" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/marching with program pmmh
+Running: ../build-intel/pmmh -img vot2015/marching/00000001.jpg -gt vot2015/marching/groundtruth.txt
+0.484722,0.51691,2.91304,14,201
+Testing element "marching" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/marching with program tracker
+Running: ../build-intel/tracker -img vot2015/marching/00000001.jpg -gt vot2015/marching/groundtruth.txt
+0.532305,0.565819,15.4615,8,201
+--------------------------------------------------
+Testing element "matrix" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/matrix with program pmmh
+Running: ../build-intel/pmmh -img vot2015/matrix/00000001.jpg -gt vot2015/matrix/groundtruth.txt
+0.481468,0.481828,7.69231,14,100
+Testing element "matrix" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/matrix with program tracker
+Running: ../build-intel/tracker -img vot2015/matrix/00000001.jpg -gt vot2015/matrix/groundtruth.txt
+0.529979,0.546645,50,16,100
+--------------------------------------------------
+Testing element "motocross1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/motocross1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/motocross1/00000001.jpg -gt vot2015/motocross1/groundtruth.txt
+0.510649,0.567255,1.9759,23,164
+Testing element "motocross1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/motocross1 with program tracker
+Running: ../build-intel/tracker -img vot2015/motocross1/00000001.jpg -gt vot2015/motocross1/groundtruth.txt
+0.557165,0.570312,16.4,15,164
+--------------------------------------------------
+Testing element "motocross2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/motocross2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/motocross2/00000001.jpg -gt vot2015/motocross2/groundtruth.txt
+0.631021,0.518359,0.480315,2,61
+Testing element "motocross2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/motocross2 with program tracker
+Running: ../build-intel/tracker -img vot2015/motocross2/00000001.jpg -gt vot2015/motocross2/groundtruth.txt
+0.484728,0.451815,5.54545,2,61
+--------------------------------------------------
+Testing element "nature" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/nature with program pmmh
+Running: ../build-intel/pmmh -img vot2015/nature/00000001.jpg -gt vot2015/nature/groundtruth.txt
+0.555065,0.544773,2.08559,42,999
+Testing element "nature" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/nature with program tracker
+Running: ../build-intel/tracker -img vot2015/nature/00000001.jpg -gt vot2015/nature/groundtruth.txt
+0.58207,0.579427,12.3333,43,999
+--------------------------------------------------
+Testing element "octopus" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/octopus with program pmmh
+Running: ../build-intel/pmmh -img vot2015/octopus/00000001.jpg -gt vot2015/octopus/groundtruth.txt
+0.577862,0.566024,0.929712,71,291
+Testing element "octopus" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/octopus with program tracker
+Running: ../build-intel/tracker -img vot2015/octopus/00000001.jpg -gt vot2015/octopus/groundtruth.txt
+0.612708,0.647439,7.275,76,291
+--------------------------------------------------
+Testing element "pedestrian1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/pedestrian1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/pedestrian1/00000001.jpg -gt vot2015/pedestrian1/groundtruth.txt
+0.50652,0.519212,11.6667,17,140
+Testing element "pedestrian1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/pedestrian1 with program tracker
+Running: ../build-intel/tracker -img vot2015/pedestrian1/00000001.jpg -gt vot2015/pedestrian1/groundtruth.txt
+0.548749,0.576359,140,18,140
+--------------------------------------------------
+Testing element "pedestrian2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/pedestrian2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/pedestrian2/00000001.jpg -gt vot2015/pedestrian2/groundtruth.txt
+0.582638,0.600765,9.63514,71,713
+Testing element "pedestrian2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/pedestrian2 with program tracker
+Running: ../build-intel/tracker -img vot2015/pedestrian2/00000001.jpg -gt vot2015/pedestrian2/groundtruth.txt
+0.68949,0.686816,54.8462,28,713
+--------------------------------------------------
+Testing element "rabbit" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/rabbit with program pmmh
+Running: ../build-intel/pmmh -img vot2015/rabbit/00000001.jpg -gt vot2015/rabbit/groundtruth.txt
+0.537219,0.543441,19.75,53,158
+Testing element "rabbit" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/rabbit with program tracker
+Running: ../build-intel/tracker -img vot2015/rabbit/00000001.jpg -gt vot2015/rabbit/groundtruth.txt
+0.529935,0.533913,158,47,158
+--------------------------------------------------
+Testing element "racing" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/racing with program pmmh
+Running: ../build-intel/pmmh -img vot2015/racing/00000001.jpg -gt vot2015/racing/groundtruth.txt
+0.547301,0.530325,2.51613,6,156
+Testing element "racing" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/racing with program tracker
+Running: ../build-intel/tracker -img vot2015/racing/00000001.jpg -gt vot2015/racing/groundtruth.txt
+0.514147,0.535937,19.5,10,156
+--------------------------------------------------
+Testing element "road" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/road with program pmmh
+Running: ../build-intel/pmmh -img vot2015/road/00000001.jpg -gt vot2015/road/groundtruth.txt
+0.537113,0.570667,8.20588,58,558
+Testing element "road" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/road with program tracker
+Running: ../build-intel/tracker -img vot2015/road/00000001.jpg -gt vot2015/road/groundtruth.txt
+0.569526,0.624187,69.75,55,558
+--------------------------------------------------
+Testing element "shaking" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/shaking with program pmmh
+Running: ../build-intel/pmmh -img vot2015/shaking/00000001.jpg -gt vot2015/shaking/groundtruth.txt
+0.550133,0.563595,7.60417,36,365
+Testing element "shaking" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/shaking with program tracker
+Running: ../build-intel/tracker -img vot2015/shaking/00000001.jpg -gt vot2015/shaking/groundtruth.txt
+0.53045,0.551609,36.5,28,365
+--------------------------------------------------
+Testing element "sheep" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/sheep with program pmmh
+Running: ../build-intel/pmmh -img vot2015/sheep/00000001.jpg -gt vot2015/sheep/groundtruth.txt
+0.493154,0.481047,9.65385,12,251
+Testing element "sheep" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/sheep with program tracker
+Running: ../build-intel/tracker -img vot2015/sheep/00000001.jpg -gt vot2015/sheep/groundtruth.txt
+0.487017,0.478799,83.6667,15,251
+--------------------------------------------------
+Testing element "singer1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/singer1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/singer1/00000001.jpg -gt vot2015/singer1/groundtruth.txt
+0.636654,0.702855,4.22892,16,351
+Testing element "singer1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/singer1 with program tracker
+Running: ../build-intel/tracker -img vot2015/singer1/00000001.jpg -gt vot2015/singer1/groundtruth.txt
+0.483046,0.768029,19.5,3,351
+--------------------------------------------------
+Testing element "singer2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/singer2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/singer2/00000001.jpg -gt vot2015/singer2/groundtruth.txt
+0.793139,0.621444,2.75188,4,366
+Testing element "singer2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/singer2 with program tracker
+Running: ../build-intel/tracker -img vot2015/singer2/00000001.jpg -gt vot2015/singer2/groundtruth.txt
+0.790356,0.604877,17.4286,6,366
+--------------------------------------------------
+Testing element "singer3" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/singer3 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/singer3/00000001.jpg -gt vot2015/singer3/groundtruth.txt
+0.752825,0.542169,2.33929,9,131
+Testing element "singer3" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/singer3 with program tracker
+Running: ../build-intel/tracker -img vot2015/singer3/00000001.jpg -gt vot2015/singer3/groundtruth.txt
+0.54243,0.533189,4.36667,5,131
+--------------------------------------------------
+Testing element "soccer1" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/soccer1 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/soccer1/00000001.jpg -gt vot2015/soccer1/groundtruth.txt
+0.504911,0.539511,7.12727,28,392
+Testing element "soccer1" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/soccer1 with program tracker
+Running: ../build-intel/tracker -img vot2015/soccer1/00000001.jpg -gt vot2015/soccer1/groundtruth.txt
+0.548382,0.592892,39.2,32,392
+--------------------------------------------------
+Testing element "soccer2" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/soccer2 with program pmmh
+Running: ../build-intel/pmmh -img vot2015/soccer2/00000001.jpg -gt vot2015/soccer2/groundtruth.txt
+0.512897,0.532641,18.4286,25,129
+Testing element "soccer2" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/soccer2 with program tracker
+Running: ../build-intel/tracker -img vot2015/soccer2/00000001.jpg -gt vot2015/soccer2/groundtruth.txt
+0.52827,0.558545,129,24,129
+--------------------------------------------------
+Testing element "soldier" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/soldier with program pmmh
+Running: ../build-intel/pmmh -img vot2015/soldier/00000001.jpg -gt vot2015/soldier/groundtruth.txt
+0.575079,0.581391,3.63158,10,138
+Testing element "soldier" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/soldier with program tracker
+Running: ../build-intel/tracker -img vot2015/soldier/00000001.jpg -gt vot2015/soldier/groundtruth.txt
+0.637702,0.655743,23,8,138
+--------------------------------------------------
+Testing element "sphere" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/sphere with program pmmh
+Running: ../build-intel/pmmh -img vot2015/sphere/00000001.jpg -gt vot2015/sphere/groundtruth.txt
+0.548912,0.551303,3.58929,25,201
+Testing element "sphere" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/sphere with program tracker
+Running: ../build-intel/tracker -img vot2015/sphere/00000001.jpg -gt vot2015/sphere/groundtruth.txt
+0.578522,0.589624,22.3333,27,201
+--------------------------------------------------
+Testing element "tiger" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/tiger with program pmmh
+Running: ../build-intel/pmmh -img vot2015/tiger/00000001.jpg -gt vot2015/tiger/groundtruth.txt
+0.518517,0.534041,1.72986,37,365
+Testing element "tiger" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/tiger with program tracker
+Running: ../build-intel/tracker -img vot2015/tiger/00000001.jpg -gt vot2015/tiger/groundtruth.txt
+0.512657,0.524061,36.5,39,365
+--------------------------------------------------
+Testing element "traffic" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/traffic with program pmmh
+Running: ../build-intel/pmmh -img vot2015/traffic/00000001.jpg -gt vot2015/traffic/groundtruth.txt
+0.534546,0.562964,3.67308,20,191
+Testing element "traffic" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/traffic with program tracker
+Running: ../build-intel/tracker -img vot2015/traffic/00000001.jpg -gt vot2015/traffic/groundtruth.txt
+0.500341,0.562046,63.6667,3,191
+--------------------------------------------------
+Testing element "tunnel" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/tunnel with program pmmh
+Running: ../build-intel/pmmh -img vot2015/tunnel/00000001.jpg -gt vot2015/tunnel/groundtruth.txt
+0.705131,0.570376,19.5,36,312
+Testing element "tunnel" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/tunnel with program tracker
+Running: ../build-intel/tracker -img vot2015/tunnel/00000001.jpg -gt vot2015/tunnel/groundtruth.txt
+0.524774,0.51698,104,77,312
+--------------------------------------------------
+Testing element "wiper" with pmmh:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/wiper with program pmmh
+Running: ../build-intel/pmmh -img vot2015/wiper/00000001.jpg -gt vot2015/wiper/groundtruth.txt
+0.529057,0.571124,8.11905,21,341
+Testing element "wiper" with tracker:
+Dataset test
+--------------------------------------------------------
+Testing vot2015/wiper with program tracker
+Running: ../build-intel/tracker -img vot2015/wiper/00000001.jpg -gt vot2015/wiper/groundtruth.txt
+0.43836,0.493115,68.2,29,341

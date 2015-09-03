@@ -64,8 +64,9 @@ VectorXd pmmh::discrete_proposal(VectorXd alpha){
     double eps= std::numeric_limits<double>::epsilon();
     for(int i=0;i<alpha.size();i++){
         gamma_distribution<double> color_prior(alpha[i],1.0);
-        double val=color_prior(generator);
-        proposal[i] = (val>0.0) ? val : eps;
+        normal_distribution<double> random_walk(alpha[i],0.1);
+        double val=MAX(color_prior(generator),eps);
+        proposal[i] = val;
     }
     proposal.normalize();
     return proposal;

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "../include/image_generator.hpp"
+#include "utils.hpp"
 
 using namespace std;
 
@@ -14,6 +15,12 @@ public:
 
   ImageGenerator * imageGenerator;
   Mat current_frame;
+
+  Performance performance;
+  time_t start, end;
+  double reinit_rate;
+  Rect ground_truth;
+  int num_frames;
 private:
 };
 

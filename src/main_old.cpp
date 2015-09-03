@@ -19,6 +19,7 @@
 #include <fstream>
 #include <sstream>
 #include <queue>
+#include <time.h>
 
 using namespace cv;
 using namespace std;
@@ -27,6 +28,7 @@ class App
 {
 public:
     App(string _firstFrameFilename,string _gtFilename);
+    ~App();
     void help();
     void run(int);
 
@@ -37,7 +39,6 @@ private:
     vector<Mat> images;
     //Stores ground-truth data
     vector<string> gt_vect;
-    Ptr<Tracker> tracker; //added
 
 };
 
@@ -84,12 +85,12 @@ App::App(string _firstFrameFilename, string _gtFilename){
           images.push_back(current_frame);
         }
     }
-    cout << "Number of images: " << int(images.size()) << endl;
+    //cout << "Number of images: " << int(images.size()) << endl;
     //Stores all ground-truth strings in a vector
     ifstream gt_file(_gtFilename.c_str(), ios::in);
     string line;
     while (getline(gt_file, line)) gt_vect.push_back(line);
-    cout << "Stored " << int(gt_vect.size()) << " ground-truth data" << endl;
+    //cout << "Stored " << int(gt_vect.size()) << " ground-truth data" << endl;
 
     if(images.size() != gt_vect.size()){
         cerr << "There is not the same quantity of images and ground-truth data" << endl;
@@ -98,13 +99,20 @@ App::App(string _firstFrameFilename, string _gtFilename){
     }
 }
 
+App::~App(){
+    images=vector<Mat>();
+    gt_vect=vector<string>();
+}
+
 void App::run(int num_particles){
     particle_filter filter(num_particles);
     Rect estimate;
     double reinit_rate=0.0;
     int num_frames=(int)images.size();
     Performance particle_filter_algorithm;
-    namedWindow("Tracker");
+    time_t start, end;
+    time(&start);
+    //namedWindow("Tracker");
     for(int k=0;k <num_frames;++k){
         Mat current_frame = images[k].clone();
         string current_gt = gt_vect[k];
@@ -121,12 +129,15 @@ void App::run(int num_particles){
         if(r1<0.1) {
             filter.reinitialize();
             reinit_rate+=1.0;
-        }
-        imshow("Tracker",current_frame);
-        waitKey(1);
+        }   
+        //imshow("Tracker",current_frame);
+        //waitKey(1);
     }
-    cout << "particle filter algorithm >> " <<"average precision:" << particle_filter_algorithm.get_avg_precision()/num_frames << ",average recall:" << particle_filter_algorithm.get_avg_recall()/num_frames << endl;
-    cout << "reinitialization rate >> " << reinit_rate/num_frames << endl;
+   time(&end);
+   double sec = difftime (end, start);
+   cout  << particle_filter_algorithm.get_avg_precision()/num_frames; 
+   cout << "," << particle_filter_algorithm.get_avg_recall()/num_frames ;
+   cout << "," << num_frames/sec << "," << reinit_rate <<  "," << num_frames << endl;
 }
 
 void App::getNextFilename(string& fn){

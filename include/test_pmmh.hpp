@@ -3,7 +3,6 @@
 
 #include "../include/algorithm_test.hpp"
 
-
 class TestPMMH : public AlgorithmTest{
 public:
   TestPMMH(ImageGenerator * _img_gen, int _num_particles, int _fixed_lag, int _num_mcmc);

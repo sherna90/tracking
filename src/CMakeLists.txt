@@ -22,6 +22,7 @@ add_executable(
   image_generator.cpp
   algorithm_test.cpp
   test_pmmh.cpp
+  test_particle_filter.cpp
   pmmh.cpp
   particle_filter.cpp
   hist.cpp

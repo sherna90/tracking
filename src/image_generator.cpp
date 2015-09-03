@@ -3,16 +3,7 @@
 using namespace std;
 using namespace cv;
 
-ImageGenerator::ImageGenerator(){
-  cout << "ImageGenerator using VOT" << endl;
-  mode = 1;
-
-  frame_id = 0;
-}
-
 ImageGenerator::ImageGenerator(string _firstFrameFilename, string _groundTruthFile){
-  // Initializes the Image Generator with a list of files in a VOT style
-  cout << "ImageGenerator using local dataset." << endl;
   mode = 0;
   string filename = _firstFrameFilename;
   filenames.push_back(filename);
@@ -25,7 +16,7 @@ ImageGenerator::ImageGenerator(string _firstFrameFilename, string _groundTruthFi
       filenames.push_back(filename);
     }
   }
-  cout << "Loaded " << filenames.size() << " files." << endl;
+  //cout << "Loaded " << filenames.size() << " files." << endl;
 
   frame_id = 0;
 
@@ -33,12 +24,12 @@ ImageGenerator::ImageGenerator(string _firstFrameFilename, string _groundTruthFi
   ifstream gt_file(_groundTruthFile.c_str(), ios::in);
   string line;
   while (getline(gt_file, line)) ground_truths.push_back(line);
-  cout << "Stored " << int(ground_truths.size()) << " ground-truth data" << endl;
+  //cout << "Stored " << int(ground_truths.size()) << " ground-truth data" << endl;
 }
 
 string ImageGenerator::getFrame(){
   string fn;
-  if(frame_id < filenames.size()){
+  if(frame_id < (int) filenames.size()){
     fn = filenames.at(frame_id);
   }
   frame_id++;
@@ -47,18 +38,22 @@ string ImageGenerator::getFrame(){
 
 string ImageGenerator::getRegion(){
   string gt;
-  if(frame_id < filenames.size()){
+  if(frame_id < (int) filenames.size()){
     gt = ground_truths.at(frame_id);
   }
   return gt;
 }
 
 bool ImageGenerator::isEnded(){
-  if(frame_id >= filenames.size()){
+  if(frame_id >= (int) filenames.size()){
     return true;
   }else{
     return false;
   }
+}
+
+int ImageGenerator::getDatasetSize(){
+  return (int) filenames.size();
 }
 
 void ImageGenerator::getNextFilename(string& fn){

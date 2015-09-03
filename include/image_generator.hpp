@@ -14,12 +14,12 @@ using namespace cv;
 
 class ImageGenerator{
 public:
-  ImageGenerator();
   ImageGenerator(string _firstFrameFilename, string _groundTruthFile);
   void getNextFilename(string& filename);
   bool isEnded();
   string getFrame();
   string getRegion();
+  int getDatasetSize();
   // report();
   int mode; // 0 for local dataset, 1 for VOT
   int frame_id;

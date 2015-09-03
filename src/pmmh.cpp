@@ -7,7 +7,7 @@ pmmh::pmmh(int _num_particles,int _fixed_lag,int _mcmc_steps){
     fixed_lag=_fixed_lag;
     mcmc_steps=_mcmc_steps;
     alpha.setOnes((int)H_BINS*S_BINS);
-    //alpha.normalize();
+    alpha.normalize();
     color_prior=dirichlet(alpha);
     pos_prior=Gaussian(0.0,1.0);
     vel_prior=Gaussian(0.0,1.0);
@@ -73,9 +73,10 @@ VectorXd pmmh::discrete_proposal(VectorXd alpha){
 
 VectorXd pmmh::continuous_proposal(VectorXd alpha){
     VectorXd proposal(alpha.size());
+    double eps= std::numeric_limits<double>::epsilon();
     for(int i=0;i<alpha.size();i++){
         normal_distribution<double> random_walk(alpha(i),0.1);
-        double val=MAX(random_walk(generator),0.1);
+        double val=MAX(random_walk(generator),eps);
         proposal[i] = val;
     }
     return proposal;

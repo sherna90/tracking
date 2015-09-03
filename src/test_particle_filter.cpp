@@ -1,5 +1,6 @@
-#include "../include/test_pmmh.hpp"
-#include "../include/pmmh.hpp"
+#include "../include/test_particle_filter.hpp"
+#include "../include/hist.hpp"
+#include "../include/particle_filter.hpp"
 #include "../include/utils.hpp"
 
 #include <iostream>
@@ -7,17 +8,15 @@
 using namespace std;
 using namespace cv;
 
-TestPMMH::TestPMMH(ImageGenerator * _img_gen, int _num_particles, int _fixed_lag, int _num_mcmc){
+TestParticleFilter::TestParticleFilter(ImageGenerator * _img_gen, int _num_particles){
   num_particles = _num_particles;
-  fixed_lag = _fixed_lag;
-  num_mcmc = _num_mcmc;
   imageGenerator = _img_gen;
   num_frames = imageGenerator->getDatasetSize();
   reinit_rate = 0.0;
 }
 
-void TestPMMH::run(){
-  pmmh filter(num_particles, fixed_lag, num_mcmc);
+void TestParticleFilter::run(){
+  particle_filter filter(num_particles);
   Rect initialization;
   initialization = stringToRect(imageGenerator->getRegion());
   string image_path = imageGenerator->getFrame();
@@ -32,9 +31,9 @@ void TestPMMH::run(){
     current_frame = imread(image_path);
     if(!filter.is_initialized()){
         filter.initialize(current_frame,ground_truth);
-    }
-    else if(filter.is_initialized()){
-        filter.update(current_frame);
+    }else if(filter.is_initialized()){
+        filter.predict();
+        filter.update_discrete(current_frame);
     }
     Rect estimate = filter.estimate(current_frame,true);
     double r1 = performance.calc(ground_truth, estimate);

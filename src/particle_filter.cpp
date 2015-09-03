@@ -31,8 +31,8 @@ particle_filter::particle_filter(int _n_particles) {
     n_particles = _n_particles;
     time_stamp=0;
     initialized=false;
-    //unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-    //generator.seed(seed1);
+    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed1);
     theta.resize(3);
     theta << POS_STD,VEL_STD,SCALE_STD;
     normal_distribution<double> position_random_walk(0.0,theta(0));

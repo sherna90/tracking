@@ -19,8 +19,10 @@ target_link_libraries( tracker ${OpenCV_LIBS} )
 add_executable(
   tracker_test
   new_main.cpp
+  image_generator.cpp
   algorithm_test.cpp
   test_pmmh.cpp
+  pmmh.cpp
   particle_filter.cpp
   hist.cpp
   dirichlet.cpp

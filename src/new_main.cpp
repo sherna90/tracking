@@ -1,14 +1,33 @@
 #include <iostream>
+#include <opencv2/core/core.hpp>
 
-#include "../include/algorithm_test.hpp"
 #include "../include/test_pmmh.hpp"
+#include "../include/image_generator.hpp"
 #include "../include/particle_filter.hpp"
 #include "../include/utils.hpp"
+
+#define VOT_RECTANGLE
+#include "vot.h"
 
 using namespace cv;
 using namespace std;
 
 int main(int argc, char* argv[]){
+  //VOT vot;
+  int num_particles = 300;
+  int fixed_lag = 3;
+  int num_mcmc = 3;
+
+  string firstFrameFilename = "/home/bruno/src/tracking/vot2014/ball/00000001.jpg";
+  string groundTruthFile = "/home/bruno/src/tracking/vot2014/ball/groundtruth.txt";
+  ImageGenerator imageGenerator(firstFrameFilename, groundTruthFile);
+
+  /*
+  while(!imageGenerator.isEnded()){
+    cout << imageGenerator.getFrame() << endl;
+    cout << imageGenerator.getRegion() << endl;
+  }*/
+
   AlgorithmTest * test;
   // Select algorithm to run
   if(argc != 3) {
@@ -31,13 +50,13 @@ int main(int argc, char* argv[]){
 
   // Initialize Testing Object
   if(strcmp(alg_name.c_str(), "PMMH") == 0){
-    TestPMMH test_pmmh;
+    TestPMMH test_pmmh(&imageGenerator, num_particles, fixed_lag, num_mcmc);
     test = &test_pmmh;
+    test_pmmh.run();
   }else{
     cerr << "Algorithm name is not valid." << endl;
     return -1;
   }
-
-  // Execute tests
-  test->run();
+  // Execute tests on the selected algorithm
+  //test->run();
 }

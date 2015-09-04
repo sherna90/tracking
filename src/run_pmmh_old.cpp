@@ -109,7 +109,7 @@ void App::run(int num_particles,int fixed_lag,int num_mcmc){
     time_t start, end;
     time(&start);
     //namedWindow("Tracker");
-    for(int k=0;k <num_frames;++k){    
+    for(int k=0;k <num_frames;++k){
         Mat current_frame = images[k].clone();
         string current_gt = gt_vect[k];
         Rect ground_truth=updateGroundTruth(current_frame,current_gt,true);
@@ -126,11 +126,11 @@ void App::run(int num_particles,int fixed_lag,int num_mcmc){
             reinit_rate+=1.0;
         }
         //imshow("Tracker",current_frame);
-        //waitKey(1); 
+        //waitKey(1);
     }
    time(&end);
    double sec = difftime (end, start);
-   cout  << particle_filter_algorithm.get_avg_precision()/num_frames; 
+   cout  << particle_filter_algorithm.get_avg_precision()/num_frames;
    cout << "," << particle_filter_algorithm.get_avg_recall()/num_frames ;
    cout << "," << num_frames/sec << "," << reinit_rate <<  "," << num_frames << endl;
 }

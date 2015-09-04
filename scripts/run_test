@@ -1,0 +1,13 @@
+#!/bin/bash
+# This script runs an algorithm a single time
+# To call from build folder:
+# ../scripts/run_test ALGORITHM DATASET
+# ALGORITHM can be PMMH or PARTICLE_FILTER
+# DATASET can be something like vot2014/ball
+# The path to where the datasets are stored must be specified in DATASETS_PATH
+ALGORITHM=$1
+DATASET=$2
+#DATASETS_PATH=/home/bruno/src/tracking/
+DATASETS_PATH=/home/xeon/code/tracking/build/
+RESULT=$(../build/tracker_test --algorithm $ALGORITHM --dataset $DATASETS_PATH$DATASET)
+echo $DATASET,$RESULT

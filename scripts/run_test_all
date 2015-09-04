@@ -1,0 +1,40 @@
+#!/bin/bash
+# To call from build folder:
+# ./scripts/run_test_all YEAR
+# YEAR can be 2014 or 2015 according to the dataset
+# Absolute path to the dataset should be specified in the script run_test
+
+declare -a vot2015=(bag ball1 ball2 basketball birds1 birds2 blanket bmx bolt1 bolt2 book butterfly car1 car2 crossing dinosaur fernando fish1 fish2 fish3 fish4 girl glove godfather graduate gymnastics1 gymnastics2 gymnastics3 gymnastics4 hand handball1 handball2 helicopter iceskater1 iceskater2 leaves marching matrix motocross1 motocross2 nature octopus pedestrian1 pedestrian2 rabbit racing road shaking sheep singer1 singer2 singer3 soccer1 soccer2 soldier sphere tiger traffic tunnel wiper)
+declare -a vot2014=(ball basketball bicycle bolt car david diving drunk fernando fish1 fish2 gymnastics hand1 hand2 jogging motocross polarbear skating sphere sunshade surfing torus trellis tunnel woman)
+
+YEAR=$1
+
+declare -a algorithms=(PMMH PARTICLE_FILTER)
+
+if [ $YEAR = "2014" ]; then
+  for i in "${vot2014[@]}"
+  do
+    for ALGORITHM in $algorithms
+    do
+      for j in {1..15..1}
+      do
+        RESULT=$(/bin/bash $PWD/../scripts/run_test $ALGORITHM vot2014/$i)
+        echo $ALGORITHM,$RESULT
+      done
+    done
+  done
+fi
+
+if [ $YEAR = "2015" ]; then
+  for i in "${vot2015[@]}"
+  do
+    for ALGORITHM in $algorithms
+    do
+      for j in {1..15..1}
+      do
+        RESULT=$(/bin/bash $PWD/../scripts/run_test $ALGORITHM vot2015/$i)
+        echo $ALGORITHM,$RESULT
+      done
+    done
+  done
+fi

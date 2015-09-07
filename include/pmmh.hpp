@@ -35,7 +35,7 @@ private:
     VectorXd continuous_proposal(VectorXd alpha);
     vector<Mat> images;
     Rect reference_roi;
-    default_random_engine generator;
+    mt19937 generator;
     particle_filter* filter;
     VectorXd theta_x,theta_x_prop,theta_y,theta_y_prop,alpha;
     int num_particles,fixed_lag,mcmc_steps;

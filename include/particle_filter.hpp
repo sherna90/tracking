@@ -80,7 +80,7 @@ private:
     void resample();
     float ESS;
     bool initialized;
-    default_random_engine generator;
+    mt19937 generator;
     Rect reference_roi;
     Size im_size;
     Gaussian color_lilekihood,hog_likelihood;

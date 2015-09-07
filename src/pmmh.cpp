@@ -76,7 +76,7 @@ VectorXd pmmh::continuous_proposal(VectorXd alpha){
     VectorXd proposal(alpha.size());
     double eps= std::numeric_limits<double>::epsilon();
     for(int i=0;i<alpha.size();i++){
-        normal_distribution<double> random_walk(alpha(i),0.1);
+        lognormal_distribution<double> random_walk(alpha(i),0.1);
         double val=MAX(random_walk(generator),eps);
         proposal[i] = val;
     }

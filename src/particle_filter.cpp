@@ -123,8 +123,8 @@ void particle_filter::predict(){
         for (int i=0;i<n_particles;i++){
             particle state=states[i];
             float _x,_y,_dx,_dy,_width,_height;
-            _dx=state.dx;//+velocity_random_walk(generator);
-            _dy=state.dy;//+velocity_random_walk(generator);
+            _dx=state.dx+velocity_random_walk(generator);
+            _dy=state.dy+velocity_random_walk(generator);
             _x=MAX(cvRound(state.x+_dx+position_random_walk(generator)),0);
             _y=MAX(cvRound(state.y+_dy+position_random_walk(generator)),0);
             _width=MAX(cvRound(state.width),0);

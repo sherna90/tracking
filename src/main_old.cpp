@@ -43,7 +43,7 @@ private:
 };
 
 int main(int argc, char* argv[]){
-    int num_particles=100;
+    int num_particles=300;
     if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
@@ -131,7 +131,7 @@ void App::run(int num_particles){
             reinit_rate+=1.0;
         }   
         //imshow("Tracker",current_frame);
-        //waitKey(1);
+        //waitKey(25);
     }
    time(&end);
    double sec = difftime (end, start);

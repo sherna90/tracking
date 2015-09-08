@@ -114,7 +114,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
 }
 
 void particle_filter::predict(){
-    //normal_distribution<double> position_random_walk(0.0,theta(0));
+    normal_distribution<double> position_random_walk(0.0,theta(0));
     normal_distribution<double> velocity_random_walk(0.0,theta(1));
     normal_distribution<double> scale_random_walk(0.0,theta(2));
     if(initialized==true){
@@ -128,10 +128,10 @@ void particle_filter::predict(){
             float _x,_y,_dx,_dy,_width,_height;
             _dx=state.dx+velocity_random_walk(generator);
             _dy=state.dy+velocity_random_walk(generator);
-            _x=MAX(cvRound(state.x+_dx+position_random_walk(generator)),0);
-            _y=MAX(cvRound(state.y+_dy+position_random_walk(generator)),0);
-            _width=MAX(cvRound(state.width),0);
-            _height=MAX(cvRound(state.height),0);
+            _x=MIN(MAX(cvRound(state.x+_dx+position_random_walk(generator)),0),im_size.width);
+            _y=MIN(MAX(cvRound(state.y+_dy+position_random_walk(generator)),0),im_size.height);
+            _width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
+            _height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
             
             if((_x+_width)<im_size.width && _x>0 && 
                 (_y+_height)<im_size.height && _y>0 && 
@@ -150,17 +150,8 @@ void particle_filter::predict(){
                 state.dy=velocity_random_walk(generator);
                 state.width=cvRound(reference_roi.width);
                 state.height=cvRound(reference_roi.height);
-                double u=unif_rnd(generator);
-                if(u<0.5){
                 state.x=cvRound(reference_roi.x+position_random_walk(generator));
                 state.y=cvRound(reference_roi.y+position_random_walk(generator));
-                }
-                else{
-                    double val_x=unif_width(generator);
-                    state.x= (val_x>0 && val_x <(im_size.width-state.width)) ? val_x : reference_roi.x;
-                    double val_y=unif_height(generator);
-                    state.y= (val_y>0 && val_y <(im_size.height-state.height)) ? val_y : reference_roi.y;
-                }
                 state.scale=1.f+scale_random_walk(generator);
             }
             //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
@@ -206,7 +197,7 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     pt2.y=cvRound(pt1.y+_height); 
     if(pt2.x<im_size.width && pt1.x>=0 && pt2.y<im_size.height && pt1.y>=0){
         if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 1, LINE_AA );
-        estimate=Rect(pt1.x,pt1.y,_width,_height);
+        estimate=Rect(pt1.x,pt1.y,pt2.x,pt2.y);
     }
     return estimate;
 }

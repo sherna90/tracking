@@ -49,7 +49,7 @@ private:
 };
 
 int main(int argc, char* argv[]){
-    int num_particles=300;
+    int num_particles=100;
     App app(num_particles);
     app.run();
     return 0;

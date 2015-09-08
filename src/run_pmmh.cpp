@@ -41,8 +41,8 @@ private:
 };
 
 int main(int argc, char* argv[]){
-    int num_particles=300;
-    App app(num_particles,10,3);
+    int num_particles=100;
+    App app(num_particles,3,10);
     app.run();
     return 0;
 }

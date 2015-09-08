@@ -43,7 +43,7 @@ private:
 };
 
 int main(int argc, char* argv[]){
-    int num_particles=300;
+    int num_particles=100;
     if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;

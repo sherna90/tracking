@@ -35,9 +35,6 @@ particle_filter::particle_filter(int _n_particles) {
     generator.seed(seed1);
     theta.resize(3);
     theta << POS_STD,VEL_STD,SCALE_STD;
-    normal_distribution<double> position_random_walk(0.0,theta(0));
-    normal_distribution<double> velocity_random_walk(0.0,theta(1));
-    normal_distribution<double> scale_random_walk(0.0,theta(2));
     eps= std::numeric_limits<double>::epsilon();
 }
 
@@ -52,6 +49,9 @@ void particle_filter::reinitialize() {
 
 
 void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
+    normal_distribution<double> position_random_walk(0.0,theta(0));
+    normal_distribution<double> velocity_random_walk(0.0,theta(1));
+    normal_distribution<double> scale_random_walk(0.0,theta(2));
     marginal_likelihood=0.0;
     states = vector<particle>();
     weights = vector<double>();

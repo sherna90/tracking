@@ -137,7 +137,7 @@ void App::run(int num_particles){
    double sec = difftime (end, start);
    cout  << particle_filter_algorithm.get_avg_precision()/num_frames; 
    cout << "," << particle_filter_algorithm.get_avg_recall()/num_frames ;
-   cout << "," << num_frames/sec << "," << reinit_rate <<  "," << num_frames << endl;
+   cout << "," << num_frames/MAX(sec,1.0) << "," << reinit_rate <<  "," << num_frames << endl;
 }
 
 void App::getNextFilename(string& fn){

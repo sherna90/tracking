@@ -1,0 +1,108 @@
+getwd()
+source("plots.R")
+View(dat)
+summary(mm.dat)
+dat$fps
+hist(dat$fps)
+dat$fps>1000
+dat[dat$fps>1000,]
+dat[dat$fps>500,]
+dat[dat$fps>500,]$fps
+dat[dat$fps>500,]$fps<-median(dat$fps[dat$mehod=='tracker'])
+dat[dat$fps>500,]$fps
+dat$fps
+dat$fps>100
+dat<-read.csv("results-300-3-3.txt")
+dat[dat$fps>500,]$fps<-median(dat$fps)
+hist(dat$fps)
+source("plots.R")
+hp<-ggplot(dat,aes(x=num_frames,y=reinit,colour=method))+geom_line()#
+hp<-hp+scale_fill_manual(values=c("#999999", "#FFFFFF"))#
+ggsave(hp, file="reinit.pdf")#
+dev.off()
+dat$reinit
+max(dat$reinit)
+min(dat$reinit)
+dat$reinit>500
+dat[dat$reinit>500,]
+dat<-dat[-dat$reinit>500,]
+dat
+dat<-read.csv("results-300-3-3.txt")#
+dat[dat$fps>500,]$fps<-median(dat$fps)
+dat<-dat[dat$reinit<500,]
+dat
+hp<-ggplot(dat,aes(x=num_frames,y=reinit,colour=method))+geom_line()#
+hp<-hp+scale_fill_manual(values=c("#999999", "#FFFFFF"))#
+ggsave(hp, file="reinit.pdf")#
+dev.off()
+dat<-dat[dat$reinit<200,]
+hp<-ggplot(dat,aes(x=num_frames,y=reinit,colour=method))+geom_line()#
+hp<-hp+scale_fill_manual(values=c("#999999", "#FFFFFF"))#
+ggsave(hp, file="reinit.pdf")#
+dev.off()
+source("plots.R")
+source("plots.R")
+log(90)
+hp<-ggplot(dat,aes(x=num_frames,y=log(reinit),linetype=method))+geom_line()#
+hp<-hp+scale_fill_manual(values=c("#999999", "#FFFFFF"))#
+ggsave(hp, file="reinit.pdf")#
+dev.off()
+hp<-ggplot(dat,aes(x=num_frames,y=log(reinit),linetype=method))+geom_bar()#
+hp<-hp+scale_fill_manual(values=c("#999999", "#FFFFFF"))#
+ggsave(hp, file="reinit.pdf")#
+dev.off()
+hp<-ggplot(dat,aes(x=num_frames,y=reinit,linetype=method))+geom_bar()#
+hp<-hp+scale_fill_manual(values=c("#999999", "#FFFFFF"))#
+ggsave(hp, file="reinit.pdf")#
+dev.off()
+hp<-ggplot(dat,aes(x=num_frames,y=reinit,fill=method))+geom_bar()#
+hp<-hp+scale_fill_manual(values=c("#999999", "#FFFFFF"))#
+ggsave(hp, file="reinit.pdf")#
+dev.off()
+hp<-ggplot(dat,aes(x=num_frames,y=reinit,fill=sequence))+geom_bar()
+hp
+hp<-ggplot(dat,aes(x=num_frames,y=reinit,fill=sequence))+geom_line()
+hp
+hp<-ggplot(dat,aes(x=num_frames,y=reinit,fill=method))+geom_line()
+hp
+hp<-ggplot(dat,aes(x=num_frames,y=reinit,linetype=method))+geom_line()
+hp
+hp<-ggplot(dat,aes(x=num_frames,y=reinit,linetype=method))+geom_histogram()
+hp
+hp<-ggplot(dat,aes(x=reinit,fill=method))+geom_histogram()
+hp
+source("plots.R")
+hp<-ggplot(dat,aes(x=fps,fill=method,colour="white"))+geom_histogram(data=subset(dat,method == ‘pmmh’),binwidth=10,colour="black")+geom_histogram(data=subset(dat,method == ‘tracker’),binwidth=10,colour=“white”)#
+hp<-hp+theme_bw()+scale_fill_manual(values=c("#999999", "#FFFFFF"))#
+ggsave(hp, file="fps.pdf")#
+dev.off()
+hp<-ggplot(dat,aes(x=reinit,fill=method))+geom_histogram(data=subset(dat,method == ‘pmmh’),binwidth=10,colour="black")+geom_histogram(data=subset(dat,method == ‘tracker’),binwidth=10,colour=“white”)#
+hp<-hp+theme_bw()+scale_fill_manual(values=c("#999999", "#FFFFFF"))#
+ggsave(hp, file="reinit.pdf")#
+dev.off()
+getwd()
+source("plots.R")
+hp<-ggplot(dat,aes(x=fps,colour="white"))+geom_histogram(data=subset(dat$method=="pmmh"),binwidth=10,colour="black")
+hp<-ggplot(dat,aes(x=fps,colour="white"))+geom_histogram(data=subset(dat,method=="pmmh"),binwidth=10,colour="black")
+hp
+hp<-ggplot(dat,aes(x=fps,colour="white"))+geom_histogram(data=subset(dat$method=="pmmh"),binwidth=10,colour="black")+geom_histogram(data=subset(dat$method=="tracker"),binwidth=10,colour="white")
+hp<-ggplot(dat,aes(x=fps,colour="white"))+geom_histogram(data=subset(dat,method=="pmmh"),binwidth=10,colour="black")+geom_histogram(data=subset(dat,method=="tracker"),binwidth=10,colour="white")
+hp
+hp<-ggplot(dat,aes(x=fps,colour="white"))+geom_histogram(alpha=.1,data=subset(dat,method=="pmmh"),binwidth=10,colour="black")+geom_histogram(data=subset(dat,method=="tracker"),binwidth=10,colour="white")
+hp+theme_bw()
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")
+source("plots.R")

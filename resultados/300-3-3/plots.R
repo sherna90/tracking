@@ -1,0 +1,43 @@
+setwd("~/Documents/cpp/tracking/resultados/resultados_vel/")
+library(ggplot2)
+library(xtable)
+
+dat<-read.csv("results-300-3-3.txt")
+dat[dat$fps>500,]$fps<-median(dat$fps)
+dat<-dat[dat$reinit<200,]
+mm.dat<-aggregate(.~method+sequence,mean,data=dat)
+print(xtable(mm.dat[,c(2,1,3,4,5,6,7)],digits=2),include.rownames=FALSE)
+
+hp<-ggplot(dat,aes(x=fps))
+hp<-hp+geom_histogram(alpha=.8,data=subset(dat,method=="pmmh"),binwidth=10,fill="light blue")
+hp<-hp+geom_histogram(alpha=.2,data=subset(dat,method=="tracker"),binwidth=10,fill="black")
+hp<-hp+theme_bw()+scale_fill_manual(values=c("#999999", "#FFFFFF"))
+ggsave(hp, file="fps.pdf")
+dev.off()
+hp<-ggplot(dat,aes(x=reinit))
+hp<-hp+geom_histogram(alpha=.8,data=subset(dat,method=="pmmh"),binwidth=10,fill="light blue")
+hp<-hp+geom_histogram(alpha=.2,data=subset(dat,method=="tracker"),binwidth=10,fill="black")
+hp<-hp+theme_bw()+scale_fill_manual(values=c("#999999", "#FFFFFF"))
+ggsave(hp, file="reinit.pdf")
+dev.off()
+hp<-ggplot(dat,aes(x=accuracy))
+hp<-hp+geom_histogram(alpha=.8,data=subset(dat,method=="pmmh"),binwidth=0.1,fill="light blue")
+hp<-hp+geom_histogram(alpha=.2,data=subset(dat,method=="tracker"),binwidth=0.1,,fill="black")
+hp<-hp+theme_bw()+scale_fill_manual(values=c("#999999", "#FFFFFF"))
+ggsave(hp, file="accuracy.pdf")
+dev.off()
+hp<-ggplot(dat,aes(x=recall))
+hp<-hp+geom_histogram(alpha=.8,data=subset(dat,method=="pmmh"),binwidth=0.1,fill="light blue")
+hp<-hp+geom_histogram(alpha=.2,data=subset(dat,method=="tracker"),binwidth=0.1,,fill="black")
+hp<-hp+theme_bw()+scale_fill_manual(values=c("#999999", "#FFFFFF"))
+ggsave(hp, file="recall.pdf")
+dev.off()
+
+s<-unique(dat$sequence)
+for(i in 1:length(s)){
+    m<-dat[dat$sequence==s[i],]
+    hp<-ggplot(m,aes(x=method,y=reinit,colour="white"))+geom_boxplot(colour="black")
+    hp<-hp + theme_bw()+ggtitle(s[i])
+    ggsave(hp, file=paste0(s[i],".pdf"))
+    dev.off()
+}

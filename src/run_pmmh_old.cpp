@@ -64,7 +64,7 @@ int main(int argc, char* argv[]){
             return EXIT_FAILURE;
         }
         App app(_firstFrameFilename,_gtFilename);
-        app.run(num_particles,3,10);
+        app.run(num_particles,10,10);
     }
 }
 

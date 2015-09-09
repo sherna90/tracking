@@ -6,7 +6,7 @@
 #include "../include/particle_filter.hpp"
 
 const float POS_STD=0.1;
-const float VEL_STD=0.1;
+const float VEL_STD=0.01;
 const float SCALE_STD=0.1;
 const float  DT=1.0;
 const float  SIGMA_COLOR=0.1;
@@ -114,9 +114,9 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
 }
 
 void particle_filter::predict(){
-    normal_distribution<double> position_random_walk(0.0,theta(0));
+    //normal_distribution<double> position_random_walk(0.0,theta(0));
     //normal_distribution<double> velocity_random_walk(0.0,theta(1));
-    normal_distribution<double> scale_random_walk(0.0,theta(2));
+    //normal_distribution<double> scale_random_walk(0.0,theta(2));
     if(initialized==true){
         time_stamp++;
         vector<particle> tmp_new_states;

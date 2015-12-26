@@ -273,18 +273,12 @@ void particle_filter::update_discrete(Mat& image){
     	    else prob=poisson.log_likelihood(counts);
             weight=weights[i]+prob;
             if(HOG){
-                VectorXd hog_counts;
                 calc_hog(part_roi,part_hog);
-                hog_counts.setOnes(part_hog.total());
                 if(part_hog.size()==reference_hog.size()){
-                    //for(unsigned int g=0;g<part_hog.total();g++){
-                    //    double val=part_hog.at<float>(0, g);
-                    //    hog_counts[g] = (val!=0.0) ? val : eps;
-                    //}
                     double bc_hog = compareHist(reference_hog, part_hog, HISTCMP_BHATTACHARYYA);
                     double prob_hog = hog_likelihood.log_likelihood(bc_hog);
                     weight+=prob_hog;
-                }
+                }   
             }
         }
         tmp_weights.push_back(weight);

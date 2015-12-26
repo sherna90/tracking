@@ -28,8 +28,8 @@ void calc_hist_hsv(Mat& image,  Mat& Mask, Mat& hist)
 void calc_hist_hsv(Mat& image, Mat& hist)
 {
     int hist_size[] = { H_BINS, S_BINS };
-    float h_ranges[] = { 0, 180 };
-    float s_ranges[] = { 0, 256 };
+    float h_ranges[] = { 10, 180 };
+    float s_ranges[] = { 10, 256 };
     const float* ranges[] = { h_ranges, s_ranges };
     int channels[] = { 0, 1 };
     Mat hsv_base;

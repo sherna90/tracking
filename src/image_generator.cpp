@@ -3,60 +3,65 @@
 using namespace std;
 using namespace cv;
 
-ImageGenerator::ImageGenerator(string _firstFrameFilename, string _groundTruthFile){
-  mode = 0;
-  string filename = _firstFrameFilename;
-  filenames.push_back(filename);
+imageGenerator::imageGenerator(){
+}
+
+
+imageGenerator::imageGenerator(string _firstFrameFilename, string _groundTruthFile){
+  frame_id = 0;
+  string FrameFilename,gtFilename;
+  FrameFilename = _firstFrameFilename;
+  gtFilename=_groundTruthFile;
+  Mat current_frame = imread(FrameFilename);
+  images.push_back(current_frame);
   while(1){
-    getNextFilename(filename);
-    Mat current_frame = imread(filename);
+    getNextFilename(FrameFilename);
+    current_frame = imread(FrameFilename );
     if(current_frame.empty()){
-        break;
-    }else{
-      filenames.push_back(filename);
+      break;
+    }
+    else{
+      images.push_back(current_frame);
     }
   }
-  //cout << "Loaded " << filenames.size() << " files." << endl;
-
-  frame_id = 0;
-
-  // Loads ground-truth data
-  ifstream gt_file(_groundTruthFile.c_str(), ios::in);
+  ifstream gt_file(gtFilename.c_str(), ios::in);
   string line;
-  while (getline(gt_file, line)) ground_truths.push_back(line);
-  //cout << "Stored " << int(ground_truths.size()) << " ground-truth data" << endl;
-}
-
-string ImageGenerator::getFrame(){
-  string fn;
-  if(frame_id < (int) filenames.size()){
-    fn = filenames.at(frame_id);
+  while (getline(gt_file, line)) ground_truth.push_back(line);
+  if(images.size() != ground_truth.size()){
+        cerr << "There is not the same quantity of images and ground-truth data" << endl;
+        cerr << "Maybe you typed wrong filenames" << endl;
+        exit(EXIT_FAILURE);
   }
-  frame_id++;
-  return fn;
 }
 
-string ImageGenerator::getRegion(){
-  string gt;
-  if(frame_id < (int) filenames.size()){
-    gt = ground_truths.at(frame_id);
-  }
-  return gt;
+Mat imageGenerator::getFrame(){
+  Mat current_frame=images[frame_id].clone();
+  return current_frame;
 }
 
-bool ImageGenerator::isEnded(){
-  if(frame_id >= (int) filenames.size()){
+Rect imageGenerator::getRegion(){
+  string current_gt = ground_truth[frame_id];
+  return stringToRect(current_gt);
+}
+
+bool imageGenerator::hasEnded(){
+  if(frame_id >= (int) images.size()){
     return true;
   }else{
     return false;
   }
 }
 
-int ImageGenerator::getDatasetSize(){
-  return (int) filenames.size();
+void imageGenerator::moveNext(){
+  cout << frame_id << endl;
+  frame_id++;
 }
 
-void ImageGenerator::getNextFilename(string& fn){
+int imageGenerator::getDatasetSize(){
+  return (int) images.size();
+}
+
+void imageGenerator::getNextFilename(string& fn){
     size_t index = fn.find_last_of("/");
     if(index == string::npos) {
         index = fn.find_last_of("\\");
@@ -75,4 +80,42 @@ void ImageGenerator::getNextFilename(string& fn){
     string nextFrameNumberString = oss.str();
     string nextFrameFilename = prefix + zeros.substr(0,zeros.length()-1-nextFrameNumberString.length())+nextFrameNumberString + suffix;
     fn.assign(nextFrameFilename);
+}
+
+Rect imageGenerator::stringToRect(string str){
+    const int NUMBER=4;
+    Point pt[1][NUMBER];
+    size_t index1=0;
+    size_t index2=-1;
+    for (int i = 0; i < NUMBER; i++){
+        index1=str.find(",",index2+1);
+        string str_x1 = str.substr(index2+1, index1-index2-1);
+        istringstream iss(str_x1);
+        int x1 = 0;
+        iss >> x1;
+        index2=str.find(",",index1+1);
+        string str_y1 = str.substr(index1+1, index2-index1-1);
+        istringstream iss2(str_y1);
+        int y1 = 0;
+        iss2 >> y1;
+        pt[0][i].x = cvRound(x1);
+        pt[0][i].y = cvRound(y1);
+    }
+
+    //Make ground truth rect positive independently of point ordering
+    int minx = pt[0][0].x;
+    int maxx = pt[0][0].x;
+    int miny = pt[0][0].y;
+    int maxy = pt[0][0].y;
+    for(int i = 0; i < NUMBER; i++){
+      if(pt[0][i].x < minx)
+        minx = pt[0][i].x;
+      if(pt[0][i].x > maxx)
+        maxx = pt[0][i].x;
+      if(pt[0][i].y < miny)
+        miny = pt[0][i].y;
+      if(pt[0][i].y > maxy)
+        maxy = pt[0][i].y;
+    }
+    return Rect(minx,miny,cvRound(maxx-minx),cvRound(maxy-miny));
 }

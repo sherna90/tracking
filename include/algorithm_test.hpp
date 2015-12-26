@@ -2,7 +2,7 @@
 #define ALGORITHM_TEST_H
 
 #include <iostream>
-#include "../include/image_generator.hpp"
+#include "image_generator.hpp"
 #include "utils.hpp"
 
 using namespace std;

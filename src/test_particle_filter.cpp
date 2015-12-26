@@ -1,50 +1,106 @@
-#include "../include/test_particle_filter.hpp"
-#include "../include/hist.hpp"
 #include "../include/particle_filter.hpp"
 #include "../include/utils.hpp"
+#include "../include/image_generator.hpp"
 
+#include <time.h>
 #include <iostream>
+#include <cstdlib>
 
 using namespace std;
 using namespace cv;
 
-TestParticleFilter::TestParticleFilter(ImageGenerator * _img_gen, int _num_particles){
+class TestParticleFilter{
+public:
+  TestParticleFilter(string _firstFrameFilename, string _gtFilename, int _num_particles);
+  void run();
+private:
+  int num_particles,num_frames;
+  imageGenerator generator;
+  double reinit_rate;
+  particle_filter filter;
+  vector<Mat> images;
+  vector<string> gt_vec;
+};
+
+TestParticleFilter::TestParticleFilter(string _firstFrameFilename, string _gtFilename, int _num_particles){
+  imageGenerator generator(_firstFrameFilename,_gtFilename);
   num_particles = _num_particles;
-  imageGenerator = _img_gen;
-  num_frames = imageGenerator->getDatasetSize();
-  reinit_rate = 0.0;
+  num_frames = generator.getDatasetSize();
+  gt_vec = generator.ground_truth;
+  images = generator.images;
 }
 
 void TestParticleFilter::run(){
   particle_filter filter(num_particles);
-  Rect initialization;
-  initialization = stringToRect(imageGenerator->getRegion());
-  string image_path = imageGenerator->getFrame();
-  current_frame = imread(image_path);
-  filter.initialize(current_frame, initialization);
-
+  Rect ground_truth;
+  Mat current_frame; 
+  string current_gt;
+  reinit_rate = 0.0;
+  time_t start, end;
   time(&start);
-  while(!imageGenerator->isEnded()){
-    ground_truth = stringToRect(imageGenerator->getRegion());
-    string image_path = imageGenerator->getFrame();
-    if (image_path.empty()) break;
-    current_frame = imread(image_path);
+  Performance performance;
+  namedWindow("Tracker");
+  for(int k=0;k <num_frames;++k){
+    current_gt=gt_vec[k];
+    ground_truth=generator.stringToRect(current_gt);
+    current_frame = images[k].clone();
     if(!filter.is_initialized()){
         filter.initialize(current_frame,ground_truth);
     }else if(filter.is_initialized()){
         filter.predict();
         filter.update_discrete(current_frame);
+        rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
+        Rect estimate = filter.estimate(current_frame,true);
+        double r1 = performance.calc(ground_truth, estimate);
+        if(r1<0.1) {
+          filter.reinitialize();
+          reinit_rate+=1.0;
+      }
     }
-    Rect estimate = filter.estimate(current_frame,true);
-    double r1 = performance.calc(ground_truth, estimate);
-    if(r1<0.1) {
-        filter.reinitialize();
-        reinit_rate+=1.0;
-    }
+    imshow("Tracker",current_frame);
+    waitKey(25);
   }
   time(&end);
   double sec = difftime (end, start);
-  cout  << performance.get_avg_precision()/num_frames;
-  cout << "," << performance.get_avg_recall()/num_frames ;
+  // print precision,recall,fps,rate,num_frames
+  cout  << performance.get_avg_precision()/(num_frames-reinit_rate);
+  cout << "," << performance.get_avg_recall()/(num_frames-reinit_rate);
   cout << "," << num_frames/sec << "," << reinit_rate <<  "," << num_frames << endl;
+};
+
+int main(int argc, char* argv[]){
+    if(argc != 7) {
+        cerr <<"Incorrect input list" << endl;
+        cerr <<"exiting..." << endl;
+        return EXIT_FAILURE;
+    }
+    else{
+        string _firstFrameFilename,_gtFilename;
+        int _num_particles;
+        if(strcmp(argv[1], "-img") == 0) {
+            _firstFrameFilename=argv[2];
+        }
+        else{
+            cerr <<"No images given" << endl;
+            cerr <<"exiting..." << endl;
+            return EXIT_FAILURE;
+        }
+        if(strcmp(argv[3], "-gt") == 0) {
+            _gtFilename=argv[4];
+        }
+        else{
+            cerr <<"No ground truth given" << endl;
+            cerr <<"exiting..." << endl;
+            return EXIT_FAILURE;
+        }
+        if(strcmp(argv[5], "-npart") == 0) {
+            _num_particles=atoi(argv[6]);
+        }
+        else{
+            _num_particles=300;
+        }
+        TestParticleFilter tracker(_firstFrameFilename,_gtFilename,_num_particles);
+        tracker.run();
+    }
 }
+

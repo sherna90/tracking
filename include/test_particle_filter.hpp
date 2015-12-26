@@ -1,15 +1,15 @@
 #ifndef TEST_PARTICLEFILTER_H
 #define TEST_PARTICLEFILTER_H
 
-#include "../include/algorithm_test.hpp"
 
-class TestParticleFilter : public AlgorithmTest{
+class TestParticleFilter{
 public:
-  TestParticleFilter(ImageGenerator * _img_gen, int _num_particles);
+  TestParticleFilter(string _firstFrameFilename, string _gtFilename, int _num_particles);
   void run();
-
-  int num_particles;
 private:
+  int num_particles;
+  ImageGenerator image_generator;
+  double reinit_rate,num_frames;
 };
 
 #endif //TEST_PARTICLEFILTER_H

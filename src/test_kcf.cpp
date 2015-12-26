@@ -1,4 +1,4 @@
-#include "../include/pmmh.hpp"
+#include "../../KCFcpp/src/kcftracker.hpp"
 #include "../include/utils.hpp"
 #include "../include/image_generator.hpp"
 
@@ -9,32 +9,27 @@
 using namespace std;
 using namespace cv;
 
-class TestPMMH{
+class TestKCF{
 public:
-  TestPMMH(string _firstFrameFilename, string _gtFilename, int _num_particles,int _lag, int _mcmc);
+  TestKCF(string _firstFrameFilename, string _gtFilename);
   void run();
 private:
-  int num_particles,num_frames;
-  int lag,mcmc;
+  int num_frames;
   imageGenerator generator;
   double reinit_rate;
-  particle_filter filter;
   vector<Mat> images;
   vector<string> gt_vec;
 };
 
-TestPMMH::TestPMMH(string _firstFrameFilename, string _gtFilename, int _num_particles,int _lag, int _mcmc){
+TestKCF::TestKCF(string _firstFrameFilename, string _gtFilename){
   imageGenerator generator(_firstFrameFilename,_gtFilename);
-  num_particles = _num_particles;
-  mcmc=_mcmc;
-  lag=_lag;
   num_frames = generator.getDatasetSize();
   gt_vec = generator.ground_truth;
   images = generator.images;
 }
 
-void TestPMMH::run(){
-  pmmh filter(num_particles,lag,mcmc);
+void TestKCF::run(){
+  KCFTracker tracker(true, true, true, false);
   Rect ground_truth;
   Mat current_frame; 
   string current_gt;
@@ -47,15 +42,15 @@ void TestPMMH::run(){
     current_gt=gt_vec[k];
     ground_truth=generator.stringToRect(current_gt);
     current_frame = images[k].clone();
-    if(!filter.is_initialized()){
-        filter.initialize(current_frame,ground_truth);
-    }else if(filter.is_initialized()){
-        filter.update(current_frame);
+    if(k==0){
+        tracker.init(ground_truth,current_frame);
+    }else{
+        Rect estimate = tracker.update(current_frame);
         rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
-        Rect estimate = filter.estimate(current_frame,true);
+        rectangle( current_frame, estimate, Scalar(0,0,255), 1, LINE_AA );
         double r1 = performance.calc(ground_truth, estimate);
         if(r1<0.1) {
-          filter.reinitialize();
+          tracker.init(ground_truth,current_frame);
           reinit_rate+=1.0;
       }
     }
@@ -71,14 +66,13 @@ void TestPMMH::run(){
 };
 
 int main(int argc, char* argv[]){
-    if(argc != 11) {
+    if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
         return EXIT_FAILURE;
     }
     else{
         string _firstFrameFilename,_gtFilename;
-        int _num_particles,_lag,_mcmc;
         if(strcmp(argv[1], "-img") == 0) {
             _firstFrameFilename=argv[2];
         }
@@ -95,25 +89,7 @@ int main(int argc, char* argv[]){
             cerr <<"exiting..." << endl;
             return EXIT_FAILURE;
         }
-        if(strcmp(argv[5], "-npart") == 0) {
-            _num_particles=atoi(argv[6]);
-        }
-        else{
-            _num_particles=300;
-        }
-        if(strcmp(argv[7], "-lag") == 0) {
-            _lag=atoi(argv[8]);
-        }
-        else{
-            _lag=3;
-        }
-        if(strcmp(argv[9], "-mcmc") == 0) {
-            _mcmc=atoi(argv[10]);
-        }
-        else{
-            _mcmc=3;
-        }
-        TestPMMH tracker(_firstFrameFilename,_gtFilename,_num_particles,_lag,_mcmc);
+        TestKCF tracker(_firstFrameFilename,_gtFilename);
         tracker.run();
     }
 }

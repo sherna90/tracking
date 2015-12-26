@@ -12,20 +12,22 @@
 using namespace std;
 using namespace cv;
 
-class ImageGenerator{
+class imageGenerator{
 public:
-  ImageGenerator(string _firstFrameFilename, string _groundTruthFile);
-  void getNextFilename(string& filename);
-  bool isEnded();
-  string getFrame();
-  string getRegion();
+  imageGenerator();
+  imageGenerator(string _firstFrameFilename, string _groundTruthFile);
+  bool hasEnded();
+  void moveNext();
+  Mat getFrame();
+  Rect getRegion();
   int getDatasetSize();
-  // report();
-  int mode; // 0 for local dataset, 1 for VOT
-  int frame_id;
-  vector<string> filenames;
-  vector<string> ground_truths;
+  vector<Mat> images;
+  vector<string> ground_truth;
+  Rect stringToRect(string str);
 private:
+  int frame_id;
+  void getNextFilename(string& filename);
+
 };
 
 #endif // IMAGE_GENERATOR_H

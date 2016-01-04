@@ -5,18 +5,17 @@
  */
 #include "../include/particle_filter.hpp"
 
-const float POS_STD=0.1;
-const float VEL_STD=0.01;
-const float SCALE_STD=0.1;
+const float POS_STD=1.0;
+const float SCALE_STD=1.0;
 const float  DT=1.0;
 const float  SIGMA_COLOR=0.1;
-const float  SIGMA_SHAPE=0.09;
+const float  SIGMA_SHAPE=0.1;
 const float  THRESHOLD=0.7;
 const int  DIRICHLET_LIKELIHOOD=0;
 const int MULTINOMIAL_LIKELIHOOD=1;
 const int POISSON_LIKELIHOOD=2;
-const int LIKELIHOOD=MULTINOMIAL_LIKELIHOOD;
-const bool HOG=false;
+const int LIKELIHOOD=POISSON_LIKELIHOOD;
+const bool HOG=true;
 
 particle_filter::particle_filter() {
 }
@@ -33,8 +32,8 @@ particle_filter::particle_filter(int _n_particles) {
     initialized=false;
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
     generator.seed(seed1);
-    theta.resize(3);
-    theta << POS_STD,VEL_STD,SCALE_STD;
+    theta.resize(2);
+    theta << POS_STD,SCALE_STD;
     eps= std::numeric_limits<double>::epsilon();
 }
 
@@ -50,8 +49,7 @@ void particle_filter::reinitialize() {
 
 void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     normal_distribution<double> position_random_walk(0.0,theta(0));
-    normal_distribution<double> velocity_random_walk(0.0,theta(1));
-    normal_distribution<double> scale_random_walk(0.0,theta(2));
+    normal_distribution<double> scale_random_walk(0.0,theta(1));
     marginal_likelihood=0.0;
     states = vector<particle>();
     weights = vector<double>();
@@ -75,14 +73,17 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             particle state;
             state.x=cvRound(reference_roi.x+position_random_walk(generator));
             state.y=cvRound(reference_roi.y+position_random_walk(generator));
-            state.dx+=velocity_random_walk(generator);
-            state.dy+=velocity_random_walk(generator);
+            state.x_p=cvRound(reference_roi.x+position_random_walk(generator));;
+            state.y_p=cvRound(reference_roi.y+position_random_walk(generator));
+            state.width=cvRound(right-left+scale_random_walk(generator));
+            state.height=cvRound(bottom-top+scale_random_walk(generator));
+            state.width_p=cvRound(right-left+scale_random_walk(generator));
+            state.height_p=cvRound(bottom-top+scale_random_walk(generator));
             state.scale=1.0f+scale_random_walk(generator);
+            state.scale_p=0.0;
             states.push_back(state);
             weights.push_back(weight);
-            ESS=0.0f;
-            state.width=cvRound(right-left+state.scale);
-            state.height=cvRound(bottom-top+state.scale);
+            ESS=0.0f;       
         }
         alpha.setOnes(reference_hist.total());
         for(int h=0;h<H_BINS;h++)
@@ -114,9 +115,9 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
 }
 
 void particle_filter::predict(){
-    //normal_distribution<double> position_random_walk(0.0,theta(0));
+    normal_distribution<double> position_random_walk(0.0,theta(0));
     //normal_distribution<double> velocity_random_walk(0.0,theta(1));
-    //normal_distribution<double> scale_random_walk(0.0,theta(2));
+    normal_distribution<double> scale_random_walk(0.0,theta(1));
     if(initialized==true){
         time_stamp++;
         vector<particle> tmp_new_states;
@@ -125,34 +126,33 @@ void particle_filter::predict(){
         uniform_int_distribution<int> unif_height(reference_roi.height,(int)(im_size.height-reference_roi.height-1));                  
         for (int i=0;i<n_particles;i++){
             particle state=states[i];
-            float _x,_y,_dx,_dy,_width,_height;
-            _dx=state.dx+velocity_random_walk(generator);
-            _dy=state.dy+velocity_random_walk(generator);
+            float _x,_y,_dx,_dy,_width,_height,_dw,_dh;
+            _dx=(state.x-state.x_p);
+            _dy=(state.y-state.y_p);
+            _dw=(state.width-state.width_p);
+            _dh=(state.height-state.height_p);
             _x=MIN(MAX(cvRound(state.x+_dx+position_random_walk(generator)),0),im_size.width);
             _y=MIN(MAX(cvRound(state.y+_dy+position_random_walk(generator)),0),im_size.height);
-            _width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
-            _height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
-            
+            _width=MIN(MAX(cvRound(state.width+_dw+scale_random_walk(generator)),0),im_size.width);
+            _height=MIN(MAX(cvRound(state.height+_dh+scale_random_walk(generator)),0),im_size.height);
             if((_x+_width)<im_size.width && _x>0 && 
                 (_y+_height)<im_size.height && _y>0 && 
                 _width<im_size.width && _height<im_size.height 
                 && isless(ESS/n_particles,(float)THRESHOLD)){
+                state.x_p=state.x;
+                state.y_p=state.y;
+                state.width_p=state.width;
+                state.height_p=state.height;       
                 state.x=_x;
                 state.y=_y;
                 state.width=_width;
                 state.height=_height;
-                state.dx=_dx;
-                state.dy=_dy;
-                state.scale+=scale_random_walk(generator);
             }
             else{
-                state.dx=velocity_random_walk(generator);
-                state.dy=velocity_random_walk(generator);
                 state.width=cvRound(reference_roi.width);
                 state.height=cvRound(reference_roi.height);
-                state.x=cvRound(reference_roi.x+position_random_walk(generator));
-                state.y=cvRound(reference_roi.y+position_random_walk(generator));
-                state.scale=1.f+scale_random_walk(generator);
+                //state.x=cvRound(unif_width(generator));
+                //state.y=cvRound(unif_height(generator));
             }
             //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
             tmp_new_states.push_back(state);
@@ -221,7 +221,8 @@ void particle_filter::update(Mat& image)
         double bc_color = compareHist(reference_hist, part_hist, HISTCMP_BHATTACHARYYA);
         double prob = 0.0f;
         if(bc_color != 1.0f ){
-            prob = color_lilekihood.log_likelihood(bc_color);
+            prob=color_lilekihood.log_likelihood(bc_color);
+            //prob = - (double)(1/(2*SIGMA_COLOR*SIGMA_COLOR)) * (bc_color*bc_color);
         }
         double weight=weights[i]+prob;
         if(HOG){
@@ -240,7 +241,7 @@ void particle_filter::update(Mat& image)
 }
 
 void particle_filter::update_discrete(Mat& image){
-    //double lambda=polya.getAlpha().sum();
+    double lambda=polya.getAlpha().sum();
     vector<double> tmp_weights;
     double prob = 0.0f;
     double weight=-10.0;
@@ -260,23 +261,26 @@ void particle_filter::update_discrete(Mat& image){
             calc_hist_hsv(part_roi,part_hist);
             VectorXd counts;
             counts.setOnes(part_hist.total());
-            //double k=0.0;
+            double k=0.0;
             for(int h=0;h<H_BINS;h++)
                 for( int s = 0; s < S_BINS; s++ )
                 {
                     double val=part_hist.at<float>(h, s);
+                    k+=val;
                     counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
                 }
-            //double poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
-            if(LIKELIHOOD==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts);
-            else if(LIKELIHOOD==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts);        
-    	    else prob=poisson.log_likelihood(counts);
+            double poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;
+            if(LIKELIHOOD==DIRICHLET_LIKELIHOOD) prob = polya.log_likelihood(counts)+poisson_log_prior;
+            else if(LIKELIHOOD==MULTINOMIAL_LIKELIHOOD) prob=discrete.log_likelihood(counts)+poisson_log_prior;        
+    	    else prob=poisson.log_likelihood(counts)+poisson_log_prior;
             weight=weights[i]+prob;
             if(HOG){
                 calc_hog(part_roi,part_hog);
                 if(part_hog.size()==reference_hog.size()){
+                    cout << part_hog << endl;
                     double bc_hog = compareHist(reference_hog, part_hog, HISTCMP_BHATTACHARYYA);
                     double prob_hog = hog_likelihood.log_likelihood(bc_hog);
+                    //double prob_hog=discrete_hog.log_likelihood(counts);
                     weight+=prob_hog;
                 }   
             }

@@ -1,4 +1,4 @@
-#include "../../KCFcpp/src/kcftracker.hpp"
+#include "kcf/kcftracker.hpp"
 #include "../include/utils.hpp"
 #include "../include/image_generator.hpp"
 

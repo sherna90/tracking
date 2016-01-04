@@ -1,6 +1,9 @@
-#include "../include/particle_filter.hpp"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include "../include/pmmh.hpp"
 #include "../include/utils.hpp"
 #include "../include/image_generator.hpp"
+#include "ct/CompressiveTracker.h"
 
 #include <time.h>
 #include <iostream>
@@ -9,31 +12,29 @@
 using namespace std;
 using namespace cv;
 
-class TestParticleFilter{
+class TestCT{
 public:
-  TestParticleFilter(string _firstFrameFilename, string _gtFilename, int _num_particles);
+  TestCT(string _firstFrameFilename, string _gtFilename);
   void run();
 private:
-  int num_particles,num_frames;
+  int num_frames;
   imageGenerator generator;
   double reinit_rate;
-  particle_filter filter;
   vector<Mat> images;
   vector<string> gt_vec;
 };
 
-TestParticleFilter::TestParticleFilter(string _firstFrameFilename, string _gtFilename, int _num_particles){
+TestCT::TestCT(string _firstFrameFilename, string _gtFilename){
   imageGenerator generator(_firstFrameFilename,_gtFilename);
-  num_particles = _num_particles;
   num_frames = generator.getDatasetSize();
   gt_vec = generator.ground_truth;
   images = generator.images;
 }
 
-void TestParticleFilter::run(){
-  particle_filter filter(num_particles);
-  Rect ground_truth;
-  Mat current_frame; 
+void TestCT::run(){
+  CompressiveTracker ct=CompressiveTracker();
+  Rect ground_truth,estimate;
+  Mat current_frame,grayImg; 
   string current_gt;
   reinit_rate = 0.0;
   time_t start, end;
@@ -44,20 +45,19 @@ void TestParticleFilter::run(){
     current_gt=gt_vec[k];
     ground_truth=generator.stringToRect(current_gt);
     current_frame = images[k].clone();
-    if(!filter.is_initialized()){
-        filter.initialize(current_frame,ground_truth);
-    }else{
-        filter.predict();
-        filter.update_discrete(current_frame);
-        filter.draw_particles(current_frame);
-        rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
-        Rect estimate = filter.estimate(current_frame,true);
-        double r1 = performance.calc(ground_truth, estimate);
-        //cout << r1 << endl;
-        if(r1<0.1) {
-          cout << "reinit!" << endl;
-          filter.reinitialize();
-          reinit_rate+=1.0;
+    cvtColor(current_frame, grayImg, CV_RGB2GRAY);
+    if(k==0){
+      ct.init(grayImg, ground_truth);
+      estimate=ground_truth; 
+    }
+    else{
+      ct.processFrame(grayImg, estimate);
+      rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
+      rectangle( current_frame, estimate, Scalar(0,0,255), 1, LINE_AA );
+      double r1 = performance.calc(ground_truth, estimate);
+      if(r1<0.1) {
+        ct.init(grayImg, ground_truth); 
+        reinit_rate+=1.0;
       }
     }
     imshow("Tracker",current_frame);
@@ -72,14 +72,13 @@ void TestParticleFilter::run(){
 };
 
 int main(int argc, char* argv[]){
-    if(argc != 7) {
+    if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
         return EXIT_FAILURE;
     }
     else{
         string _firstFrameFilename,_gtFilename;
-        int _num_particles;
         if(strcmp(argv[1], "-img") == 0) {
             _firstFrameFilename=argv[2];
         }
@@ -91,18 +90,8 @@ int main(int argc, char* argv[]){
         if(strcmp(argv[3], "-gt") == 0) {
             _gtFilename=argv[4];
         }
-        else{
-            cerr <<"No ground truth given" << endl;
-            cerr <<"exiting..." << endl;
-            return EXIT_FAILURE;
-        }
-        if(strcmp(argv[5], "-npart") == 0) {
-            _num_particles=atoi(argv[6]);
-        }
-        else{
-            _num_particles=300;
-        }
-        TestParticleFilter tracker(_firstFrameFilename,_gtFilename,_num_particles);
+        
+        TestCT tracker(_firstFrameFilename,_gtFilename);
         tracker.run();
     }
 }

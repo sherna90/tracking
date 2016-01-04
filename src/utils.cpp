@@ -221,13 +221,15 @@ VectorXd tri_pochhammer(double x, const Eigen::Ref<const Eigen::VectorXd>& vec)
 
 
 Performance::Performance(void){
-    avg_precision=0.0;avg_recall=0.0;
+    avg_precision=0.0;avg_recall=0.0,ratio=0.0;
 }
 
 double Performance::calc(Rect ground_truth, Rect estimate){
-    intersection=ground_truth & estimate;
+    Rect intersection=ground_truth & estimate;
     true_positives=0;false_positives=0;false_negatives=0;
     ratio = double(intersection.area())/double(ground_truth.area());
+    //cout << ground_truth << endl;
+    //cout << estimate << endl;
     if(ratio==1.0){ 
         true_positives=ground_truth.area();
         false_negatives=0;

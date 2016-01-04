@@ -7,6 +7,7 @@
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
 #include "hist.hpp"
+#include "hog.hpp"
 #include "dirichlet.hpp"
 #include "gaussian.hpp"
 #include "multinomial.hpp"
@@ -40,11 +41,15 @@ using namespace Eigen;
 typedef struct particle {
     float x; /** current x coordinate */
     float y; /** current y coordinate */
-    float dx; /** current velocity x coordinate */
-    float dy; /** current velocity y coordinate */
     float width; /** current width coordinate */
     float height; /** current height coordinate */
     float scale; /** current velocity bounding box scale */
+    float x_p; /** current x coordinate */
+    float y_p; /** current y coordinate */
+    float width_p; /** current width coordinate */
+    float height_p; /** current height coordinate */
+    float scale_p; /** current velocity bounding box scale */
+    
 } particle;
 
 

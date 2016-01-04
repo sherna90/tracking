@@ -11,6 +11,5 @@ extern const int S_BINS;
 
 void calc_hist_hsv(cv::Mat& image, cv::Mat& mask, cv::Mat& hist);
 void calc_hist_hsv(cv::Mat& image, cv::Mat& hist);
-void calc_hog(cv::Mat& image,cv::Mat& hist);
 void colorReduce(cv::Mat& image, int div);
 #endif

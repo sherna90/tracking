@@ -9,9 +9,9 @@ pmmh::pmmh(int _num_particles,int _fixed_lag,int _mcmc_steps){
     alpha.setOnes((int)H_BINS*S_BINS);
     alpha.normalize();
     color_prior=dirichlet(alpha);
-    pos_prior=Gaussian(0.0,1.0);
-    vel_prior=Gaussian(0.0,1.0);
-    scale_prior=Gaussian(0.0,1.0);
+    pos_prior=Gaussian(0.0,0.1);
+    vel_prior=Gaussian(0.0,0.1);
+    scale_prior=Gaussian(0.0,0.1);
     initialized=false;
 }
 
@@ -45,17 +45,23 @@ double pmmh::marginal_likelihood(VectorXd theta_x,VectorXd theta_y){
     Mat current_frame = images[0].clone(); 
     pmmh.initialize(current_frame,reference_roi);
     pmmh.update_model(theta_x,theta_y);
-    int time_step=MIN((int)images.size(),fixed_lag);
+    //fixed_lag=(int)images.size();
+    //int time_step=MIN((int)images.size(),fixed_lag);
     //int start_time;
     //(fixed_lag==0) || (time_step<fixed_lag) ? start_time=0 : start_time=time_step-fixed_lag;
     //cout << "------------------------"  << endl;
-    for(int k=1;k<time_step;k++){
-        //cout << "time:" << k << endl;
+    int time_step=fixed_lag=(int)images.size();
+    //int time_step=MIN((int)images.size(),fixed_lag);
+    double res=0.0;
+    if(time_step>fixed_lag){
+    for(int k=time_step-fixed_lag;k<time_step;k++){
+        cout << "time:" << k << endl;
         Mat current_frame = images[k].clone();
         pmmh.predict();
         pmmh.update_discrete(current_frame);
     }
-    double res=pmmh.getMarginalLikelihood();
+    res=pmmh.getMarginalLikelihood();
+    }
     return res;
 }
 

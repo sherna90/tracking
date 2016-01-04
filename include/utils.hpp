@@ -6,16 +6,18 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <stdint.h>
+#include <iostream>
+
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
 #include <algorithm>
 using namespace cv;
+using namespace std;
 
 class Performance
 {
     private:
-        Rect intersection;
         int true_positives, false_positives, false_negatives;
         double avg_precision,avg_recall,ratio;
     public:

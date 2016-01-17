@@ -48,24 +48,24 @@ void TestParticleFilter::run(){
         filter.initialize(current_frame,ground_truth);
     }else{
         filter.predict();
-        filter.update_discrete(current_frame);
+        filter.update(current_frame);
         filter.draw_particles(current_frame);
         rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
         Rect estimate = filter.estimate(current_frame,true);
         double r1 = performance.calc(ground_truth, estimate);
         //cout << r1 << endl;
         if(r1<0.1) {
-          cout << "reinit!" << endl;
           filter.reinitialize();
           reinit_rate+=1.0;
       }
     }
     imshow("Tracker",current_frame);
-    waitKey(25);
+    waitKey(1);
   }
   time(&end);
   double sec = difftime (end, start);
   // print precision,recall,fps,rate,num_frames
+  cout << "ML:" << filter.getMarginalLikelihood() << endl;
   cout  << performance.get_avg_precision()/(num_frames-reinit_rate);
   cout << "," << performance.get_avg_recall()/(num_frames-reinit_rate);
   cout << "," << num_frames/sec << "," << reinit_rate <<  "," << num_frames << endl;

@@ -36,10 +36,9 @@ double Multinomial::log_likelihood(const VectorXd &test)
     double sum_test=0.0;
     double sum_theta=0.0;
     unsigned int i=0;
-    //#pragma omp parallel for private(i) reduction(+:sum_test) reduction(+:sum_theta)
     for(i=0;i<test.size();i++){
         sum_test+=lgamma(test[i]+1);
-        sum_theta+=test[i]*log(this->theta[i]);
+        sum_theta+= (this->theta[i]!=0.0) ? test[i]*log(this->theta[i]) : 0.0;
     }
     log_like=lgamma(test.sum()+1)-sum_test+sum_theta;
     return log_like;

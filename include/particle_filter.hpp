@@ -61,6 +61,7 @@ public:
     ~particle_filter();
     particle_filter(int _n_particles);
     particle_filter();
+    int time_stamp;
     bool is_initialized();
     void reinitialize();
     void initialize(Mat& current_frame, Rect ground_truth);
@@ -68,30 +69,26 @@ public:
     Rect estimate(Mat& image,bool draw);
     void predict();
     void update(Mat& image);
-    void update_discrete(Mat& image);
+    //void update_discrete(Mat& image);
     void smoother(int fixed_lag);
     void update_model(VectorXd theta_x,VectorXd theta_y);
-    VectorXd get_discrete_model();
-    VectorXd get_continuous_model();
+    VectorXd get_dynamic_model();
+    VectorXd get_observation_model();
     float getESS();
     double getMarginalLikelihood();
     
 
 private:
     double marginal_likelihood;
-    VectorXd theta;
-    dirichlet polya,polya_hog;
-    int time_stamp;
+    VectorXd theta_x,theta_y;
+    Gaussian color_likekihood,hog_likelihood;
     void resample();
     float ESS;
     bool initialized;
     mt19937 generator;
     Rect reference_roi;
     Size im_size;
-    Gaussian color_lilekihood,hog_likelihood;
     Mat reference_hist,reference_hog;
-    Multinomial discrete,discrete_hog;
-    Poisson poisson;
     normal_distribution<double> position_random_walk,velocity_random_walk,scale_random_walk;
     double eps;
 

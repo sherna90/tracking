@@ -1,5 +1,5 @@
-#ifndef PARTICLE_FILTER
-#define PARTICLE_FILTER
+#ifndef DISCRETE_PARTICLE_FILTER
+#define DISCRETE_PARTICLE_FILTER
 
 
 #include <opencv2/core.hpp>
@@ -7,7 +7,13 @@
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
 #include "haar.hpp"
+#include "hist.hpp"
+#include "hog.hpp"
+#include "dirichlet.hpp"
 #include "gaussian.hpp"
+#include "multinomial.hpp"
+#include "poisson.hpp"
+#include "particle_filter.hpp"
 #include <time.h>
 #include <float.h>
 #include <vector>
@@ -15,48 +21,19 @@
 #include <random>
 #include <chrono>
 
-extern const float POS_STD; 
-extern const float VEL_STD; 
-extern const float SCALE_STD; 
-extern const float  DT; 
-extern const float  SIGMA_COLOR; 
-extern const float  SIGMA_SHAPE; 
-extern const float  THRESHOLD; 
-extern const int  DIRICHLET_LIKELIHOOD; 
-extern const int MULTINOMIAL_LIKELIHOOD; 
-extern const int POISSON_LIKELIHOOD; 
-extern const int LIKELIHOOD;
-extern const bool HOG; 
-extern const int H_BINS;
-extern const int S_BINS;
-
 using namespace cv;
 using namespace std;
 using namespace Eigen;
 
-typedef struct particle {
-    float x; /** current x coordinate */
-    float y; /** current y coordinate */
-    float width; /** current width coordinate */
-    float height; /** current height coordinate */
-    float scale; /** current velocity bounding box scale */
-    float x_p; /** current x coordinate */
-    float y_p; /** current y coordinate */
-    float width_p; /** current width coordinate */
-    float height_p; /** current height coordinate */
-    float scale_p; /** current velocity bounding box scale */
-    
-} particle;
 
-
-class particle_filter {
+class discrete_particle_filter {
 public:
     int n_particles;
     vector<particle> states;
     vector<double>  weights;
-    ~particle_filter();
-    particle_filter(int _n_particles);
-    particle_filter();
+    ~discrete_particle_filter();
+    discrete_particle_filter(int _n_particles);
+    discrete_particle_filter();
     int time_stamp;
     bool is_initialized();
     void reinitialize();
@@ -65,6 +42,7 @@ public:
     Rect estimate(Mat& image,bool draw);
     void predict();
     void update(Mat& image);
+    //void update_discrete(Mat& image);
     void smoother(int fixed_lag);
     void update_model(VectorXd theta_x,VectorXd theta_y);
     VectorXd get_dynamic_model();
@@ -72,12 +50,11 @@ public:
     float getESS();
     double getMarginalLikelihood();
     void resample();
-
+    
 protected:
+    Multinomial color_likekihood,hog_likelihood;
     double marginal_likelihood;
-    VectorXd theta_x,theta_y;
-    Gaussian color_likekihood,hog_likelihood;
-    vector<Gaussian > haar_likelihood;
+    VectorXd theta_x,theta_y,theta_hog;
     float ESS;
     bool initialized;
     mt19937 generator;

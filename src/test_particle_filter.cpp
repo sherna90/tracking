@@ -17,7 +17,8 @@ private:
   int num_particles,num_frames;
   imageGenerator generator;
   double reinit_rate;
-  particle_filter filter;
+  //discrete_particle_filter filter;
+  //particle_filter filter;
   vector<Mat> images;
   vector<string> gt_vec;
 };
@@ -49,7 +50,7 @@ void TestParticleFilter::run(){
     }else{
         filter.predict();
         filter.update(current_frame);
-        filter.draw_particles(current_frame);
+        filter.draw_particles(current_frame,Scalar(0,255,255));
         rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
         Rect estimate = filter.estimate(current_frame,true);
         double r1 = performance.calc(ground_truth, estimate);

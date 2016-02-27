@@ -30,14 +30,14 @@ using namespace Eigen;
 class pmmh {
 private:
     double marginal_likelihood(VectorXd theta,VectorXd alpha);
-    double gamma_prior(VectorXd x,double a,double b);
+    double igamma_prior(VectorXd x,double a,double b);
     VectorXd continuous_proposal(VectorXd alpha);
     vector<Mat> images;
     Rect reference_roi;
     mt19937 generator;
     particle_filter* filter;
     RowVectorXd theta_x,theta_x_prop,theta_y,theta_y_prop;
-    int num_particles,fixed_lag,mcmc_steps;
+    int n_particles,fixed_lag,mcmc_steps;
     
     bool initialized;
 
@@ -46,6 +46,7 @@ public:
     void initialize(Mat& image, Rect ground_truth);
     bool is_initialized();
     void reinitialize();
+    void predict();
     void update(Mat& image);
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);

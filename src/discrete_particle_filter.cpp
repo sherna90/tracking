@@ -1,27 +1,22 @@
 /**
- * @file particle_filter.cpp
+ * @file discrete_particle_filter.cpp
  * @brief particle filter
  * @author Sergio Hernandez
  */
-#include "../include/particle_filter.hpp"
+#include "../include/discrete_particle_filter.hpp"
 
-#ifndef PARAMS
-const float POS_STD=1.0;
-const float SCALE_STD=0.1;
-const float  DT=1.0;
-const float  THRESHOLD=0.7;
-#endif 
 
-particle_filter::particle_filter() {
+
+discrete_particle_filter::discrete_particle_filter() {
 }
 
 
-particle_filter::~particle_filter() {
+discrete_particle_filter::~discrete_particle_filter() {
     states=vector<particle>();
     weights=vector<double>();
 }
 
-particle_filter::particle_filter(int _n_particles) {
+discrete_particle_filter::discrete_particle_filter(int _n_particles) {
     n_particles = _n_particles;
     time_stamp=0;
     initialized=false;
@@ -33,21 +28,21 @@ particle_filter::particle_filter(int _n_particles) {
 }
 
 
-bool particle_filter::is_initialized() {
+bool discrete_particle_filter::is_initialized() {
     return initialized;
 }
 
-void particle_filter::reinitialize() {
+void discrete_particle_filter::reinitialize() {
     initialized=false;
 }
 
 
-void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
+void discrete_particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     normal_distribution<double> position_random_walk(0.0,theta_x(0));
     normal_distribution<double> scale_random_walk(0.0,theta_x(1));
     marginal_likelihood=0.0;
-    states.clear();
-    weights.clear();
+    states = vector<particle>();
+    weights = vector<double>();
     //cout << "INIT!!!!!" << endl;
     //cout << ground_truth << endl;
     im_size=current_frame.size();
@@ -56,11 +51,13 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
     int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
     reference_roi=Rect(left, top, right - left, bottom - top);
+    sampleBox.clear();//important
     if(reference_roi.width>0 && (reference_roi.x+reference_roi.width)<im_size.width && 
         reference_roi.height>0 && (reference_roi.y+reference_roi.height)<im_size.height){
+        Mat current_roi = current_frame(reference_roi).clone();
+        calc_hist_hsv(current_roi,reference_hist);
         marginal_likelihood=0.0;
         double weight=1.0/n_particles;
-        sampleBox.clear();//important
         for (int i=0;i<n_particles;i++){
             particle state;
             state.x=cvRound(reference_roi.x+position_random_walk(generator));
@@ -69,32 +66,55 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             state.y_p=cvRound(reference_roi.y+position_random_walk(generator));
             state.width=cvRound(right-left);
             state.height=cvRound(bottom-top);
-            state.width_p=cvRound(right-left);
-            state.height_p=cvRound(bottom-top);
+            state.width_p=cvRound(right-left+scale_random_walk(generator));
+            state.height_p=cvRound(bottom-top+scale_random_walk(generator));
             state.scale=1.0f+scale_random_walk(generator);
             state.scale_p=0.0;
+            Rect box(state.x, state.y, state.width, state.height);
+            sampleBox.push_back(box);
             states.push_back(state);
             weights.push_back(weight);
-            ESS=0.0f;   
-            Rect box(state.x, state.y, state.width, state.height);
-            sampleBox.push_back(box);    
+            ESS=0.0f;       
         }
-        Mat grayImg;
-        haar_likelihood.clear();
-        cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-        haar.init(grayImg,reference_roi,sampleBox);
-        Scalar muTemp;
-        Scalar sigmaTemp;
-        for (int i=0; i<haar.sampleFeatureValue.rows; i++){
-            meanStdDev(haar.sampleFeatureValue.row(i), muTemp, sigmaTemp);
-            Gaussian haar_feature(muTemp.val[0],sigmaTemp.val[0]);  
-            haar_likelihood.push_back(haar_feature);
+        theta_y.resize(reference_hist.total());
+        for(int h=0;h<H_BINS;h++)
+            for( int s = 0; s < S_BINS; s++ ){
+                double val=reference_hist.at<float>(h, s);
+                gamma_distribution<double> color_prior(val,1.0);
+                //theta_y[h*S_BINS+s] = (val!=0.0) ? color_prior(generator) : eps;
+                theta_y[h*S_BINS+s] = (val!=0.0) ? val : eps;
+            }    
+        theta_y.normalize();
+        color_likekihood = Multinomial(theta_y);
+        if(HOG){
+             Mat grayImg;
+             cvtColor(current_frame, grayImg, CV_RGB2GRAY);
+             haar.init(grayImg,reference_roi,sampleBox);
+             Scalar muTemp;
+             Scalar sigmaTemp;
+             theta_hog.resize(haar.sampleFeatureValue.cols);
+             for (int i=0; i<haar.sampleFeatureValue.rows; i++){
+                 meanStdDev(haar.sampleFeatureValue.row(i), muTemp, sigmaTemp);
+                 theta_hog[i]=muTemp.val[0];
+             }
+             theta_hog.normalize();
+             hog_likelihood=Multinomial(theta_hog);
+/*            calc_hog(current_roi,reference_hog);
+            theta_hog.resize(reference_hog.total());
+            for(unsigned int j = 0; j < reference_hog.total(); j++ ){
+                double val=reference_hog.at<float>(0,j);
+                theta_hog[j] = (val!=0.0) ? val : eps;
+            }
+            theta_hog.normalize();
+            hog_likelihood=Multinomial(theta_hog);   */      
         }
         initialized=true;
     }
 }
 
-void particle_filter::predict(){
+
+
+void discrete_particle_filter::predict(){
     normal_distribution<double> position_random_walk(0.0,theta_x(0));
     normal_distribution<double> scale_random_walk(0.0,theta_x(1));
     if(initialized==true){
@@ -110,8 +130,8 @@ void particle_filter::predict(){
             _dh=(state.height-state.height_p);
             _x=MIN(MAX(cvRound(state.x+_dx+position_random_walk(generator)),0),im_size.width);
             _y=MIN(MAX(cvRound(state.y+_dy+position_random_walk(generator)),0),im_size.height);
-            _width=MIN(MAX(cvRound(state.width+_dw),0),im_size.width);
-            _height=MIN(MAX(cvRound(state.height+_dh),0),im_size.height);
+            _width=MIN(MAX(cvRound(state.width+_dw+scale_random_walk(generator)),0),im_size.width);
+            _height=MIN(MAX(cvRound(state.height+_dh+scale_random_walk(generator)),0),im_size.height);
             if((_x+_width)<im_size.width && _x>0 && 
                 (_y+_height)<im_size.height && _y>0 && 
                 _width<im_size.width && _height<im_size.height && 
@@ -139,8 +159,7 @@ void particle_filter::predict(){
     }
 }
 
-
-void particle_filter::draw_particles(Mat& image, Scalar color=Scalar(0,255,255)){
+void discrete_particle_filter::draw_particles(Mat& image, Scalar color=Scalar(0,255,255)){
     for (int i=0;i<n_particles;i++){
         particle state=states[i];
         Point pt1,pt2;
@@ -152,7 +171,7 @@ void particle_filter::draw_particles(Mat& image, Scalar color=Scalar(0,255,255))
     }
 }
 
-Rect particle_filter::estimate(Mat& image,bool draw=false){
+Rect discrete_particle_filter::estimate(Mat& image,bool draw=false){
     float _x=0.0,_y=0.0,_width=0.0,_height=0.0;
     Rect estimate;
     for (int i=0;i<n_particles;i++){
@@ -181,13 +200,15 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
 }
 
 
-void particle_filter::update(Mat& image)
+void discrete_particle_filter::update(Mat& image)
 {
     Mat grayImg;
     cvtColor(image, grayImg, CV_RGB2GRAY);
     haar.getFeatureValue(grayImg,sampleBox);         
     vector<double> tmp_weights; 
+    //cout << reference_hist << endl; 
     for (int i=0;i<n_particles;i++){
+        Mat part_hist,part_roi;
         particle state=states[i];
         if (state.width < 0 || state.width>image.cols){
           state.width = reference_roi.width;
@@ -195,22 +216,42 @@ void particle_filter::update(Mat& image)
         if (state.height < 0 || state.height>image.rows){
           state.height = reference_roi.width;
         }
-        double weight=weights[i];
-        double prob_haar=0.0f;
-        for(int j=0;j<haar.featureNum;j++){
-            float haar_prob=haar.sampleFeatureValue.at<float>(j,i);
-            prob_haar += haar_likelihood.at(j).log_likelihood(haar_prob);
+        Rect boundingBox=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
+        part_roi=image(boundingBox).clone();
+        calc_hist_hsv(part_roi,part_hist);
+        VectorXd counts;
+        counts.resize(part_hist.total());
+        double k=0.0;
+        for(int h=0;h<H_BINS;h++)
+            for( int s = 0; s < S_BINS; s++ ){
+                double val=part_hist.at<float>(h, s);
+                k+=val;
+                counts[h*S_BINS+s] = (val!=0.0) ? val : eps;
+            }
+        double lambda=theta_y.array().sum();    
+        double poisson_log_prior=k * log(lambda) - lgamma(k + 1.0) - lambda;    
+        double prob=color_likekihood.log_likelihood(counts);
+        double weight=weights[i]+prob;
+        if(HOG){
+            VectorXd count_hog;
+            Scalar muTemp;
+            Scalar sigmaTemp;
+            count_hog.resize(haar.featureNum);
+            for(int j=0;j<haar.featureNum;j++)
+                count_hog[j]=haar.sampleFeatureValue.at<float>(i,j);    
+            double prob_hog = hog_likelihood.log_likelihood(count_hog);
+            weight+=prob_hog+poisson_log_prior;
         }
-        weight+=prob_haar;   
         tmp_weights.push_back(weight);
+        part_hist.release();
+        part_roi.release();
     }
     weights.swap(tmp_weights);
-    tmp_weights.clear();
+    tmp_weights=vector<double>();
     resample();
 }
 
-
-void particle_filter::resample(){
+void discrete_particle_filter::resample(){
     vector<double> cumulative_sum(n_particles);
     vector<double> normalized_weights(n_particles);
     vector<double> new_weights(n_particles);
@@ -252,28 +293,29 @@ void particle_filter::resample(){
     else{
         weights.swap(new_weights);
     }
-    cumulative_sum.clear();
-    normalized_weights.clear();
-    new_weights.clear();
-    squared_normalized_weights.clear();
+    cumulative_sum=vector<double>();
+    normalized_weights=vector<double>();
+    new_weights=vector<double>();
+    squared_normalized_weights=vector<double>();
 }
 
-float particle_filter::getESS(){
+float discrete_particle_filter::getESS(){
     return ESS;
 }
 
-void particle_filter::update_model(VectorXd theta_x_new,VectorXd theta_y_new){
+void discrete_particle_filter::update_model(VectorXd theta_x_new,VectorXd theta_y_new){
     theta_x=theta_x_new;
+    theta_y=theta_y_new;
 }
 
 
-VectorXd particle_filter::get_dynamic_model(){
+VectorXd discrete_particle_filter::get_dynamic_model(){
     return theta_x;
 }
 
-VectorXd particle_filter::get_observation_model(){
+VectorXd discrete_particle_filter::get_observation_model(){
     return theta_y;
 }
-double particle_filter::getMarginalLikelihood(){
+double discrete_particle_filter::getMarginalLikelihood(){
     return marginal_likelihood;
 }

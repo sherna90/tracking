@@ -9,29 +9,12 @@
 #include "hist.hpp"
 #include "dirichlet.hpp"
 #include "gaussian.hpp"
-#include "multinomial.hpp"
-#include "poisson.hpp"
 #include <time.h>
 #include <float.h>
 #include <vector>
 #include <iostream>
 
-#define TRANS_X_STD 0.5
-#define TRANS_Y_STD 1.0
-#define TRANS_S_STD 0.01
-#define POS_STD 1.0
-#define VEL_STD 0.01
-#define SCALE_STD 0.1
-#define DT 1.0
-#define SIGMA_COLOR 0.1
-#define SIGMA_SHAPE 0.09
-#define ALPHA 0.7
-#define THRESHOLD 0.7
-#define DIRICHLET_LIKELIHOOD 0
-#define MULTINOMIAL_LIKELIHOOD 1
-#define POISSON_LIKELIHOOD 2
-#define WITH_HOG true
-#define WITHOUT_HOG false
+
 
 using namespace cv;
 using namespace std;
@@ -39,11 +22,15 @@ using namespace std;
 typedef struct particle {
     float x; /** current x coordinate */
     float y; /** current y coordinate */
-    float dx; /** current velocity x coordinate */
-    float dy; /** current velocity y coordinate */
     float width; /** current width coordinate */
     float height; /** current height coordinate */
     float scale; /** current velocity bounding box scale */
+    float x_p; /** current x coordinate */
+    float y_p; /** current y coordinate */
+    float width_p; /** current width coordinate */
+    float height_p; /** current height coordinate */
+    float scale_p; /** current velocity bounding box scale */
+    
 } particle;
 
 
@@ -62,17 +49,15 @@ public:
     
 
 private:
-    dirichlet polya,polya_hog;
     int time_stamp;
     float ESS;
     bool initialized;
     RNG rng;
     Rect reference_roi;
     Size im_size;
+    VectorXd theta_x,theta_y;
     Gaussian color_lilekihood,hog_likelihood;
     Mat reference_hist,reference_hog;
-    Multinomial discrete,discrete_hog;
-    Poisson poisson;
 
 };
 

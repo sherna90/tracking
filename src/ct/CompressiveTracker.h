@@ -28,16 +28,16 @@ class CompressiveTracker
 public:
     CompressiveTracker(void);
 	~CompressiveTracker(void);
-
+	vector<Rect> samplePositiveBox;
+	vector<Rect> sampleNegativeBox;
+	vector<vector<Rect> > features;
+	vector<vector<float> > featuresWeight;
 private:
 	int featureMinNumRect;
 	int featureMaxNumRect;
 	int featureNum;
-	vector<vector<Rect> > features;
-	vector<vector<float> > featuresWeight;
 	int rOuterPositive;
-	vector<Rect> samplePositiveBox;
-	vector<Rect> sampleNegativeBox;
+
 	int rSearchWindow;
 	Mat imageIntegral;
 	Mat samplePositiveFeatureValue;

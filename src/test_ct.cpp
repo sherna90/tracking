@@ -48,10 +48,18 @@ void TestCT::run(){
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
     if(k==0){
       ct.init(grayImg, ground_truth);
+      for (vector<Rect>::iterator it = ct.sampleNegativeBox.begin() ; it != ct.sampleNegativeBox.end(); ++it)
+        rectangle( current_frame, *it, Scalar(0,0,0), 1, LINE_AA );
+      for (vector<Rect>::iterator it = ct.samplePositiveBox.begin() ; it != ct.samplePositiveBox.end(); ++it)
+        rectangle( current_frame, *it, Scalar(255,255,255), 1, LINE_AA );
       estimate=ground_truth; 
     }
     else{
       ct.processFrame(grayImg, estimate);
+      //for (vector<Rect>::iterator it = ct.sampleNegativeBox.begin() ; it != ct.sampleNegativeBox.end(); ++it)
+      //  rectangle( current_frame, *it, Scalar(0,0,0), 1, LINE_AA );
+      //for (vector<Rect>::iterator it = ct.samplePositiveBox.begin() ; it != ct.samplePositiveBox.end(); ++it)
+      //  rectangle( current_frame, *it, Scalar(255,255,255), 1, LINE_AA );
       rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
       rectangle( current_frame, estimate, Scalar(0,0,255), 1, LINE_AA );
       double r1 = performance.calc(ground_truth, estimate);
@@ -61,7 +69,7 @@ void TestCT::run(){
       }
     }
     imshow("Tracker",current_frame);
-    waitKey(25);
+    waitKey(1);
   }
   time(&end);
   double sec = difftime (end, start);

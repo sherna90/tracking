@@ -3,8 +3,19 @@
  * @brief particle filter
  * @author Sergio Hernandez
  */
- #include "../include/particle_smoother.hpp"
+#include "../include/particle_smoother.hpp"
 
+const float POS_STD=1.0;
+const float SCALE_STD=1.0;
+const float  DT=1.0;
+const float  SIGMA_COLOR=0.1;
+const float  SIGMA_SHAPE=0.1;
+const float  THRESHOLD=0.7;
+const int  DIRICHLET_LIKELIHOOD=0;
+const int MULTINOMIAL_LIKELIHOOD=1;
+const int POISSON_LIKELIHOOD=2;
+const int LIKELIHOOD=MULTINOMIAL_LIKELIHOOD;
+const bool HOG=true;
 
 particle_smoother::particle_smoother(int _n_particles) {
     n_particles = _n_particles;

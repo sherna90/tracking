@@ -55,7 +55,7 @@ void TestKCF::run(){
       }
     }
     imshow("Tracker",current_frame);
-    waitKey(25);
+    waitKey(1);
   }
   time(&end);
   double sec = difftime (end, start);

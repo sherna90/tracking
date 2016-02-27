@@ -52,3 +52,4 @@ void calc_hog(Mat& image,Eigen::VectorXd& hist){
     }
     //normalize(hist, hist, 0, 1, NORM_MINMAX);
 }
+

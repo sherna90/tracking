@@ -54,7 +54,7 @@ void TestParticleFilter::run(){
         rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
         Rect estimate = filter.estimate(current_frame,true);
         double r1 = performance.calc(ground_truth, estimate);
-        //cout << r1 << endl;
+        //cout  << "ESS : " << filter.getESS() << "ratio : " << r1 << endl;
         if(r1<0.1) {
           filter.reinitialize();
           reinit_rate+=1.0;

@@ -29,7 +29,7 @@ TestKCF::TestKCF(string _firstFrameFilename, string _gtFilename){
 }
 
 void TestKCF::run(){
-  KCFTracker tracker(true, true, true, false);
+  KCFTracker tracker(true, true, true, true);
   Rect ground_truth;
   Mat current_frame; 
   string current_gt;

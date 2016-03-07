@@ -19,16 +19,8 @@ extern const float POS_STD;
 extern const float VEL_STD; 
 extern const float SCALE_STD; 
 extern const float  DT; 
-extern const float  SIGMA_COLOR; 
-extern const float  SIGMA_SHAPE; 
 extern const float  THRESHOLD; 
-extern const int  DIRICHLET_LIKELIHOOD; 
-extern const int MULTINOMIAL_LIKELIHOOD; 
-extern const int POISSON_LIKELIHOOD; 
-extern const int LIKELIHOOD;
-extern const bool HOG; 
-extern const int H_BINS;
-extern const int S_BINS;
+
 
 using namespace cv;
 using namespace std;
@@ -54,6 +46,7 @@ public:
     int n_particles;
     vector<particle> states;
     vector<double>  weights;
+    Haar haar;
     ~particle_filter();
     particle_filter(int _n_particles);
     particle_filter();
@@ -66,18 +59,19 @@ public:
     void predict();
     void update(Mat& image);
     void smoother(int fixed_lag);
-    void update_model(VectorXd theta_x,VectorXd theta_y);
-    VectorXd get_dynamic_model();
-    VectorXd get_observation_model();
+    void update_model(vector<VectorXd> theta_x,vector<VectorXd> theta_y);
+    vector<VectorXd> get_dynamic_model();
+    vector<VectorXd> get_observation_model();
     float getESS();
     double getMarginalLikelihood();
     void resample();
+    vector<Rect> estimates;
 
 protected:
     double marginal_likelihood;
-    VectorXd theta_x,theta_y;
-    Gaussian color_likekihood,hog_likelihood;
-    vector<Gaussian > haar_likelihood;
+    vector<VectorXd> theta_x;
+    vector<VectorXd> theta_y;
+    vector<Gaussian> haar_likelihood;
     float ESS;
     bool initialized;
     mt19937 generator;
@@ -86,7 +80,6 @@ protected:
     Mat reference_hist,reference_hog;
     normal_distribution<double> position_random_walk,velocity_random_walk,scale_random_walk;
     double eps;
-    Haar haar;
     vector<Rect > sampleBox;
 };
 

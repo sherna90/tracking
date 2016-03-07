@@ -248,9 +248,9 @@ void CompressiveTracker::init(Mat& _frame, Rect& _objectBox)
 	integral(_frame, imageIntegral, CV_32F);
 
 	getFeatureValue(imageIntegral, samplePositiveBox, samplePositiveFeatureValue);
-	cout << "positive" << samplePositiveFeatureValue.size() << endl;
+	//cout << "positive" << samplePositiveFeatureValue.size() << endl;
 	getFeatureValue(imageIntegral, sampleNegativeBox, sampleNegativeFeatureValue);
-	cout << "negative" << sampleNegativeFeatureValue.size() << endl;
+	//cout << "negative" << sampleNegativeFeatureValue.size() << endl;
 	classifierUpdate(samplePositiveFeatureValue, muPositive, sigmaPositive, learnRate);
 	classifierUpdate(sampleNegativeFeatureValue, muNegative, sigmaNegative, learnRate);
 }

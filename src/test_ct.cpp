@@ -61,7 +61,7 @@ void TestCT::run(){
       //for (vector<Rect>::iterator it = ct.samplePositiveBox.begin() ; it != ct.samplePositiveBox.end(); ++it)
       //  rectangle( current_frame, *it, Scalar(255,255,255), 1, LINE_AA );
       rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
-      rectangle( current_frame, estimate, Scalar(0,0,255), 1, LINE_AA );
+      rectangle( current_frame, estimate, Scalar(0,0,255), 2, LINE_AA );
       double r1 = performance.calc(ground_truth, estimate);
       if(r1<0.1) {
         ct.init(grayImg, ground_truth); 

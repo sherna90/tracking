@@ -232,12 +232,9 @@ double Performance::calc(Rect ground_truth, Rect estimate){
     //cout << estimate << endl;
     if(ratio==1.0){ 
         true_positives=ground_truth.area();
-        false_negatives=0;
-        false_positives=0;
     }
     else if(ratio>1.0){
         true_positives=ground_truth.area();
-        false_negatives=0;
         false_positives=estimate.area()-ground_truth.area();   
     }
     else if(ratio<1.0){

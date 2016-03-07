@@ -11,16 +11,16 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories( "/usr/include/eigen3/" )
 #include_directories( "/usr/local/include/eigen3/" )
 
-#add_executable( pmmh test_pmmh.cpp pmmh.cpp particle_filter.cpp hist.cpp hog.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp  image_generator.cpp)
-#target_link_libraries( pmmh ${OpenCV_LIBS} -fopenmp -lpthread)
+add_executable( pmmh test_pmmh.cpp pmmh.cpp particle_filter.cpp hist.cpp hog.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp  image_generator.cpp haar.cpp)
+target_link_libraries( pmmh ${OpenCV_LIBS} -fopenmp -lpthread)
 
 add_executable( tracker test_particle_filter.cpp particle_filter.cpp  hist.cpp hog.cpp spatiogram.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp image_generator.cpp haar.cpp) 
 target_link_libraries( tracker ${OpenCV_LIBS} -fopenmp -lpthread)
 
-#include_directories( "/home/sergio/code/cpp/tracking/src/kcf/" )
-#FILE(GLOB_RECURSE kcf_sourcefiles "kcf/*.cpp")
-#add_executable( kcf test_kcf.cpp ${kcf_sourcefiles} utils.cpp image_generator.cpp)
-#target_link_libraries( kcf ${OpenCV_LIBS} )
+include_directories( "/home/sergio/code/cpp/tracking/src/kcf/" )
+FILE(GLOB_RECURSE kcf_sourcefiles "kcf/*.cpp")
+add_executable( kcf test_kcf.cpp ${kcf_sourcefiles} utils.cpp image_generator.cpp)
+target_link_libraries( kcf ${OpenCV_LIBS} )
 
 include_directories( "/home/sergio/code/cpp/tracking/src/ct/" )
 add_executable( ct test_ct.cpp ct/CompressiveTracker.cpp utils.cpp image_generator.cpp)

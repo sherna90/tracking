@@ -10,8 +10,6 @@
 #include <opencv2/highgui.hpp>
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
-#include "dirichlet.hpp"
-#include "gaussian.hpp"
 #include "particle_filter.hpp"
 
 //C
@@ -29,14 +27,17 @@ using namespace Eigen;
 
 class pmmh {
 private:
-    double marginal_likelihood(VectorXd theta,VectorXd alpha);
+    double marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta_y);
     double igamma_prior(VectorXd x,double a,double b);
-    VectorXd continuous_proposal(VectorXd alpha);
+    double gamma_prior(VectorXd x,double a,double b);
+    VectorXd proposal(VectorXd theta,double step_size);
     vector<Mat> images;
     Rect reference_roi;
     mt19937 generator;
     particle_filter* filter;
-    RowVectorXd theta_x,theta_x_prop,theta_y,theta_y_prop;
+    vector<VectorXd> theta_x,theta_x_prop;
+    vector<VectorXd> theta_y,theta_y_prop;
+    vector<Rect> estimates;
     int n_particles,fixed_lag,mcmc_steps;
     
     bool initialized;

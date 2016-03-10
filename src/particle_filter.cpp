@@ -76,10 +76,10 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             particle state;
             state.x=cvRound(reference_roi.x+position_random_x(generator));
             state.y=cvRound(reference_roi.y+position_random_y(generator));
-            state.x_p=cvRound(reference_roi.x+position_random_x(generator));;
+            state.x_p=cvRound(reference_roi.x+position_random_x(generator));
             state.y_p=cvRound(reference_roi.y+position_random_y(generator));
-            state.width=cvRound(right-left+scale_random_width(generator));
-            state.height=cvRound(bottom-top+scale_random_height(generator));
+            state.width=cvRound(right-left);
+            state.height=cvRound(bottom-top);
             state.width_p=cvRound(right-left+scale_random_width(generator));
             state.height_p=cvRound(bottom-top+scale_random_height(generator));
             state.scale_p=scale_random_width(generator);
@@ -124,11 +124,14 @@ void particle_filter::predict(){
         for (int i=0;i<n_particles;i++){
             particle state=states[i];
             float _x,_y,_width,_height;
-            float _dx=0.0f,_dy=0.0f,_dw=0.0f,_dh=0.0f;
-            _x=MIN(MAX(cvRound(state.x+_dx+position_random_x(generator)),0),im_size.width);
-            _y=MIN(MAX(cvRound(state.y+_dy+position_random_y(generator)),0),im_size.height);
-            _width=MIN(MAX(cvRound(state.width+_dw+scale_random_width(generator)),0),im_size.width);
-            _height=MIN(MAX(cvRound(state.height+_dh+scale_random_height(generator)),0),im_size.height);
+            float _dx=position_random_x(generator);
+            float _dy=+position_random_y(generator);
+            float _dw=0.0f;//scale_random_width(generator);
+            float _dh=0.0f;//scale_random_height(generator);
+            _x=MIN(MAX(cvRound(state.x+_dx),0),im_size.width);
+            _y=MIN(MAX(cvRound(state.y+_dy),0),im_size.height);
+            _width=MIN(MAX(cvRound(state.width+_dw),0),im_size.width);
+            _height=MIN(MAX(cvRound(state.height+_dh),0),im_size.height);
             //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
             //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
             if((_x+_width)<im_size.width && _x>0 && 

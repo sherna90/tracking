@@ -21,9 +21,10 @@ void Haar::HaarFeature(Rect& _objectBox, int _numFeature){
 	int numRect;
 	Rect rectTemp;
 	float weightTemp;
-      
+    cout << "sample:" << _objectBox << endl; 
 	for (int i=0; i<_numFeature; i++)
 	{
+		//cout << "Feature :" << i << ";" ; 
 		numRect = cvFloor(rng.uniform((double)featureMinNumRect, (double)featureMaxNumRect));
 	
 		for (int j=0; j<numRect; j++)
@@ -79,6 +80,7 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox)
 void Haar::init(Mat& _frame, Rect& _objectBox,vector<Rect>& _sampleBox)
 {
 	// compute feature template
+	//cout << "frame:" << _frame.size() << endl; 
 	HaarFeature(_objectBox, featureNum);
 	getFeatureValue(_frame, _sampleBox);
 

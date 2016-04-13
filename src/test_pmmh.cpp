@@ -42,7 +42,7 @@ void TestPMMH::run(){
   time_t start, end;
   time(&start);
   Performance performance;
-  namedWindow("Tracker");
+  //namedWindow("Tracker");
   for(int k=0;k <num_frames;++k){
     current_gt=gt_vec[k];
     ground_truth=generator.stringToRect(current_gt);
@@ -61,8 +61,8 @@ void TestPMMH::run(){
           reinit_rate+=1.0;
       }
     }
-    imshow("Tracker",current_frame);
-    waitKey(1);
+    //imshow("Tracker",current_frame);
+    //waitKey(1);
   }
   time(&end);
   double sec = difftime (end, start);

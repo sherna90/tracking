@@ -21,7 +21,6 @@ void Haar::HaarFeature(Rect& _objectBox, int _numFeature){
 	int numRect;
 	Rect rectTemp;
 	float weightTemp;
-    cout << "sample:" << _objectBox << endl; 
 	for (int i=0; i<_numFeature; i++)
 	{
 		//cout << "Feature :" << i << ";" ; 

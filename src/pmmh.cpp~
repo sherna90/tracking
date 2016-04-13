@@ -28,7 +28,7 @@ void pmmh::initialize(Mat& current_frame, Rect ground_truth){
     reference_roi=ground_truth;
     theta_x=filter->get_dynamic_model();
     theta_y=filter->get_observation_model();
-    initialized=true;
+    //initialized=true;
     estimates.clear();
     estimates.push_back(ground_truth);
 }

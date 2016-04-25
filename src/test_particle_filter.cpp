@@ -60,8 +60,8 @@ void TestParticleFilter::run(){
           reinit_rate+=1.0;
       }
     }
-    //imshow("Tracker",current_frame);
-    //waitKey(1);
+    imshow("Tracker",current_frame);
+    waitKey(1);
   }
   time(&end);
   double sec = difftime (end, start);

@@ -38,7 +38,7 @@ private:
     vector<VectorXd> theta_x,theta_x_prop;
     vector<VectorXd> theta_y,theta_y_prop;
     vector<Rect> estimates;
-    int n_particles,fixed_lag,mcmc_steps;
+    int n_particles,n_theta,fixed_lag,mcmc_steps;
     
     bool initialized;
 

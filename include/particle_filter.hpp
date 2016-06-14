@@ -21,7 +21,6 @@ extern const float SCALE_STD;
 extern const float  DT; 
 extern const float  THRESHOLD; 
 
-
 using namespace cv;
 using namespace std;
 using namespace Eigen;
@@ -53,7 +52,7 @@ public:
     int time_stamp;
     bool is_initialized();
     void reinitialize();
-    void initialize(Mat& current_frame, Rect ground_truth);
+    void initialize(Mat& current_frame, Rect ground_truth,bool USE_COLOR);
     void draw_particles(Mat& image, Scalar color);
     Rect estimate(Mat& image,bool draw);
     void predict();
@@ -77,7 +76,7 @@ protected:
     mt19937 generator;
     Rect reference_roi;
     Size im_size;
-    Mat reference_hist,reference_hog;
+    MatrixXd reference_hist;
     normal_distribution<double> position_random_walk,velocity_random_walk,scale_random_walk;
     double eps;
     vector<Rect > sampleBox;

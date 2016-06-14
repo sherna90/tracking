@@ -49,7 +49,7 @@ void particle_filter::reinitialize() {
 }
 
 
-void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
+void particle_filter::initialize(Mat& current_frame, Rect ground_truth,bool USE_COLOR=true) {
     normal_distribution<double> position_random_x(0.0,theta_x.at(0)(0));
     normal_distribution<double> position_random_y(0.0,theta_x.at(0)(1));
     normal_distribution<double> scale_random_width(0.0,theta_x.at(1)(0));
@@ -88,6 +88,17 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             weights.push_back(weight);
             ESS=0.0f;   
             Rect box(state.x, state.y, state.width, state.height);
+            if(USE_COLOR){
+                Mat color_hist;
+                Mat current_roi = Mat(current_frame,box);
+                calc_hist_hsv(current_roi,color_hist);
+                RowVectorXd theta_y_color(reference_hist.total());
+                theta_y_color.setOnes(reference_hist.total());
+                for(int h=0;h<H_BINS;h++)
+                    for( int s = 0; s < S_BINS; s++ ){
+                    double val=reference_hist.at<float>(h, s);
+                }
+            }
             sampleBox.push_back(box);    
         }
         Mat grayImg;

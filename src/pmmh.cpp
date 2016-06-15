@@ -36,8 +36,8 @@ bool pmmh::is_initialized(){
     return initialized;
 }
 
-void pmmh::reinitialize(){
-    filter->initialize(images[0],estimates[0]);
+void pmmh::reinitialize(Mat& current_frame, Rect ground_truth){
+    filter->initialize(current_frame,ground_truth);
 }
 
 void pmmh::predict(){

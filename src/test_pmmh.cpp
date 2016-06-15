@@ -59,7 +59,7 @@ void TestPMMH::run(){
     double r1 = performance.calc(ground_truth, estimate);
     //cout  << "ESS : " << filter.getESS() << "ratio : " << r1 << endl;
     if(r1<0.1) {
-      //filter.reinitialize();
+      filter.reinitialize(current_frame,ground_truth);
       reinit_rate+=1.0;
       }
     }

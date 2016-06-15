@@ -11,6 +11,7 @@
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
 #include "particle_filter.hpp"
+ #include "utils.hpp"
 
 //C
 #include <stdio.h>
@@ -47,7 +48,7 @@ public:
     pmmh(int num_particles,int fixed_lag,int mcmc_steps);
     void initialize(vector<Mat> _images, Rect ground_truth);
     bool is_initialized();
-    void reinitialize();
+    void reinitialize(Mat &image, Rect ground_truth);
     void predict();
     void update(Mat& image);
     void run_mcmc();

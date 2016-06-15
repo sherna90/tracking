@@ -14,8 +14,9 @@
 
 //C
 #include <stdio.h>
+ #include <iostream>
+#include <fstream>
 //C++
-#include <iostream>
 #include <chrono>
 #include <queue>
 #include <random>

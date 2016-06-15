@@ -105,6 +105,11 @@ void pmmh::run_mcmc(){
     uniform_real_distribution<double> unif_rnd(0.0,1.0);
     //double forward_filter = filter->getMarginalLikelihood();
     //cout << "----------------" << endl;
+    ofstream file1("matrix_pos.txt");
+    ofstream file2("matrix_width.txt");
+    ofstream file3("matrix_haar_mu.txt");
+    ofstream file4("matrix_haar_std.txt");
+    ofstream file5("matrix_color.txt");
     double forward_filter = marginal_likelihood(theta_x,theta_y);
     for(int n=0;n<mcmc_steps;n++){
         theta_y_prop.clear();
@@ -147,7 +152,18 @@ void pmmh::run_mcmc(){
             filter->update_model(theta_x,theta_y);
             forward_filter=proposal_filter;
             }
+        if(file1.is_open()) file1 << theta_x_prop.at(0).transpose() << endl ;
+        if(file2.is_open()) file2 << theta_x_prop.at(1).transpose() << endl ;
+        if(file3.is_open()) file3 << theta_y_prop.at(0).transpose() << endl ;
+        if(file4.is_open()) file4 << theta_y_prop.at(1).transpose() << endl ;
+        if(file5.is_open()) file5 << theta_y_prop.at(2).transpose() << endl ;
+
     }
+    file1.close();
+    file2.close();
+    file3.close();
+    file4.close();
+    file5.close();
    
 }
 

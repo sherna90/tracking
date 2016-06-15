@@ -219,6 +219,27 @@ VectorXd tri_pochhammer(double x, const Eigen::Ref<const Eigen::VectorXd>& vec)
     return res;
 }
 
+void read_data(const string& filename,Eigen::MatrixXd& data,int rows, int cols) {
+    ifstream file(filename.c_str());
+    if(!file)
+        throw exception();
+    string line, cell;
+    int row = 0,col;
+    data.resize(rows, cols);
+    while (getline(file, line)) {
+      col=0;
+      stringstream csv_line(line);
+      while (getline(csv_line, cell, ',')){
+        if (col<cols){
+          double item=atof(cell.c_str());
+          data(row,col)=item;
+          col++;
+        }
+      }
+      row++;
+    }
+    file.close();
+}
 
 Performance::Performance(void){
     avg_precision=0.0;avg_recall=0.0,ratio=0.0;

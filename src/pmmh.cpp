@@ -37,7 +37,31 @@ bool pmmh::is_initialized(){
 }
 
 void pmmh::reinitialize(Mat& current_frame, Rect ground_truth){
+    MatrixXd matrix_pos,matrix_width,matrix_haar_mu,matrix_haar_std,matrix_color;
+    string file1("matrix_pos.txt");
+    string file2("matrix_width.txt");
+    string file3("matrix_haar_mu.txt");
+    string file4("matrix_haar_std.txt");
+    string file5("matrix_color.txt");
+    read_data(file1,matrix_pos,mcmc_steps, 2);
+    read_data(file2,matrix_width,mcmc_steps, 2);
+    read_data(file3,matrix_haar_mu,mcmc_steps, filter->haar.featureNum);
+    read_data(file4,matrix_haar_std,mcmc_steps, filter->haar.featureNum);
+    read_data(file5,matrix_color,mcmc_steps, H_BINS*S_BINS);
+    theta_y_prop.clear();
+    VectorXd prop_mu=matrix_haar_mu.colwise().sum()/mcmc_steps;
+    theta_y_prop.push_back(prop_mu);
+    VectorXd prop_sig=matrix_haar_std.colwise().sum()/mcmc_steps;
+    theta_y_prop.push_back(prop_sig);
+    VectorXd prop_color=matrix_color.colwise().sum()/mcmc_steps;
+    theta_y_prop.push_back(prop_color/prop_color.sum());
+    theta_x_prop.clear();
+    VectorXd prop_pos=matrix_pos.colwise().sum()/mcmc_steps;
+    theta_x_prop.push_back(prop_pos);
+    VectorXd prop_std=matrix_width.colwise().sum()/mcmc_steps;
+    theta_x_prop.push_back(prop_std);
     filter->initialize(current_frame,ground_truth);
+    filter->update_model(theta_x_prop,theta_y_prop);
 }
 
 void pmmh::predict(){

@@ -7,7 +7,8 @@
 #include <Eigen/Dense>
 #include <stdint.h>
 #include <iostream>
-
+#include <fstream>
+#include <string>
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/video.hpp>
@@ -48,6 +49,6 @@ void removeNoTrials(Eigen::MatrixXd& counts);
 double trigamma(double x);
 Eigen::VectorXd di_pochhammer(double x, const Eigen::Ref<const Eigen::VectorXd>& vec);
 Eigen::VectorXd tri_pochhammer(double x, const Eigen::Ref<const Eigen::VectorXd>& vec);
-
+void read_data(const string& filename,Eigen::MatrixXd& data,int rows, int cols);
 
 #endif

@@ -10,6 +10,7 @@ const float POS_STD=5.0;
 const float SCALE_STD=0.01;
 const float  DT=1.0;
 const float  THRESHOLD=0.5;
+const bool  USE_COLOR=true;
 #endif 
 
 particle_filter::particle_filter() {
@@ -49,7 +50,7 @@ void particle_filter::reinitialize() {
 }
 
 
-void particle_filter::initialize(Mat& current_frame, Rect ground_truth,bool USE_COLOR=true) {
+void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     normal_distribution<double> position_random_x(0.0,theta_x.at(0)(0));
     normal_distribution<double> position_random_y(0.0,theta_x.at(0)(1));
     normal_distribution<double> scale_random_width(0.0,theta_x.at(1)(0));
@@ -67,6 +68,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth,bool USE_
     int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
     int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
     reference_roi=Rect(left, top, right - left, bottom - top);
+    VectorXd theta_y_color(H_BINS*S_BINS);
+    theta_y_color.setZero();
     if(reference_roi.width>0 && (reference_roi.x+reference_roi.width)<im_size.width && 
         reference_roi.height>0 && (reference_roi.y+reference_roi.height)<im_size.height){
         marginal_likelihood=0.0;
@@ -92,12 +95,11 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth,bool USE_
                 Mat color_hist;
                 Mat current_roi = Mat(current_frame,box);
                 calc_hist_hsv(current_roi,color_hist);
-                RowVectorXd theta_y_color(reference_hist.total());
-                theta_y_color.setOnes(reference_hist.total());
                 for(int h=0;h<H_BINS;h++)
                     for( int s = 0; s < S_BINS; s++ ){
-                    double val=reference_hist.at<float>(h, s);
-                }
+                    double val=color_hist.at<float>(h, s);
+                    theta_y_color[h*S_BINS+s]+=val;
+               }
             }
             sampleBox.push_back(box);    
         }
@@ -119,6 +121,12 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth,bool USE_
         theta_y.clear();
         theta_y.push_back(theta_y_mu);
         theta_y.push_back(theta_y_sig);
+        if(USE_COLOR){
+            theta_y_color=theta_y_color/theta_y_color.sum();
+            //cout << "theta_y_color:" << theta_y_color << endl; 
+            theta_y.push_back(theta_y_color);
+            color_likelihood = Multinomial(theta_y_color);
+        }
         initialized=true;
     }
 }
@@ -228,24 +236,6 @@ void particle_filter::update(Mat& image)
     Mat grayImg;
     cvtColor(image, grayImg, CV_RGB2GRAY);
     haar.getFeatureValue(grayImg,sampleBox);
-/*    haar_likelihood.clear();
-    RowVectorXd theta_y_mu(haar.featureNum);
-    RowVectorXd theta_y_sig(haar.featureNum);
-    Scalar muTemp;
-    Scalar sigmaTemp;
-    float alpha=0.9f;
-    for (int i=0; i<haar.featureNum; i++){
-        meanStdDev(haar.sampleFeatureValue.row(i), muTemp, sigmaTemp);
-        theta_y_mu[i]=alpha*theta_y.at(0)(i)+(1.0-alpha)*muTemp.val[0];
-        theta_y_sig[i]=(float)sqrt(alpha*theta_y.at(1)(i)*theta_y.at(1)(i)  + (1.0-alpha)*sigmaTemp.val[0]*sigmaTemp.val[0] 
-        + alpha*(1.0-alpha)*(theta_y_mu[i]-muTemp.val[0])*(theta_y_mu[i]-muTemp.val[0])); 
-        Gaussian haar_feature(theta_y_mu[i],theta_y_sig[i]);  
-        haar_likelihood.push_back(haar_feature); 
-    }
-    theta_y.clear();
-    theta_y.push_back(theta_y_mu);
-    theta_y.push_back(theta_y_sig);*/
-
     vector<double> tmp_weights; 
     for (int i=0;i<n_particles;i++){
         particle state=states[i];
@@ -262,7 +252,21 @@ void particle_filter::update(Mat& image)
             float haar_prob=haar.sampleFeatureValue.at<float>(j,i);
             prob_haar += haar_likelihood.at(j).log_likelihood(haar_prob);
         }
-        weight+=prob_haar-log(haar.featureNum);   
+        weight+=prob_haar-log(haar.featureNum);
+        if(USE_COLOR){
+            Mat color_hist;
+            Rect box=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
+            Mat current_roi = Mat(image,box);
+            calc_hist_hsv(current_roi,color_hist);
+            VectorXd theta_y_color(H_BINS*S_BINS);
+            theta_y_color.setZero();
+            for(int h=0;h<H_BINS;h++)
+                for( int s = 0; s < S_BINS; s++ ){
+                    double val=color_hist.at<float>(h, s);
+                    theta_y_color[h*S_BINS+s]=val;
+               }
+            weight+=color_likelihood.log_likelihood(theta_y_color);
+        }   
         tmp_weights.push_back(weight);
     }
     weights.swap(tmp_weights);
@@ -306,7 +310,7 @@ void particle_filter::resample(){
             int ipos = distance(cumulative_sum.begin(), pos);
             particle state=states[ipos];
             new_states.push_back(state);
-            weights.at(i)=1.0f/n_particles;
+            weights.at(i)=log(1.0f/n_particles);
         }
         states.swap(new_states);
     }
@@ -332,12 +336,15 @@ void particle_filter::update_model(vector<VectorXd> theta_x_new,vector<VectorXd>
     theta_x.push_back(theta_x_scale);
     RowVectorXd theta_y_mu=theta_y_new.at(0);
     RowVectorXd theta_y_sig=theta_y_new.at(1);
+    VectorXd theta_y_color=theta_y_new.at(2);
     for (int i=0; i<haar.featureNum; i++){
         Gaussian haar_feature(theta_y_mu[i],theta_y_sig[i]);  
         haar_likelihood.push_back(haar_feature);
     }
     theta_y.push_back(theta_y_mu);
     theta_y.push_back(theta_y_sig);
+    theta_y.push_back(theta_y_color);
+    color_likelihood = Multinomial(theta_y_color);
 }
 
 

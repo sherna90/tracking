@@ -7,7 +7,9 @@
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
 #include "haar.hpp"
+#include "hist.hpp"
 #include "gaussian.hpp"
+#include "multinomial.hpp"
 #include <time.h>
 #include <float.h>
 #include <vector>
@@ -52,7 +54,7 @@ public:
     int time_stamp;
     bool is_initialized();
     void reinitialize();
-    void initialize(Mat& current_frame, Rect ground_truth,bool USE_COLOR);
+    void initialize(Mat& current_frame, Rect ground_truth);
     void draw_particles(Mat& image, Scalar color);
     Rect estimate(Mat& image,bool draw);
     void predict();
@@ -71,12 +73,13 @@ protected:
     vector<VectorXd> theta_x;
     vector<VectorXd> theta_y;
     vector<Gaussian> haar_likelihood;
+    Multinomial color_likelihood;
     float ESS;
     bool initialized;
     mt19937 generator;
     Rect reference_roi;
     Size im_size;
-    MatrixXd reference_hist;
+    Mat reference_hist;
     normal_distribution<double> position_random_walk,velocity_random_walk,scale_random_walk;
     double eps;
     vector<Rect > sampleBox;

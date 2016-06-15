@@ -44,11 +44,12 @@ private:
 
 public:
     pmmh(int num_particles,int fixed_lag,int mcmc_steps);
-    void initialize(Mat& image, Rect ground_truth);
+    void initialize(vector<Mat> _images, Rect ground_truth);
     bool is_initialized();
     void reinitialize();
     void predict();
     void update(Mat& image);
+    void run_mcmc();
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);
     ~pmmh();

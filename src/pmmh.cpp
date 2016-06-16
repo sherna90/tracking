@@ -134,6 +134,7 @@ void pmmh::run_mcmc(){
     ofstream file3("matrix_haar_mu.txt");
     ofstream file4("matrix_haar_std.txt");
     ofstream file5("matrix_color.txt");
+    ofstream file6("likelihood.txt");
     double forward_filter = marginal_likelihood(theta_x,theta_y);
     for(int n=0;n<mcmc_steps;n++){
         theta_y_prop.clear();
@@ -181,6 +182,7 @@ void pmmh::run_mcmc(){
         if(file3.is_open()) file3 << theta_y_prop.at(0).transpose() << endl ;
         if(file4.is_open()) file4 << theta_y_prop.at(1).transpose() << endl ;
         if(file5.is_open()) file5 << theta_y_prop.at(2).transpose() << endl ;
+        if(file6.is_open()) file6 << forward_filter << endl ;
 
     }
     file1.close();
@@ -188,7 +190,7 @@ void pmmh::run_mcmc(){
     file3.close();
     file4.close();
     file5.close();
-   
+    file6.close();
 }
 
 Rect pmmh::estimate(Mat& image,bool draw){

@@ -122,6 +122,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         theta_y.push_back(theta_y_mu);
         theta_y.push_back(theta_y_sig);
         if(USE_COLOR){
+            theta_y_color=theta_y_color/sampleBox.size();
             theta_y_color=theta_y_color/theta_y_color.sum();
             //cout << "theta_y_color:" << theta_y_color << endl; 
             theta_y.push_back(theta_y_color);

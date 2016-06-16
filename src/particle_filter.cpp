@@ -6,8 +6,8 @@
 #include "../include/particle_filter.hpp"
 
 #ifndef PARAMS
-const float POS_STD=5.0;
-const float SCALE_STD=0.01;
+const float POS_STD=1.0;
+const float SCALE_STD=0.1;
 const float  DT=1.0;
 const float  THRESHOLD=0.5;
 const bool  USE_COLOR=true;

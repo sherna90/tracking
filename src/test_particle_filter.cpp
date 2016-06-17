@@ -50,7 +50,7 @@ void TestParticleFilter::run(){
     }else{
         filter.predict();
         filter.update(current_frame);
-        //filter.draw_particles(current_frame,Scalar(0,255,255));
+        filter.draw_particles(current_frame,Scalar(0,255,255));
         rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
         Rect estimate = filter.estimate(current_frame,true);
         double r1 = performance.calc(ground_truth, estimate);
@@ -60,8 +60,8 @@ void TestParticleFilter::run(){
           reinit_rate+=1.0;
       }
     }
-    //imshow("Tracker",current_frame);
-    //waitKey(1);
+    imshow("Tracker",current_frame);
+    waitKey(1);
   }
   time(&end);
   double sec = difftime (end, start);

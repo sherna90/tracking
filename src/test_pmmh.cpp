@@ -42,29 +42,29 @@ void TestPMMH::run(){
   time_t start, end;
   time(&start);
   Performance performance;
-  //namedWindow("Tracker");
+  namedWindow("Tracker");
   current_gt=gt_vec[0];
   ground_truth=generator.stringToRect(current_gt);
   filter.initialize(images,ground_truth);
   filter.run_mcmc();
   for(int k=1;k <num_frames;++k){
-    current_gt=gt_vec[k];
-    ground_truth=generator.stringToRect(current_gt);
-    current_frame = images[k].clone();
-    filter.predict();
-    filter.update(current_frame);
-    //filter.draw_particles(current_frame,Scalar(0,255,255));
-    rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
-    Rect estimate = filter.estimate(current_frame,true);
-    double r1 = performance.calc(ground_truth, estimate);
-    //cout  << "ESS : " << filter.getESS() << "ratio : " << r1 << endl;
-    if(r1<0.1) {
-      filter.reinitialize(current_frame,ground_truth);
-      reinit_rate+=1.0;
+      current_gt=gt_vec[k];
+      ground_truth=generator.stringToRect(current_gt);
+      current_frame = images[k].clone();
+      filter.predict();
+      filter.update(current_frame);
+      filter.draw_particles(current_frame);
+      rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
+      Rect estimate = filter.estimate(current_frame,true);
+      double r1 = performance.calc(ground_truth, estimate);
+      //cout  << "ESS : " << filter.getESS() << "ratio : " << r1 << endl;
+      if(r1<0.1){
+        filter.reinitialize(current_frame,ground_truth);
+        reinit_rate+=1.0;
       }
-    }
-  //imshow("Tracker",current_frame);
-  //waitKey(1);
+      imshow("Tracker",current_frame);
+  }
+  waitKey(1);
   time(&end);
   double sec = difftime (end, start);
   cout  << performance.get_avg_precision()/(num_frames-reinit_rate);

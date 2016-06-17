@@ -1,0 +1,3 @@
+/home/sergio/code/cpp/naive_bayes_multinomial/src/LBP/CMakeFiles/LBP.dir
+/home/sergio/code/cpp/naive_bayes_multinomial/src/LBP/CMakeFiles/LBPMain.dir
+/home/sergio/code/cpp/naive_bayes_multinomial/src/LBP/CMakeFiles/LBPTest.dir

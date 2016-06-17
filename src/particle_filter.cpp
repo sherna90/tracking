@@ -11,6 +11,7 @@ const float SCALE_STD=0.1;
 const float  DT=1.0;
 const float  THRESHOLD=0.5;
 const bool  USE_COLOR=true;
+const bool  USE_LBP=true;
 #endif 
 
 particle_filter::particle_filter() {
@@ -68,8 +69,11 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
     int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
     reference_roi=Rect(left, top, right - left, bottom - top);
+    LBP lbp( 8, LBP_MAPPING_NONE );
     VectorXd theta_y_color(H_BINS*S_BINS);
     theta_y_color.setZero();
+    VectorXd theta_y_lbp(256);
+    theta_y_lbp.setZero();
     if(reference_roi.width>0 && (reference_roi.x+reference_roi.width)<im_size.width && 
         reference_roi.height>0 && (reference_roi.y+reference_roi.height)<im_size.height){
         marginal_likelihood=0.0;
@@ -91,15 +95,23 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             weights.push_back(weight);
             ESS=0.0f;   
             Rect box(state.x, state.y, state.width, state.height);
+            Mat current_roi = Mat(current_frame,box);
             if(USE_COLOR){
                 Mat color_hist;
-                Mat current_roi = Mat(current_frame,box);
                 calc_hist_hsv(current_roi,color_hist);
                 for(int h=0;h<H_BINS;h++)
                     for( int s = 0; s < S_BINS; s++ ){
                     double val=color_hist.at<float>(h, s);
                     theta_y_color[h*S_BINS+s]+=val;
                }
+            }
+            if(USE_LBP){
+                cvtColor(current_roi, current_roi, CV_RGB2GRAY);
+                current_roi.convertTo( current_roi, CV_64F );
+                lbp.calcLBP( current_roi );
+                vector<double> lbp_hist = lbp.calcHist().getHist( false );
+                for(unsigned int l=0;l<lbp_hist.size();l++)
+                   theta_y_lbp[l]+=lbp_hist.at(l);
             }
             sampleBox.push_back(box);    
         }
@@ -127,6 +139,13 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             //cout << "theta_y_color:" << theta_y_color << endl; 
             theta_y.push_back(theta_y_color);
             color_likelihood = Multinomial(theta_y_color);
+        }
+        if(USE_LBP){
+            theta_y_lbp=theta_y_lbp/sampleBox.size();
+            theta_y_lbp=theta_y_lbp/theta_y_lbp.sum();
+            //cout << "theta_y_color:" << theta_y_color << endl; 
+            theta_y.push_back(theta_y_lbp);
+            lbp_likelihood = Multinomial(theta_y_lbp);
         }
         initialized=true;
     }
@@ -237,7 +256,8 @@ void particle_filter::update(Mat& image)
     Mat grayImg;
     cvtColor(image, grayImg, CV_RGB2GRAY);
     haar.getFeatureValue(grayImg,sampleBox);
-    vector<double> tmp_weights; 
+    vector<double> tmp_weights;
+    LBP lbp( 8, LBP_MAPPING_NONE );
     for (int i=0;i<n_particles;i++){
         particle state=states[i];
         if (state.width < 0 || state.width>image.cols){
@@ -254,10 +274,10 @@ void particle_filter::update(Mat& image)
             prob_haar += haar_likelihood.at(j).log_likelihood(haar_prob);
         }
         weight+=prob_haar-log(haar.featureNum);
+        Rect box=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
+        Mat current_roi = Mat(image,box);
         if(USE_COLOR){
             Mat color_hist;
-            Rect box=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
-            Mat current_roi = Mat(image,box);
             calc_hist_hsv(current_roi,color_hist);
             VectorXd theta_y_color(H_BINS*S_BINS);
             theta_y_color.setZero();
@@ -267,7 +287,18 @@ void particle_filter::update(Mat& image)
                     theta_y_color[h*S_BINS+s]=val;
                }
             weight+=color_likelihood.log_likelihood(theta_y_color);
-        }   
+        }
+        if(USE_LBP){
+            cvtColor(current_roi, current_roi, CV_RGB2GRAY);
+            current_roi.convertTo( current_roi, CV_64F );
+            lbp.calcLBP( current_roi );
+            VectorXd theta_y_lbp(256);
+            theta_y_lbp.setZero();          
+            vector<double> lbp_hist = lbp.calcHist().getHist( false );
+            for(unsigned int l=0;l<lbp_hist.size();l++)
+                theta_y_lbp[l]+=lbp_hist.at(l);
+            weight+=lbp_likelihood.log_likelihood(theta_y_lbp);
+        }      
         tmp_weights.push_back(weight);
     }
     weights.swap(tmp_weights);

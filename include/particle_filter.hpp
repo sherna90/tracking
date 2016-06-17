@@ -10,6 +10,7 @@
 #include "hist.hpp"
 #include "gaussian.hpp"
 #include "multinomial.hpp"
+#include "LBP.hpp"
 #include <time.h>
 #include <float.h>
 #include <vector>
@@ -26,6 +27,7 @@ extern const float  THRESHOLD;
 using namespace cv;
 using namespace std;
 using namespace Eigen;
+using namespace lbp;
 
 typedef struct particle {
     float x; /** current x coordinate */
@@ -73,7 +75,7 @@ protected:
     vector<VectorXd> theta_x;
     vector<VectorXd> theta_y;
     vector<Gaussian> haar_likelihood;
-    Multinomial color_likelihood;
+    Multinomial color_likelihood,lbp_likelihood;
     float ESS;
     bool initialized;
     mt19937 generator;

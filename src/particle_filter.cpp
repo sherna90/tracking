@@ -7,7 +7,7 @@
 
 #ifndef PARAMS
 const float POS_STD=1.0;
-const float SCALE_STD=0.1;
+const float SCALE_STD=0.01;
 const float  DT=1.0;
 const float  THRESHOLD=0.5;
 const bool  USE_COLOR=true;
@@ -26,6 +26,7 @@ particle_filter::~particle_filter() {
 particle_filter::particle_filter(int _n_particles) {
     states.clear();
     weights.clear();
+    haar_likelihood.clear();
     n_particles = _n_particles;
     time_stamp=0;
     initialized=false;
@@ -60,6 +61,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     states.clear();
     weights.clear();
     estimates.clear();
+    haar_likelihood.clear();
     estimates.push_back(ground_truth);
     //cout << "INIT!!!!!" << endl;
     //cout << ground_truth << endl;
@@ -81,16 +83,41 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         sampleBox.clear();//important
         for (int i=0;i<n_particles;i++){
             particle state;
-            state.x=cvRound(reference_roi.x+position_random_x(generator));
-            state.y=cvRound(reference_roi.y+position_random_y(generator));
-            state.x_p=cvRound(reference_roi.x+position_random_x(generator));
-            state.y_p=cvRound(reference_roi.y+position_random_y(generator));
-            state.width=cvRound(right-left);
-            state.height=cvRound(bottom-top);
-            state.width_p=cvRound(right-left+scale_random_width(generator));
-            state.height_p=cvRound(bottom-top+scale_random_height(generator));
-            state.scale_p=scale_random_width(generator);
-            state.scale=scale_random_width(generator);
+            float _x,_y,_width,_height;
+            float _dx=position_random_x(generator);
+            float _dy=position_random_y(generator);
+            float _dw=scale_random_width(generator);
+            float _dh=scale_random_height(generator);
+            _x=MIN(MAX(cvRound(state.x+_dx),0),im_size.width);
+            _y=MIN(MAX(cvRound(state.y+_dy),0),im_size.height);
+            _width=MIN(MAX(cvRound(state.width+_dw),0),im_size.width);
+            _height=MIN(MAX(cvRound(state.height+_dh),0),im_size.height);
+            //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
+            //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
+            if( (_x+_width)<im_size.width 
+                && _x>0 
+                && (_y+_height)<im_size.height 
+                && _y>0 
+                && _width<im_size.width 
+                && _height<im_size.height 
+                && _width>0 && _height>0){
+                state.x_p=state.x;
+                state.y_p=state.y;
+                state.width_p=state.width;
+                state.height_p=state.height;       
+                state.x=_x;
+                state.y=_y;
+                state.width=_width;
+                state.height=_height;
+                state.scale_p=state.scale;
+                state.scale=2*state.scale-state.scale_p+scale_random_width(generator);
+            }
+            else{
+                state.x=reference_roi.x;
+                state.y=reference_roi.y;
+                state.width=cvRound(reference_roi.width);
+                state.height=cvRound(reference_roi.height);
+            }
             states.push_back(state);
             weights.push_back(weight);
             ESS=0.0f;   
@@ -164,19 +191,22 @@ void particle_filter::predict(){
             particle state=states[i];
             float _x,_y,_width,_height;
             float _dx=position_random_x(generator);
-            float _dy=+position_random_y(generator);
-            float _dw=0.0f;//scale_random_width(generator);
-            float _dh=0.0f;//scale_random_height(generator);
+            float _dy=position_random_y(generator);
+            float _dw=scale_random_width(generator);
+            float _dh=scale_random_height(generator);
             _x=MIN(MAX(cvRound(state.x+_dx),0),im_size.width);
             _y=MIN(MAX(cvRound(state.y+_dy),0),im_size.height);
             _width=MIN(MAX(cvRound(state.width+_dw),0),im_size.width);
             _height=MIN(MAX(cvRound(state.height+_dh),0),im_size.height);
             //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
             //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
-            if((_x+_width)<im_size.width && _x>0 && 
-                (_y+_height)<im_size.height && _y>0 && 
-                _width<im_size.width && _height<im_size.height && 
-                _width>0 && _height>0){
+            if( (_x+_width)<im_size.width 
+                && _x>0 
+                && (_y+_height)<im_size.height 
+                && _y>0 
+                && _width<im_size.width 
+                && _height<im_size.height 
+                && _width>0 && _height>0){
                 state.x_p=state.x;
                 state.y_p=state.y;
                 state.width_p=state.width;
@@ -197,9 +227,6 @@ void particle_filter::predict(){
             Rect box(state.x, state.y, state.width, state.height);
             sampleBox.push_back(box);
             //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
-            //cout << "theta x :" <<theta_x << endl;
-            //cout << "theta_y_mu:" << theta_y[0].transpose() << endl;
-            //cout << "theta_y_sig:" << theta_y[1].transpose() << endl;
             tmp_new_states.push_back(state);
         }
         states.swap(tmp_new_states);
@@ -265,6 +292,12 @@ void particle_filter::update(Mat& image)
         }
         if (state.height < 0 || state.height>image.rows){
           state.height = reference_roi.width;
+        }
+        if (state.x < 0 || state.x>image.cols){
+          state.x = reference_roi.x;
+        }
+        if (state.y < 0 || state.y>image.rows){
+          state.y = reference_roi.y;
         }
         double weight=weights[i];
         double prob_haar=0.0f;
@@ -362,12 +395,13 @@ float particle_filter::getESS(){
 void particle_filter::update_model(vector<VectorXd> theta_x_new,vector<VectorXd> theta_y_new){
     theta_x.clear();
     theta_y.clear();
-    RowVectorXd theta_x_pos=theta_x_new.at(0);
-    RowVectorXd theta_x_scale=theta_x_new.at(1);
+    haar_likelihood.clear();
+    VectorXd theta_x_pos=theta_x_new.at(0);
+    VectorXd theta_x_scale=theta_x_new.at(1);
     theta_x.push_back(theta_x_pos);
     theta_x.push_back(theta_x_scale);
-    RowVectorXd theta_y_mu=theta_y_new.at(0);
-    RowVectorXd theta_y_sig=theta_y_new.at(1);
+    VectorXd theta_y_mu=theta_y_new.at(0);
+    VectorXd theta_y_sig=theta_y_new.at(1);
     VectorXd theta_y_color=theta_y_new.at(2);
     for (int i=0; i<haar.featureNum; i++){
         Gaussian haar_feature(theta_y_mu[i],theta_y_sig[i]);  

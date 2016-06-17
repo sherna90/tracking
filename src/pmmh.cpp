@@ -150,7 +150,7 @@ void pmmh::run_mcmc(){
         VectorXd prop_pos=proposal(theta_x[0],1.0);
         prop_pos=prop_pos.array().abs().matrix();
         theta_x_prop.push_back(prop_pos);
-        VectorXd prop_std=proposal(theta_x[1],0.1);
+        VectorXd prop_std=proposal(theta_x[1],0.01);
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
         double proposal_filter = marginal_likelihood(theta_x_prop,theta_y_prop);

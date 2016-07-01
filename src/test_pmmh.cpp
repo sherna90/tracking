@@ -42,7 +42,7 @@ void TestPMMH::run(){
   time_t start, end;
   time(&start);
   Performance performance;
-  namedWindow("Tracker");
+  //namedWindow("Tracker");
   current_gt=gt_vec[0];
   ground_truth=generator.stringToRect(current_gt);
   filter.initialize(images,ground_truth);
@@ -62,7 +62,7 @@ void TestPMMH::run(){
         filter.reinitialize(current_frame,ground_truth);
         reinit_rate+=1.0;
       }
-      imshow("Tracker",current_frame);
+      //imshow("Tracker",current_frame);
   }
   waitKey(1);
   time(&end);

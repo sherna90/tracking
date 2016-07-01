@@ -1,7 +1,7 @@
 #include "../include/pmmh.hpp"
 
-const float SHAPE=1.0;
-const float SCALE=1.0;
+const float SHAPE=0.1;
+const float SCALE=0.1;
 const float PRIOR_SD=0.01;
 
 
@@ -60,6 +60,8 @@ void pmmh::reinitialize(Mat& current_frame, Rect ground_truth){
     theta_x_prop.push_back(prop_pos);
     VectorXd prop_std=matrix_width.colwise().sum()/mcmc_steps;
     theta_x_prop.push_back(prop_std);
+    if(is_initialized()) delete filter;
+    filter=new particle_filter(n_particles);
     filter->initialize(current_frame,ground_truth);
     filter->update_model(theta_x_prop,theta_y_prop);
 }
@@ -75,13 +77,14 @@ void pmmh::update(Mat& image){
 double pmmh::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta_y){
     particle_filter proposal_filter(n_particles);
     int data_size=(int)images.size();
+    //int data_size=20;
     //int time_step=(fixed_lag>=data_size)? 0 : data_size-fixed_lag;
     int time_step= 0 ;
     Mat current_frame = images.at(time_step).clone(); 
     proposal_filter.initialize(current_frame,estimates.at(time_step));
-    //proposal_filter.haar=filter->haar;
+    proposal_filter.haar=filter->haar;
     proposal_filter.update_model(theta_x,theta_y);
-    for(int k=time_step+1;k<data_size;++k){
+    for(int k=time_step;k<data_size;++k){
         current_frame = images.at(k).clone();
         proposal_filter.predict();
         proposal_filter.update(current_frame);
@@ -93,11 +96,11 @@ double pmmh::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta
 VectorXd pmmh::proposal(VectorXd theta,double step_size){
     VectorXd proposal(theta.size());
     proposal.setZero();
-    //double eps= std::numeric_limits<double>::epsilon();
+    double eps= std::numeric_limits<double>::epsilon();
     for(int i=0;i<theta.size();i++){
         normal_distribution<double> random_walk(theta(i),step_size);
-        //double val=MAX(random_walk(generator),eps);
-        proposal[i] = random_walk(generator);
+        double val=MAX(random_walk(generator),eps);
+        proposal[i] = val;
     }
     return proposal;
 }
@@ -105,9 +108,12 @@ VectorXd pmmh::proposal(VectorXd theta,double step_size){
 double pmmh::igamma_prior(VectorXd x, double a, double b)
 {
     double loglike=0.0;
+    double eps= std::numeric_limits<double>::epsilon();
     for(int i=0;i<x.size();i++){
         if (x(i) >= 0 && a >= 0 && b >= 0){
-            loglike+=-b/x(i)-(a+1.0)*log(x(i))+a*log(b)-lgamma(a);
+            //cout << loglike << ", " << x(i) << "," << a << "," << b << endl;
+            x(i)+=eps;
+            loglike+= -b / x(i)  - (a + 1.0) * log(x(i)) + a * log(b) - lgamma(a);
         }
     }
     return loglike;
@@ -118,7 +124,7 @@ double pmmh::gamma_prior(VectorXd x, double a, double b)
     double loglike=0.0;
     for(int i=0;i<x.size();i++){
         if (x(i) >= 0 && a >= 0 && b >= 0){
-            loglike+=-b/x(i)+(a-1.0)*log(x(i))-a*log(b)-lgamma(a);
+            loglike+= -x(i) * b + (a - 1.0) * log(x(i)) + a * log(b) - lgamma(a);
         }
     }
     return loglike;
@@ -136,6 +142,7 @@ void pmmh::run_mcmc(){
     ofstream file5("matrix_color.txt");
     ofstream file6("likelihood.txt");
     double forward_filter = marginal_likelihood(theta_x,theta_y);
+    double accept_rate=0;
     for(int n=0;n<mcmc_steps;n++){
         theta_y_prop.clear();
         VectorXd prop_mu=proposal(theta_y[0],100.0);
@@ -155,10 +162,14 @@ void pmmh::run_mcmc(){
         theta_x_prop.push_back(prop_std);
         double proposal_filter = marginal_likelihood(theta_x_prop,theta_y_prop);
         double acceptprob = proposal_filter - forward_filter;
-        acceptprob+=gamma_prior(prop_color,SHAPE,SCALE)-gamma_prior(theta_y.at(2),SHAPE,SCALE);
-        acceptprob+=gamma_prior(prop_sig,SHAPE,SCALE)-gamma_prior(theta_y.at(1),SHAPE,SCALE);
-        acceptprob+=gamma_prior(prop_pos,SHAPE,SCALE)-gamma_prior(theta_x.at(0),SHAPE,SCALE);
-        acceptprob+=gamma_prior(prop_std,SHAPE,SCALE)-gamma_prior(theta_x.at(1),SHAPE,SCALE);
+        acceptprob+=igamma_prior(prop_color,SHAPE,SCALE)-igamma_prior(theta_y.at(2),SHAPE,SCALE);
+        acceptprob+=igamma_prior(prop_sig,SHAPE,SCALE)-igamma_prior(theta_y.at(1),SHAPE,SCALE);
+        acceptprob+=igamma_prior(prop_pos,SHAPE,SCALE)-igamma_prior(theta_x.at(0),SHAPE,SCALE);
+        acceptprob+=igamma_prior(prop_std,SHAPE,SCALE)-igamma_prior(theta_x.at(1),SHAPE,SCALE);
+        if(n % 100 == 0){
+            double rate=(accept_rate==0)? 0 : n/accept_rate;
+            cout <<"Iter: "<< n << ", accept rate: " << rate <<  endl;       
+        }
         /*cout <<"Theta x:"<< theta_x_prop.at(0).transpose() << endl;
         cout <<"Theta x:"<< theta_x_prop.at(1).transpose() << endl;
         cout <<"Theta y:"<< theta_y_prop.at(0).transpose() << endl;
@@ -167,7 +178,7 @@ void pmmh::run_mcmc(){
         double u=unif_rnd(generator);
         if( isfinite(proposal_filter) 
             &&  isfinite(forward_filter) 
-            && u < min(1.0,exp(acceptprob)) 
+            && (log(u) < acceptprob) 
             && (theta_x_prop.at(0).array()>0).all() 
             && (theta_x_prop.at(1).array()>0).all() 
             && (theta_y_prop.at(1).array()>0).all()
@@ -176,7 +187,12 @@ void pmmh::run_mcmc(){
             theta_x=theta_x_prop;
             filter->update_model(theta_x,theta_y);
             forward_filter=proposal_filter;
+            accept_rate++;
             }
+        else {
+            theta_y_prop=theta_y;
+            theta_x_prop=theta_x;
+        }
         if(file1.is_open()) file1 << theta_x_prop.at(0).transpose() << endl ;
         if(file2.is_open()) file2 << theta_x_prop.at(1).transpose() << endl ;
         if(file3.is_open()) file3 << theta_y_prop.at(0).transpose() << endl ;

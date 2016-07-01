@@ -9,8 +9,15 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories( "/usr/local/include/eigen3/" )
 include_directories("/opt/intel/composer_xe_2015.0.090/mkl/include")
 link_directories("/opt/intel/composer_xe_2015.0.090/mkl/lib/")
+
+include_directories( "LBP/" )
+find_path(FFTW_INCLUDE_DIR fftw3.h  ${FFTW_INCLUDE_DIRS})
+find_library(FFTW_LIBRARY fftw3 ${FFTW_LIBRARY_DIRS})
+
+add_library(LBP SHARED LBP/LBP.cpp )
+target_link_libraries(LBP ${OpenCV_LIBS} ${FFTW_LIBRARY}  m)
+
 add_executable( pmmh run_pmmh_old.cpp pmmh.cpp particle_filter.cpp hist.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp)
-target_link_libraries( pmmh ${OpenCV_LIBS} -L/opt/intel/composer_xe_2015.0.090/mkl/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -openmp -lpthread -lm
-)
+target_link_libraries( pmmh ${OpenCV_LIBS} -L/opt/intel/composer_xe_2015.0.090/mkl/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -openmp -lpthread -lm LBP ${FFTW_LIBRARY} )
 add_executable( tracker main_kct.cpp particle_filter.cpp hist.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp)
-target_link_libraries( tracker ${OpenCV_LIBS} -L/opt/intel/composer_xe_2015.0.090/mkl/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -openmp -lpthread -lm)
+target_link_libraries( tracker ${OpenCV_LIBS} -L/opt/intel/composer_xe_2015.0.090/mkl/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -openmp -lpthread -lm LBP ${FFTW_LIBRARY} )

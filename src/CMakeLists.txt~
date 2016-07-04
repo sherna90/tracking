@@ -22,9 +22,9 @@ target_link_libraries( pmmh ${OpenCV_LIBS} -fopenmp -lpthread  LBP ${FFTW_LIBRAR
 add_executable( tracker test_particle_filter.cpp particle_filter.cpp  hist.cpp hog.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp image_generator.cpp haar.cpp) 
 target_link_libraries( tracker ${OpenCV_LIBS} -fopenmp -lpthread LBP ${FFTW_LIBRARY} )
 
-#FILE(GLOB_RECURSE kcf_sourcefiles "kcf/*.cpp")
-#add_executable( kcf test_kcf.cpp ${kcf_sourcefiles} utils.cpp image_generator.cpp)
-#target_link_libraries( kcf ${OpenCV_LIBS} )
+FILE(GLOB_RECURSE kcf_sourcefiles "kcf/*.cpp")
+add_executable( kcf test_kcf.cpp ${kcf_sourcefiles} utils.cpp image_generator.cpp)
+target_link_libraries( kcf ${OpenCV_LIBS} )
 
-#add_executable( ct test_ct.cpp ct/CompressiveTracker.cpp utils.cpp image_generator.cpp)
-#target_link_libraries( ct ${OpenCV_LIBS} )
+add_executable( ct test_ct.cpp ct/CompressiveTracker.cpp utils.cpp image_generator.cpp)
+target_link_libraries( ct ${OpenCV_LIBS} )

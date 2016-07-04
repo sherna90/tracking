@@ -13,6 +13,7 @@ const float  THRESHOLD=0.5;
 const bool  USE_COLOR=true;
 const bool  USE_LBP=false;
 const bool  USE_HAAR=true;
+const bool  USE_HOG=false;
 #endif 
 
 particle_filter::particle_filter() {
@@ -77,6 +78,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     theta_y_color.setZero();
     VectorXd theta_y_lbp(256);
     theta_y_lbp.setZero();
+    VectorXd theta_y_hog(7040);
+    theta_y_hog.setZero();
     if(reference_roi.width>0 && (reference_roi.x+reference_roi.width)<im_size.width && 
         reference_roi.height>0 && (reference_roi.y+reference_roi.height)<im_size.height){
         marginal_likelihood=0.0;
@@ -142,6 +145,11 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 for(unsigned int l=0;l<lbp_hist.size();l++)
                    theta_y_lbp[l]+=lbp_hist.at(l);
             }
+            if(USE_HOG){
+                VectorXd tmp_hog;
+                calc_hog(current_roi,tmp_hog);
+                theta_y_hog+=tmp_hog;
+            }
             sampleBox.push_back(box);    
         }
         if(USE_HAAR){
@@ -177,6 +185,14 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             theta_y.push_back(theta_y_lbp);
             lbp_likelihood = Multinomial(theta_y_lbp);
         }
+        if(USE_HOG){
+            theta_y_hog=theta_y_hog/sampleBox.size();
+            theta_y_hog=theta_y_hog/theta_y_hog.sum();
+            //cout << "theta_y_color:" << theta_y_color << endl; 
+            theta_y.push_back(theta_y_hog);
+            hog_likelihood = Multinomial(theta_y_hog);
+        }
+
         initialized=true;
     }
 }
@@ -188,6 +204,7 @@ void particle_filter::predict(){
     normal_distribution<double> scale_random_height(0.0,theta_x.at(1)(1));
     if(initialized==true){
         sampleBox.clear();//important
+        sampleScale.clear();
         time_stamp++;
         vector<particle> tmp_new_states;
         for (int i=0;i<n_particles;i++){
@@ -219,7 +236,7 @@ void particle_filter::predict(){
                 state.width=_width;
                 state.height=_height;
                 state.scale_p=state.scale;
-                state.scale=2*state.scale-state.scale_p+scale_random_width(generator);
+                state.scale=float(state.width_p/state.width);
             }
             else{
                 state.x=reference_roi.x;
@@ -229,6 +246,7 @@ void particle_filter::predict(){
             }
             Rect box(state.x, state.y, state.width, state.height);
             sampleBox.push_back(box);
+            sampleScale.push_back(state.scale);
             //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
             tmp_new_states.push_back(state);
         }
@@ -284,6 +302,9 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
 void particle_filter::update(Mat& image)
 {
     vector<double> tmp_weights;
+    Mat grayImg;
+    cvtColor(image, grayImg, CV_RGB2GRAY);
+    haar.getFeatureValue(grayImg,sampleBox,sampleScale);
     for (int i=0;i<n_particles;i++){
         particle state=states[i];
         if (state.width < 0 || state.width>image.cols){
@@ -303,9 +324,7 @@ void particle_filter::update(Mat& image)
         Mat current_roi = Mat(image,box);
         if(USE_HAAR){
         double prob_haar=0.0f;
-            Mat grayImg;
-            cvtColor(image, grayImg, CV_RGB2GRAY);
-            haar.getFeatureValue(grayImg,sampleBox);
+
             for(int j=0;j<haar.featureNum;j++){
                 //cout << haar.featureNum << "," << i << "," << j << endl; 
                 float haar_prob=haar.sampleFeatureValue.at<float>(j,i);
@@ -325,6 +344,11 @@ void particle_filter::update(Mat& image)
                }
             weight+=color_likelihood.log_likelihood(theta_y_color);
         }
+        if(USE_HOG){
+            VectorXd theta_y_hog;
+            calc_hog(current_roi,theta_y_hog);
+            weight+=hog_likelihood.log_likelihood(theta_y_hog);
+        }  
         if(USE_LBP){
             LBP lbp( 8, LBP_MAPPING_NONE );
             cvtColor(current_roi, current_roi, CV_RGB2GRAY);
@@ -336,7 +360,7 @@ void particle_filter::update(Mat& image)
             for(unsigned int l=0;l<lbp_hist.size();l++)
                 theta_y_lbp[l]+=lbp_hist.at(l);
             weight+=lbp_likelihood.log_likelihood(theta_y_lbp);
-        }      
+        }          
         tmp_weights.push_back(weight);
     }
     weights.swap(tmp_weights);

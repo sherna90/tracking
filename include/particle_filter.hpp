@@ -7,6 +7,7 @@
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
 #include "haar.hpp"
+#include "hog.hpp"
 #include "hist.hpp"
 #include "gaussian.hpp"
 #include "multinomial.hpp"
@@ -75,7 +76,7 @@ protected:
     vector<VectorXd> theta_x;
     vector<VectorXd> theta_y;
     vector<Gaussian> haar_likelihood;
-    Multinomial color_likelihood,lbp_likelihood;
+    Multinomial color_likelihood,lbp_likelihood,hog_likelihood;
     float ESS;
     bool initialized;
     mt19937 generator;
@@ -85,6 +86,7 @@ protected:
     normal_distribution<double> position_random_walk,velocity_random_walk,scale_random_walk;
     double eps;
     vector<Rect > sampleBox;
+    vector<double > sampleScale;
 };
 
 #endif

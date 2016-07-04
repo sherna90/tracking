@@ -6,7 +6,7 @@ using namespace std;
 
 //------------------------------------------------
 Haar::Haar(){
-	featureNum = 50;	// number of all weaker classifiers, i.e,feature pool
+	featureNum = 5000;	// number of all weaker classifiers, i.e,feature pool
 	featureMinNumRect = 2;
 	featureMaxNumRect = 4;	// number of rectangle from 2 to 4
 }
@@ -43,7 +43,7 @@ void Haar::HaarFeature(Rect& _objectBox, int _numFeature){
 	}
 }
 
-void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox)
+void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double> _sampleScale)
 {
 	integral(_frame, imageIntegral, CV_32F);
 	int sampleBoxSize = _sampleBox.size();
@@ -68,7 +68,7 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox)
 				//cout << xMin << ","<< xMax << ","<< yMin << ","<< yMax<< endl;
 				//cout << _frame.size() << endl;
 				if(xMax < _frame.cols && yMax < _frame.rows){
-					tempValue += featuresWeight[i][k] * 
+					tempValue += featuresWeight[i][k] *
 						(imageIntegral.at<float>(yMin, xMin) +
 						imageIntegral.at<float>(yMax, xMax) -
 						imageIntegral.at<float>(yMin, xMax) -
@@ -85,6 +85,7 @@ void Haar::init(Mat& _frame, Rect& _objectBox,vector<Rect>& _sampleBox)
 	// compute feature template
 	//cout << "frame:" << _frame.size() << endl; 
 	HaarFeature(_objectBox, featureNum);
-	getFeatureValue(_frame, _sampleBox);
+	vector<double> initial_scale (featureNum,1.0); 
+	getFeatureValue(_frame, _sampleBox,initial_scale);
 
 }

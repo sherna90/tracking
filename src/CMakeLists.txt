@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project( tracker )
 SET (CMAKE_CXX_COMPILER             "/usr/bin/g++")
-SET (CMAKE_CXX_FLAGS                "-Wall -std=c++11 -fopenmp")
+SET (CMAKE_CXX_FLAGS                "-Wall -O3 -std=c++11")
 SET (CMAKE_CXX_FLAGS_DEBUG          "-g")
 SET (CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
 SET (CMAKE_CXX_FLAGS_RELEASE        "-O4 -DNDEBUG")

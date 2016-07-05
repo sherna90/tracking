@@ -236,7 +236,7 @@ void particle_filter::predict(){
                 state.width=_width;
                 state.height=_height;
                 state.scale_p=state.scale;
-                state.scale=float(state.width_p/state.width);
+                state.scale=(float(state.width_p/state.width)+float(state.height_p/state.height))/2.0;
             }
             else{
                 state.x=reference_roi.x;

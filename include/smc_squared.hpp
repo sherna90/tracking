@@ -3,8 +3,8 @@
  * @brief particle marginal metropolis hastings 
  * @author Sergio Hernandez
  */
-#ifndef PMMH
-#define PMMH
+#ifndef SMC2
+#define SMC2
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -37,11 +37,11 @@ private:
     Rect reference_roi;
     mt19937 generator;
     vector<particle_filter*> filter_bank;
-    vector<VectorXd> theta_x,theta_x_prop;
-    vector<VectorXd> theta_y,theta_y_prop;
+    MatrixXd theta_x_pos,theta_x_scale;
+    MatrixXd theta_y_mu,theta_y_sig;
     vector<Rect> estimates;
-    int n_particles,n_theta,fixed_lag,mcmc_steps;
-    
+    int n_particles,m_particles,fixed_lag,mcmc_steps;
+    Haar haar;
     bool initialized;
 
 public:

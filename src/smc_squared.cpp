@@ -1,73 +1,81 @@
-#include "../include/pmmh.hpp"
+#include "../include/smc_squared.hpp"
 
 const float SHAPE=1.0;
 const float SCALE=1.0;
 const float PRIOR_SD=0.01;
 
 
-pmmh::pmmh(int _n_particles,int _fixed_lag,int _mcmc_steps){
+smc_squared::smc_squared(int _n_particles,int _m_particles,int _fixed_lag,int _mcmc_steps){
     unsigned seed1= std::chrono::system_clock::now().time_since_epoch().count();
     generator.seed(seed1);
     n_particles=_n_particles;
+    m_particles=_m_particles;
     fixed_lag=_fixed_lag;
     mcmc_steps=_mcmc_steps;
     initialized=false;
+    theta_x_pos=MatrixXd::Zero(m_particles, 2);
+    theta_x_pos=MatrixXd::Zero(m_particles, 2);
+    
 }
 
-pmmh::~pmmh(){
+smc_squared::~smc_squared(){
     if(is_initialized()) delete filter;
     images = vector<Mat>();
 }
 
-void pmmh::initialize(Mat& current_frame, Rect ground_truth){
+void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
     std::gamma_distribution<double> prior(SHAPE,SCALE);
-    filter=new particle_filter(n_particles);
-    filter->initialize(current_frame,ground_truth);
+    for(int j=0;j<m_particles;++j){
+        particle_filter filter=new particle_filter(n_particles);
+        filter->initialize(current_frame,ground_truth);
+        filter_bank.push_back(filter);
+        vector<VectorXd> theta_x=filter->get_dynamic_model();
+        vector<VectorXd> theta_y=filter->get_observation_model();
+    }
     images.clear();
     images.push_back(current_frame);
     reference_roi=ground_truth;
-    theta_x=filter->get_dynamic_model();
-    theta_y=filter->get_observation_model();
+
     initialized=true;
     estimates.clear();
     estimates.push_back(ground_truth);
 }
 
-bool pmmh::is_initialized(){
+bool smc_squared::is_initialized(){
     return initialized;
 }
 
-void pmmh::reinitialize(){
+void smc_squared::reinitialize(){
     delete filter;
     initialized=false;
 }
 
-void pmmh::predict(){
+void smc_squared::predict(){
     filter->predict();
 }
 
-double pmmh::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta_y){
-    particle_filter pmmh(n_particles);
+double smc_squared::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta_y){
+    particle_filter smc_squared(n_particles);
     int data_size=(int)images.size();
     int time_step=(fixed_lag>=data_size)? 0 : data_size-fixed_lag;
     //cout << time_step << ","<< estimates.size() << "," << data_size << endl;
     //int time_step=0;
     Mat current_frame = images.at(time_step).clone(); 
-    pmmh.initialize(current_frame,estimates.at(time_step));
-    pmmh.haar=filter->haar;
-    pmmh.update_model(theta_x,theta_y);
+    smc_squared.initialize(current_frame,estimates.at(time_step));
+    smc_squared.haar=filter->haar;
+    smc_squared.update_model(theta_x,theta_y);
     for(int k=time_step+1;k<data_size;++k){
         current_frame = images.at(k).clone();
-        pmmh.predict();
-        pmmh.update(current_frame);
+        smc_squared.predict();
+        smc_squared.update(current_frame);
     }
-    //cout << "ML:" << pmmh.getMarginalLikelihood();
+    //cout << "ML:" << smc_squared.getMarginalLikelihood();
     //cout << endl;
-    double res=pmmh.getMarginalLikelihood();
+    double res=smc_squared.getMarginalLikelihood();
     return res;
 }
 
-VectorXd pmmh::proposal(VectorXd theta,double step_size){
+VectorXd smc_squared::proposal(VectorXd theta,double step_size){
     VectorXd proposal(theta.size());
     //double eps= std::numeric_limits<double>::epsilon();
     for(int i=0;i<theta.size();i++){
@@ -78,7 +86,7 @@ VectorXd pmmh::proposal(VectorXd theta,double step_size){
     return proposal;
 }
 
-double pmmh::igamma_prior(VectorXd x, double a, double b)
+double smc_squared::igamma_prior(VectorXd x, double a, double b)
 {
     double loglike=0.0;
     for(int i=0;i<x.size();i++){
@@ -89,7 +97,7 @@ double pmmh::igamma_prior(VectorXd x, double a, double b)
     return loglike;
 }
 
-double pmmh::gamma_prior(VectorXd x, double a, double b)
+double smc_squared::gamma_prior(VectorXd x, double a, double b)
 {
     double loglike=0.0;
     for(int i=0;i<x.size();i++){
@@ -101,7 +109,7 @@ double pmmh::gamma_prior(VectorXd x, double a, double b)
 }
 
 
-void pmmh::update(Mat& current_frame){
+void smc_squared::update(Mat& current_frame){
     images.push_back(current_frame);
     filter->update(current_frame); 
     uniform_real_distribution<double> unif_rnd(0.0,1.0);
@@ -140,12 +148,12 @@ void pmmh::update(Mat& current_frame){
    
 }
 
-Rect pmmh::estimate(Mat& image,bool draw){
+Rect smc_squared::estimate(Mat& image,bool draw){
     Rect estimate=filter->estimate(image,draw);
     estimates.push_back(estimate);
     return estimate;
 }
 
-void pmmh::draw_particles(Mat& image){
+void smc_squared::draw_particles(Mat& image){
      filter->draw_particles(image,Scalar(0,255,255));
 }

@@ -18,26 +18,37 @@ void Haar::HaarFeature(Rect& _objectBox, int _numFeature){
 	features = vector<vector<Rect> >(_numFeature, vector<Rect>());
 	featuresWeight = vector<vector<float> >(_numFeature, vector<float>());
 	
-	int numRect;
-	Rect rectTemp;
+	int numRect,dim;
+	Rect rectTemp,halfRect;
 	float weightTemp;
 	for (int i=0; i<_numFeature; i++)
 	{
 		//cout << "Feature :" << i << ";" ; 
 		numRect = cvFloor(rng.uniform((double)featureMinNumRect, (double)featureMaxNumRect));
-	
+		rectTemp.x = cvFloor(rng.uniform(0.0, (double)(_objectBox.width - 3)));
+		rectTemp.y = cvFloor(rng.uniform(0.0, (double)(_objectBox.height - 3)));
+		rectTemp.width = cvCeil(rng.uniform(8.0, (double)(_objectBox.width - rectTemp.x - 2)));
+		rectTemp.height = cvCeil(rng.uniform(8.0, (double)(_objectBox.height - rectTemp.y - 2)));
+		dim = rng.uniform(0, 2);
+		//cout <<dim <<",";
 		for (int j=0; j<numRect; j++)
 		{
-			
-			rectTemp.x = cvFloor(rng.uniform(0.0, (double)(_objectBox.width - 3)));
-			rectTemp.y = cvFloor(rng.uniform(0.0, (double)(_objectBox.height - 3)));
-			rectTemp.width = cvCeil(rng.uniform(0.0, (double)(_objectBox.width - rectTemp.x - 2)));
-			rectTemp.height = cvCeil(rng.uniform(0.0, (double)(_objectBox.height - rectTemp.y - 2)));
-			features[i].push_back(rectTemp);
-
+			if(dim==0){
+				halfRect.width=cvCeil(rectTemp.width/numRect);
+				halfRect.x=cvFloor(rectTemp.x+j*halfRect.width);
+				halfRect.y=rectTemp.y;
+				halfRect.height=rectTemp.height;
+			}
+			else if(dim==1){
+				halfRect.width=rectTemp.width;
+				halfRect.x=rectTemp.x;
+				halfRect.height=cvCeil(rectTemp.height/numRect);
+				halfRect.y=cvFloor(rectTemp.y+j*halfRect.height);
+			}
+			features[i].push_back(halfRect);
 			weightTemp = (float)pow(-1.0, cvFloor(rng.uniform(0.0, 2.0))) / sqrt(float(numRect));
 			featuresWeight[i].push_back(weightTemp);
-   			//cout << rectTemp ;
+   			//cout << halfRect  ;
 		}
 		//cout << endl;
 	}

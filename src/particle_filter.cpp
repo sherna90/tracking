@@ -156,6 +156,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             Mat grayImg;
             haar_likelihood.clear();
             cvtColor(current_frame, grayImg, CV_RGB2GRAY);
+            //equalizeHist( grayImg, grayImg );
             haar.init(grayImg,reference_roi,sampleBox);
             VectorXd theta_y_mu(haar.featureNum);
             VectorXd theta_y_sig(haar.featureNum);
@@ -273,7 +274,7 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     Rect estimate;
     for (int i=0;i<n_particles;i++){
         particle state=states.at(i);
-        double weight=weights.at(i);
+        double weight=exp(weights.at(i));
         _x+=(weight*state.x > 0 && weight*state.x < im_size.width) ? weight*state.x : float(1.0/n_particles)*state.x; 
         _y+=(weight*state.y > 0 && weight*state.y < im_size.height) ? weight*state.y : float(1.0/n_particles)*state.y; 
         _width+=(weight*state.width > 0 && weight*state.width < im_size.width) ? weight*state.width : float(1.0/n_particles)*reference_roi.width; 
@@ -302,8 +303,10 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
 void particle_filter::update(Mat& image)
 {
     vector<double> tmp_weights;
+    uniform_int_distribution<int> random_feature(0,haar.featureNum-1);
     Mat grayImg;
     cvtColor(image, grayImg, CV_RGB2GRAY);
+    //equalizeHist( grayImg, grayImg );
     haar.getFeatureValue(grayImg,sampleBox,sampleScale);
     for (int i=0;i<n_particles;i++){
         particle state=states[i];
@@ -324,13 +327,13 @@ void particle_filter::update(Mat& image)
         Mat current_roi = Mat(image,box);
         if(USE_HAAR){
         double prob_haar=0.0f;
-
-            for(int j=0;j<haar.featureNum;j++){
+            //int feature_index = random_feature(generator);
+            for(int feature_index=0;feature_index<haar.featureNum;feature_index++){
                 //cout << haar.featureNum << "," << i << "," << j << endl; 
-                float haar_prob=haar.sampleFeatureValue.at<float>(j,i);
-                prob_haar += haar_likelihood.at(j).log_likelihood(haar_prob);
+                float haar_prob=haar.sampleFeatureValue.at<float>(feature_index,i);
+                prob_haar += haar_likelihood.at(feature_index).log_likelihood(haar_prob);
             }
-            weight+=prob_haar-log(haar.featureNum);
+            weight+=prob_haar;
         }
         if(USE_COLOR){
             Mat color_hist;
@@ -431,15 +434,15 @@ void particle_filter::update_model(vector<VectorXd> theta_x_new,vector<VectorXd>
     theta_x.push_back(theta_x_scale);
     VectorXd theta_y_mu=theta_y_new.at(0);
     VectorXd theta_y_sig=theta_y_new.at(1);
-    VectorXd theta_y_color=theta_y_new.at(2);
+    //VectorXd theta_y_color=theta_y_new.at(2);
     for (int i=0; i<haar.featureNum; i++){
         Gaussian haar_feature(theta_y_mu[i],theta_y_sig[i]);  
         haar_likelihood.push_back(haar_feature);
     }
     theta_y.push_back(theta_y_mu);
     theta_y.push_back(theta_y_sig);
-    theta_y.push_back(theta_y_color);
-    color_likelihood = Multinomial(theta_y_color);
+    //theta_y.push_back(theta_y_color);
+    //color_likelihood = Multinomial(theta_y_color);
 }
 
 

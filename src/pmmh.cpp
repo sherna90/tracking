@@ -27,6 +27,7 @@ void pmmh::initialize(vector<Mat> _images, Rect ground_truth){
     reference_roi=ground_truth;
     theta_x=filter->get_dynamic_model();
     theta_y=filter->get_observation_model();
+    cout << theta_x.size() << ","<< theta_y.size() << endl;
     initialized=true;
     estimates.clear();
     estimates.push_back(ground_truth);
@@ -42,19 +43,19 @@ void pmmh::reinitialize(Mat& current_frame, Rect ground_truth){
     string file2("matrix_width.txt");
     string file3("matrix_haar_mu.txt");
     string file4("matrix_haar_std.txt");
-    string file5("matrix_color.txt");
+    //string file5("matrix_color.txt");
     read_data(file1,matrix_pos,mcmc_steps, 2);
     read_data(file2,matrix_width,mcmc_steps, 2);
     read_data(file3,matrix_haar_mu,mcmc_steps, filter->haar.featureNum);
     read_data(file4,matrix_haar_std,mcmc_steps, filter->haar.featureNum);
-    read_data(file5,matrix_color,mcmc_steps, H_BINS*S_BINS);
+    //read_data(file5,matrix_color,mcmc_steps, H_BINS*S_BINS);
     theta_y_prop.clear();
     VectorXd prop_mu=matrix_haar_mu.colwise().sum()/mcmc_steps;
     theta_y_prop.push_back(prop_mu);
     VectorXd prop_sig=matrix_haar_std.colwise().sum()/mcmc_steps;
     theta_y_prop.push_back(prop_sig);
-    VectorXd prop_color=matrix_color.colwise().sum()/mcmc_steps;
-    theta_y_prop.push_back(prop_color/prop_color.sum());
+    //VectorXd prop_color=matrix_color.colwise().sum()/mcmc_steps;
+    //theta_y_prop.push_back(prop_color/prop_color.sum());
     theta_x_prop.clear();
     VectorXd prop_pos=matrix_pos.colwise().sum()/mcmc_steps;
     theta_x_prop.push_back(prop_pos);
@@ -139,7 +140,7 @@ void pmmh::run_mcmc(){
     ofstream file2("matrix_width.txt");
     ofstream file3("matrix_haar_mu.txt");
     ofstream file4("matrix_haar_std.txt");
-    ofstream file5("matrix_color.txt");
+    //ofstream file5("matrix_color.txt");
     ofstream file6("likelihood.txt");
     double forward_filter = marginal_likelihood(theta_x,theta_y);
     double accept_rate=0;
@@ -150,9 +151,9 @@ void pmmh::run_mcmc(){
         VectorXd prop_sig=proposal(theta_y[1],10.0);
         prop_sig=prop_sig.array().abs().matrix();
         theta_y_prop.push_back(prop_sig);
-        VectorXd prop_color=proposal(theta_y[2],0.1);
-        prop_color=prop_color.array().abs().matrix();
-        theta_y_prop.push_back(prop_color/prop_color.sum());
+        //VectorXd prop_color=proposal(theta_y[2],0.1);
+        //prop_color=prop_color.array().abs().matrix();
+        //theta_y_prop.push_back(prop_color/prop_color.sum());
         theta_x_prop.clear();
         VectorXd prop_pos=proposal(theta_x[0],1.0);
         prop_pos=prop_pos.array().abs().matrix();
@@ -162,7 +163,7 @@ void pmmh::run_mcmc(){
         theta_x_prop.push_back(prop_std);
         double proposal_filter = marginal_likelihood(theta_x_prop,theta_y_prop);
         double acceptprob = proposal_filter - forward_filter;
-        acceptprob+=igamma_prior(prop_color,SHAPE,SCALE)-igamma_prior(theta_y.at(2),SHAPE,SCALE);
+        //acceptprob+=igamma_prior(prop_color,SHAPE,SCALE)-igamma_prior(theta_y.at(2),SHAPE,SCALE);
         acceptprob+=igamma_prior(prop_sig,SHAPE,SCALE)-igamma_prior(theta_y.at(1),SHAPE,SCALE);
         acceptprob+=igamma_prior(prop_pos,SHAPE,SCALE)-igamma_prior(theta_x.at(0),SHAPE,SCALE);
         acceptprob+=igamma_prior(prop_std,SHAPE,SCALE)-igamma_prior(theta_x.at(1),SHAPE,SCALE);
@@ -182,7 +183,8 @@ void pmmh::run_mcmc(){
             && (theta_x_prop.at(0).array()>0).all() 
             && (theta_x_prop.at(1).array()>0).all() 
             && (theta_y_prop.at(1).array()>0).all()
-            && (theta_y_prop.at(2).array()>0).all()){
+            //&& (theta_y_prop.at(2).array()>0).all()
+            ){
             theta_y=theta_y_prop;
             theta_x=theta_x_prop;
             filter->update_model(theta_x,theta_y);
@@ -197,7 +199,7 @@ void pmmh::run_mcmc(){
         if(file2.is_open()) file2 << theta_x_prop.at(1).transpose() << endl ;
         if(file3.is_open()) file3 << theta_y_prop.at(0).transpose() << endl ;
         if(file4.is_open()) file4 << theta_y_prop.at(1).transpose() << endl ;
-        if(file5.is_open()) file5 << theta_y_prop.at(2).transpose() << endl ;
+        //if(file5.is_open()) file5 << theta_y_prop.at(2).transpose() << endl ;
         if(file6.is_open()) file6 << forward_filter << endl ;
 
     }
@@ -205,7 +207,7 @@ void pmmh::run_mcmc(){
     file2.close();
     file3.close();
     file4.close();
-    file5.close();
+    //file5.close();
     file6.close();
 }
 

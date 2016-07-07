@@ -46,9 +46,10 @@ void Haar::HaarFeature(Rect& _objectBox, int _numFeature){
 				halfRect.y=cvFloor(rectTemp.y+j*halfRect.height);
 			}
 			features[i].push_back(halfRect);
-			weightTemp = (float)pow(-1.0, cvFloor(rng.uniform(0.0, 2.0))) / sqrt(float(numRect));
+			//weightTemp = (float)pow(-1.0, cvFloor(rng.uniform(0.0, 2.0))) / sqrt(float(numRect));
+			weightTemp = (j % 2 == 0) ? -1.0 : 1.0;
 			featuresWeight[i].push_back(weightTemp);
-   			//cout << halfRect  ;
+   			//cout << weightTemp <<"," << halfRect  ;
 		}
 		//cout << endl;
 	}

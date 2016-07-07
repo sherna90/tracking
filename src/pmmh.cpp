@@ -141,7 +141,6 @@ void pmmh::run_mcmc(){
     ofstream file6("likelihood.txt");
     cout << "Evaluating First ML----------------" << endl;
     double forward_filter = marginal_likelihood(theta_x,theta_y);
-    cout << "finished First ML----------------" << endl;
     double accept_rate=0;
     for(int n=0;n<mcmc_steps;n++){
         theta_y_prop.clear();
@@ -160,9 +159,7 @@ void pmmh::run_mcmc(){
         VectorXd prop_std=proposal(theta_x[1],0.01);
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
-        cout << "Evaluating ML----------------" << endl;
         double proposal_filter = marginal_likelihood(theta_x_prop,theta_y_prop);
-        cout << "finished ML----------------" << endl;
         double acceptprob = proposal_filter - forward_filter;
         acceptprob+=igamma_prior(prop_sig,SHAPE,SCALE)-igamma_prior(theta_y.at(1),SHAPE,SCALE);
         acceptprob+=igamma_prior(prop_pos,SHAPE,SCALE)-igamma_prior(theta_x.at(0),SHAPE,SCALE);

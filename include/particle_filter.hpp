@@ -58,7 +58,6 @@ public:
     bool is_initialized();
     void reinitialize();
     void initialize(Mat& current_frame, Rect ground_truth);
-    void initialize(Mat& current_frame, Rect ground_truth,Haar haar);
     void draw_particles(Mat& image, Scalar color);
     Rect estimate(Mat& image,bool draw);
     void predict();
@@ -76,7 +75,7 @@ protected:
     double marginal_likelihood;
     vector<VectorXd> theta_x;
     vector<VectorXd> theta_y;
-    vector<Gaussian> haar_likelihood;
+    vector<Gaussian> positive_likelihood,negative_likelihood;
     Multinomial color_likelihood,lbp_likelihood,hog_likelihood;
     float ESS;
     bool initialized;

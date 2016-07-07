@@ -73,10 +73,10 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double>
 			tempValue = 0.0f;
 			for (size_t k=0; k<features[i].size(); k++)
 			{
-				xMin = _sampleBox[j].x + features[i][k].x;
-				xMax = _sampleBox[j].x + features[i][k].x + features[i][k].width;
-				yMin = _sampleBox[j].y + features[i][k].y;
-				yMax = _sampleBox[j].y + features[i][k].y + features[i][k].height;
+				xMin = _sampleBox[j].x + cvRound(features[i][k].x*_sampleScale[j]);
+				xMax = _sampleBox[j].x + cvRound(features[i][k].x*_sampleScale[j] + features[i][k].width*_sampleScale[j]);
+				yMin = _sampleBox[j].y + cvRound(features[i][k].y*_sampleScale[j]);
+				yMax = _sampleBox[j].y + cvRound(features[i][k].y*_sampleScale[j] + features[i][k].height*_sampleScale[j]);
 				//cout << xMin << ","<< xMax << ","<< yMin << ","<< yMax<< endl;
 				//cout << _frame.size() << endl;
 				if(xMax < _frame.cols && yMax < _frame.rows){
@@ -97,7 +97,7 @@ void Haar::init(Mat& _frame, Rect& _objectBox,vector<Rect>& _sampleBox)
 	// compute feature template
 	//cout << "frame:" << _frame.size() << endl; 
 	HaarFeature(_objectBox, featureNum);
-	vector<double> initial_scale (featureNum,1.0); 
-	getFeatureValue(_frame, _sampleBox,initial_scale);
+	vector<double> initial_scale (featureNum,1.0);
+	getFeatureValue(_frame, _sampleBox, initial_scale);
 
 }

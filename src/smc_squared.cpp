@@ -14,7 +14,9 @@ smc_squared::smc_squared(int _n_particles,int _m_particles,int _fixed_lag,int _m
     mcmc_steps=_mcmc_steps;
     initialized=false;
     theta_x_pos=MatrixXd::Zero(m_particles, 2);
-    theta_x_pos=MatrixXd::Zero(m_particles, 2);
+    theta_x_scale=MatrixXd::Zero(m_particles, 2);
+    theta_y_mu=MatrixXd::Zero(m_particles, haar.featureNum);
+    theta_y_sig=MatrixXd::Zero(m_particles, haar.featureNum);
     
 }
 
@@ -25,12 +27,30 @@ smc_squared::~smc_squared(){
 
 void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
     std::gamma_distribution<double> prior(SHAPE,SCALE);
+    particle_filter filter=new particle_filter(n_particles);
+    filter->initialize(current_frame,ground_truth);
+    theta_x=filter->get_dynamic_model();
+    theta_y=filter->get_observation_model();
+    haar<-filter.haar;
     for(int j=0;j<m_particles;++j){
-        particle_filter filter=new particle_filter(n_particles);
-        filter->initialize(current_frame,ground_truth);
+        filter=new particle_filter(n_particles);
+        filter->initialize(current_frame,ground_truth,haar);
+        theta_y_prop.clear();
+        VectorXd prop_mu=proposal(theta_y[0],100.0);
+        theta_y_prop.push_back(prop_mu);
+        VectorXd prop_sig=proposal(theta_y[1],10.0);
+        prop_sig=prop_sig.array().abs().matrix();
+        theta_y_prop.push_back(prop_sig);
+        theta_x_prop.clear();
+        VectorXd prop_pos=proposal(theta_x[0],1.0);
+        prop_pos=prop_pos.array().abs().matrix();
+        theta_x_prop.push_back(prop_pos);
+        VectorXd prop_std=proposal(theta_x[1],0.01);
+        prop_std=prop_std.array().abs().matrix();
+        theta_x_prop.push_back(prop_std);
         filter_bank.push_back(filter);
-        vector<VectorXd> theta_x=filter->get_dynamic_model();
-        vector<VectorXd> theta_y=filter->get_observation_model();
+        theta_x_pos.row(j) << prop_pos;
+        theta_y_pos.row(j) << prop_std;
     }
     images.clear();
     images.push_back(current_frame);

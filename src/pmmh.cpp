@@ -27,7 +27,6 @@ void pmmh::initialize(vector<Mat> _images, Rect ground_truth){
     reference_roi=ground_truth;
     theta_x=filter->get_dynamic_model();
     theta_y=filter->get_observation_model();
-    cout << theta_x.size() << ","<< theta_y.size() << endl;
     initialized=true;
     estimates.clear();
     estimates.push_back(ground_truth);
@@ -82,8 +81,7 @@ double pmmh::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta
     //int time_step=(fixed_lag>=data_size)? 0 : data_size-fixed_lag;
     int time_step= 0 ;
     Mat current_frame = images.at(time_step).clone(); 
-    proposal_filter.initialize(current_frame,estimates.at(time_step));
-    proposal_filter.haar=filter->haar;
+    proposal_filter.initialize(current_frame,estimates.at(time_step),filter->haar);
     proposal_filter.update_model(theta_x,theta_y);
     for(int k=time_step;k<data_size;++k){
         current_frame = images.at(k).clone();

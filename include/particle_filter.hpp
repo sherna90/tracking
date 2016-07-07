@@ -58,6 +58,7 @@ public:
     bool is_initialized();
     void reinitialize();
     void initialize(Mat& current_frame, Rect ground_truth);
+    void initialize(Mat& current_frame, Rect ground_truth,Haar haar);
     void draw_particles(Mat& image, Scalar color);
     Rect estimate(Mat& image,bool draw);
     void predict();

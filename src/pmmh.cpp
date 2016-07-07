@@ -20,7 +20,7 @@ pmmh::~pmmh(){
 }
 
 void pmmh::initialize(vector<Mat> _images, Rect ground_truth){
-    std::gamma_distribution<double> prior(SHAPE,SCALE);
+    //std::gamma_distribution<double> prior(SHAPE,SCALE);
     filter=new particle_filter(n_particles);
     images=_images;
     filter->initialize(images[0],ground_truth);
@@ -30,6 +30,7 @@ void pmmh::initialize(vector<Mat> _images, Rect ground_truth){
     initialized=true;
     estimates.clear();
     estimates.push_back(ground_truth);
+    cout << "initialized!" << endl;
 }
 
 bool pmmh::is_initialized(){
@@ -74,8 +75,8 @@ void pmmh::update(Mat& image){
 
 double pmmh::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta_y){
     particle_filter proposal_filter(n_particles);
-    //int data_size=(int)images.size();
-    int data_size=fixed_lag;
+    int data_size=(int)images.size();
+    //int data_size=fixed_lag;
     //int time_step=(fixed_lag>=data_size)? 0 : data_size-fixed_lag;
     int time_step= 0 ;
     Mat current_frame = images.at(time_step).clone(); 
@@ -83,6 +84,7 @@ double pmmh::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta
     proposal_filter.haar=filter->haar;
     proposal_filter.update_model(theta_x,theta_y);
     for(int k=time_step;k<data_size;++k){
+        //cout << "time step:" << k << "ML: " << proposal_filter.getMarginalLikelihood() << endl;
         current_frame = images.at(k).clone();
         proposal_filter.predict();
         proposal_filter.update(current_frame);
@@ -132,13 +134,14 @@ double pmmh::gamma_prior(VectorXd x, double a, double b)
 void pmmh::run_mcmc(){
     uniform_real_distribution<double> unif_rnd(0.0,1.0);
     //double forward_filter = filter->getMarginalLikelihood();
-    //cout << "----------------" << endl;
     ofstream file1("matrix_pos.txt");
     ofstream file2("matrix_width.txt");
     ofstream file3("matrix_haar_mu.txt");
     ofstream file4("matrix_haar_std.txt");
     ofstream file6("likelihood.txt");
+    cout << "Evaluating First ML----------------" << endl;
     double forward_filter = marginal_likelihood(theta_x,theta_y);
+    cout << "finished First ML----------------" << endl;
     double accept_rate=0;
     for(int n=0;n<mcmc_steps;n++){
         theta_y_prop.clear();
@@ -157,12 +160,14 @@ void pmmh::run_mcmc(){
         VectorXd prop_std=proposal(theta_x[1],0.01);
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
+        cout << "Evaluating ML----------------" << endl;
         double proposal_filter = marginal_likelihood(theta_x_prop,theta_y_prop);
+        cout << "finished ML----------------" << endl;
         double acceptprob = proposal_filter - forward_filter;
         acceptprob+=igamma_prior(prop_sig,SHAPE,SCALE)-igamma_prior(theta_y.at(1),SHAPE,SCALE);
         acceptprob+=igamma_prior(prop_pos,SHAPE,SCALE)-igamma_prior(theta_x.at(0),SHAPE,SCALE);
         acceptprob+=igamma_prior(prop_std,SHAPE,SCALE)-igamma_prior(theta_x.at(1),SHAPE,SCALE);
-        if(n % 100 == 0){
+        if(n % 1 == 0){
             double rate=(accept_rate==0)? 0 : n/accept_rate;
             cout <<"Iter: "<< n << ", accept rate: " << rate <<  endl;       
         }

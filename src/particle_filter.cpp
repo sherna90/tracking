@@ -222,7 +222,7 @@ void particle_filter::predict(){
             Rect box(state.x, state.y, state.width, state.height);
             sampleBox.push_back(box);
             sampleScale.push_back(state.scale);
-            cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height <<",scale:" << state.scale << endl;
+            //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height <<",scale:" << state.scale << endl;
             tmp_new_states.push_back(state);
         }
         states.swap(tmp_new_states);
@@ -277,10 +277,10 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
 void particle_filter::update(Mat& image)
 {
     vector<double> tmp_weights;
-    uniform_int_distribution<int> random_feature(0,haar.featureNum-1);
+    //uniform_int_distribution<int> random_feature(0,haar.featureNum-1);
     Mat grayImg;
     cvtColor(image, grayImg, CV_RGB2GRAY);
-    //equalizeHist( grayImg, grayImg );
+    equalizeHist( grayImg, grayImg );
     haar.getFeatureValue(grayImg,sampleBox,sampleScale);
     for (int i=0;i<n_particles;i++){
         particle state=states[i];
@@ -297,8 +297,6 @@ void particle_filter::update(Mat& image)
           state.y = reference_roi.y;
         }
         double weight=weights[i];
-        Rect box=Rect(cvRound(state.x),cvRound(state.y),cvRound(state.width),cvRound(state.height));
-        Mat current_roi = Mat(image,box);
         double prob_haar=0.0f;
         //int feature_index = random_feature(generator);
         for(int j=0;j<haar.featureNum;j++){

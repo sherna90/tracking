@@ -85,11 +85,11 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             float _dx=position_random_x(generator);
             float _dy=position_random_y(generator);
             float _dw=scale_random_width(generator);
-            float _dh=scale_random_height(generator);
+            //float _dh=scale_random_height(generator);
             _x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
             _y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
             _width=MIN(MAX(cvRound(reference_roi.width+_dw),10.0),im_size.width);
-            _height=MIN(MAX(cvRound(reference_roi.height+_dh),10.0),im_size.height);
+            _height=MIN(MAX(cvRound(reference_roi.height+_dw),10.0),im_size.height);
             //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
             //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
             if( (_x+_width)<im_size.width 
@@ -183,11 +183,11 @@ void particle_filter::predict(){
             float _dx=position_random_x(generator);
             float _dy=position_random_y(generator);
             float _dw=scale_random_width(generator);
-            float _dh=scale_random_height(generator);
+            //float _dh=scale_random_height(generator);
             _x=MIN(MAX(cvRound(state.x+_dx),0),im_size.width);
             _y=MIN(MAX(cvRound(state.y+_dy),0),im_size.height);
             _width=MIN(MAX(cvRound(state.width+_dw),0),im_size.width);
-            _height=MIN(MAX(cvRound(state.height+_dh),0),im_size.height);
+            _height=MIN(MAX(cvRound(state.height+_dw),0),im_size.height);
             //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
             //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
             if( (_x+_width)<im_size.width 

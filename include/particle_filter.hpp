@@ -11,7 +11,6 @@
 #include "hist.hpp"
 #include "gaussian.hpp"
 #include "multinomial.hpp"
-#include "LBP.hpp"
 #include <time.h>
 #include <float.h>
 #include <vector>
@@ -28,7 +27,6 @@ extern const float  THRESHOLD;
 using namespace cv;
 using namespace std;
 using namespace Eigen;
-using namespace lbp;
 
 typedef struct particle {
     float x; /** current x coordinate */

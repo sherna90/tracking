@@ -9,18 +9,12 @@ SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
 find_package( OpenCV REQUIRED)
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories( "/usr/include/eigen3/" )
-include_directories( "LBP/" )
-find_path(FFTW_INCLUDE_DIR fftw3.h  ${FFTW_INCLUDE_DIRS})
-find_library(FFTW_LIBRARY fftw3 ${FFTW_LIBRARY_DIRS})
-
-add_library(LBP SHARED LBP/LBP.cpp )
-target_link_libraries(LBP ${OpenCV_LIBS} ${FFTW_LIBRARY}  m)
 
 add_executable( pmmh test_pmmh.cpp pmmh.cpp particle_filter.cpp hist.cpp hog.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp  image_generator.cpp haar.cpp)
-target_link_libraries( pmmh ${OpenCV_LIBS} -fopenmp -lpthread  LBP ${FFTW_LIBRARY} )
+target_link_libraries( pmmh ${OpenCV_LIBS} -fopenmp  )
 
 add_executable( tracker test_particle_filter.cpp particle_filter.cpp  hist.cpp hog.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp image_generator.cpp haar.cpp) 
-target_link_libraries( tracker ${OpenCV_LIBS} -fopenmp -lpthread LBP ${FFTW_LIBRARY} )
+target_link_libraries( tracker ${OpenCV_LIBS} -fopenmp  )
 
 #FILE(GLOB_RECURSE kcf_sourcefiles "kcf/*.cpp")
 #add_executable( kcf test_kcf.cpp ${kcf_sourcefiles} utils.cpp image_generator.cpp)

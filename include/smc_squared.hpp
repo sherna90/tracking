@@ -29,8 +29,7 @@ using namespace Eigen;
 
 class smc_squared {
 private:
-    double marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta_y);
-    double igamma_prior(VectorXd x,double a,double b);
+    ouble igamma_prior(VectorXd x,double a,double b);
     double gamma_prior(VectorXd x,double a,double b);
     VectorXd proposal(VectorXd theta,double step_size);
     vector<Mat> images;
@@ -43,6 +42,7 @@ private:
     vector<VectorXd> theta_x_prop,theta_x;
     vector<Rect> estimates;
     int n_particles,m_particles,fixed_lag,mcmc_steps;
+    vector<double>  theta_weights;
     Haar haar;
     bool initialized;
 
@@ -53,7 +53,6 @@ public:
     void reinitialize(Mat &image, Rect ground_truth);
     void predict();
     void update(Mat& image);
-    void run_mcmc();
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);
     ~smc_squared();

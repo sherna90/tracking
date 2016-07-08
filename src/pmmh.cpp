@@ -30,7 +30,6 @@ void pmmh::initialize(vector<Mat> _images, Rect ground_truth){
     initialized=true;
     estimates.clear();
     estimates.push_back(ground_truth);
-    cout << "initialized!" << endl;
 }
 
 bool pmmh::is_initialized(){
@@ -75,8 +74,8 @@ void pmmh::update(Mat& image){
 
 double pmmh::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta_y){
     particle_filter proposal_filter(n_particles);
-    int data_size=(int)images.size();
-    //int data_size=fixed_lag;
+    //int data_size=(int)images.size();
+    int data_size=fixed_lag;
     //int time_step=(fixed_lag>=data_size)? 0 : data_size-fixed_lag;
     int time_step= 0 ;
     Mat current_frame = images.at(time_step).clone(); 
@@ -139,7 +138,6 @@ void pmmh::run_mcmc(){
     ofstream file3("matrix_haar_mu.txt");
     ofstream file4("matrix_haar_std.txt");
     ofstream file6("likelihood.txt");
-    cout << "Evaluating First ML----------------" << endl;
     double forward_filter = marginal_likelihood(theta_x,theta_y);
     double accept_rate=0;
     for(int n=0;n<mcmc_steps;n++){
@@ -164,9 +162,8 @@ void pmmh::run_mcmc(){
         acceptprob+=igamma_prior(prop_sig,SHAPE,SCALE)-igamma_prior(theta_y.at(1),SHAPE,SCALE);
         acceptprob+=igamma_prior(prop_pos,SHAPE,SCALE)-igamma_prior(theta_x.at(0),SHAPE,SCALE);
         acceptprob+=igamma_prior(prop_std,SHAPE,SCALE)-igamma_prior(theta_x.at(1),SHAPE,SCALE);
-        if(n % 1 == 0){
-            double rate=(accept_rate==0)? 0 : n/accept_rate;
-            cout <<"Iter: "<< n << ", accept rate: " << rate <<  endl;       
+        if(n % 100 == 0){
+            cout <<"Iter: "<< n << ", accept rate: " <<  accept_rate/n <<  endl;       
         }
         /*cout <<"Theta x:"<< theta_x_prop.at(0).transpose() << endl;
         cout <<"Theta x:"<< theta_x_prop.at(1).transpose() << endl;

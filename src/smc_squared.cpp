@@ -119,9 +119,14 @@ double smc_squared::gamma_prior(VectorXd x, double a, double b)
 
 void smc_squared::update(Mat& current_frame){
     images.push_back(current_frame);
+    vector<double> tmp_weights;
     for(int j=0;j<m_particles;++j){
         filter_bank[j]->update(current_frame);
+        tmp_weights.push_back(filter_bank[j].getMarginalLikelihood());
     }
+    theta_weights.swap(tmp_weights);
+    tmp_weights.clear();
+    resample();
 }
 
 Rect smc_squared::estimate(Mat& image,bool draw){
@@ -140,4 +145,52 @@ Rect smc_squared::estimate(Mat& image,bool draw){
 
 void smc_squared::draw_particles(Mat& image){
      //filter->draw_particles(image,Scalar(0,255,255));
+}
+
+void smc_squared::resample(){
+    vector<double> cumulative_sum(m_particles);
+    vector<double> normalized_weights(m_particles);
+    vector<double> new_weights(m_particles);
+    vector<double> squared_normalized_weights(m_particles);
+    uniform_real_distribution<double> unif_rnd(0.0,1.0); 
+    double logsumexp=0.0;
+    double max_value = *max_element(theta_weights.begin(), theta_weights.end());
+    for (unsigned int i=0; i<theta_weights.size(); i++) {
+        new_weights[i]=exp(theta_weights[i]-max_value);
+        logsumexp+=new_weights[i];
+    }
+    double norm_const=max_value+log(logsumexp);
+    for (unsigned int i=0; i<weights.size(); i++) {
+        normalized_weights.at(i) = exp(theta_weights.at(i)-norm_const);
+    }
+    for (unsigned int i=0; i<theta_weights.size(); i++) {
+        squared_normalized_weights.at(i)=normalized_weights.at(i)*normalized_weights.at(i);
+        if (i==0) {
+            cumulative_sum.at(i) = normalized_weights.at(i);
+        } else {
+            cumulative_sum.at(i) = cumulative_sum.at(i-1) + normalized_weights.at(i);
+        }
+    }
+    Scalar sum_squared_weights=sum(squared_normalized_weights);
+    marginal_likelihood+=norm_const-log(m_particles); 
+    ESS=(1.0f/sum_squared_weights[0])/m_particles;
+    if(isless(ESS,(float)THRESHOLD)){
+        vector<particle_filter*> new_filter_bank;
+        for (int i=0; i<n_particles; i++) {
+            double uni_rand = unif_rnd(generator);
+            vector<double>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
+            int ipos = distance(cumulative_sum.begin(), pos);
+            particle_filter filter=filter_bank[ipos];
+            new_filter_bank.push_back(filter);
+            weights.at(i)=log(1.0f/m_particles);
+        }
+        filter_bank.swap(new_filter_bank);
+    }
+    else{
+        theta_weights.swap(new_weights);
+    }
+    cumulative_sum.clear();
+    normalized_weights.clear();
+    new_weights.clear();
+    squared_normalized_weights.clear();
 }

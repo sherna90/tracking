@@ -16,6 +16,9 @@ target_link_libraries( pmmh ${OpenCV_LIBS} -fopenmp  )
 add_executable( tracker test_particle_filter.cpp particle_filter.cpp  hist.cpp hog.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp image_generator.cpp haar.cpp) 
 target_link_libraries( tracker ${OpenCV_LIBS} -fopenmp  )
 
+add_executable( smc_squared test_smcsquared.cpp  smc_squared.cpp pmmh.cpp particle_filter.cpp  hist.cpp hog.cpp dirichlet.cpp utils.cpp gaussian.cpp multinomial.cpp poisson.cpp image_generator.cpp haar.cpp) 
+target_link_libraries( smc_squared ${OpenCV_LIBS} -fopenmp  )
+
 #FILE(GLOB_RECURSE kcf_sourcefiles "kcf/*.cpp")
 #add_executable( kcf test_kcf.cpp ${kcf_sourcefiles} utils.cpp image_generator.cpp)
 #target_link_libraries( kcf ${OpenCV_LIBS} )

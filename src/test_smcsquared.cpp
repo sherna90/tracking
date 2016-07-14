@@ -1,4 +1,5 @@
 #include "../include/pmmh.hpp"
+#include "../include/smc_squared.hpp"
 #include "../include/utils.hpp"
 #include "../include/image_generator.hpp"
 
@@ -23,9 +24,10 @@ private:
   vector<string> gt_vec;
 };
 
-TestSMCSampler::TestSMCSampler(string _firstFrameFilename, string _gtFilename, int _num_particles,int _lag, int _mcmc){
+TestSMCSampler::TestSMCSampler(string _firstFrameFilename, string _gtFilename, int _num_particles,int _num_theta,int _lag, int _mcmc){
   imageGenerator generator(_firstFrameFilename,_gtFilename);
   num_particles = _num_particles;
+  num_theta=_num_theta;
   mcmc=_mcmc;
   lag=_lag;
   num_frames = generator.getDatasetSize();
@@ -80,7 +82,7 @@ int main(int argc, char* argv[]){
     }
     else{
         string _firstFrameFilename,_gtFilename;
-        int _num_particles,_lag,_mcmc;
+        int _num_particles,_num_theta,_lag,_mcmc;
         if(strcmp(argv[1], "-img") == 0) {
             _firstFrameFilename=argv[2];
         }
@@ -103,19 +105,25 @@ int main(int argc, char* argv[]){
         else{
             _num_particles=300;
         }
-        if(strcmp(argv[7], "-lag") == 0) {
-            _lag=atoi(argv[8]);
+        if(strcmp(argv[7], "-ntheta") == 0) {
+            _num_theta=atoi(argv[8]);
+        }
+        else{
+            _num_theta=300;
+        }
+        if(strcmp(argv[9], "-lag") == 0) {
+            _lag=atoi(argv[10]);
         }
         else{
             _lag=3;
         }
-        if(strcmp(argv[9], "-mcmc") == 0) {
-            _mcmc=atoi(argv[10]);
+        if(strcmp(argv[11], "-mcmc") == 0) {
+            _mcmc=atoi(argv[12]);
         }
         else{
             _mcmc=3;
         }
-        TestSMCSampler tracker(_firstFrameFilename,_gtFilename,_num_particles,_lag,_mcmc);
+        TestSMCSampler tracker(_firstFrameFilename,_gtFilename,_num_particles,_num_theta,_lag,_mcmc);
         tracker.run();
     }
 }

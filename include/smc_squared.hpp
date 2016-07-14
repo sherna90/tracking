@@ -29,7 +29,7 @@ using namespace Eigen;
 
 class smc_squared {
 private:
-    ouble igamma_prior(VectorXd x,double a,double b);
+    double igamma_prior(VectorXd x,double a,double b);
     double gamma_prior(VectorXd x,double a,double b);
     VectorXd proposal(VectorXd theta,double step_size);
     vector<Mat> images;
@@ -47,14 +47,15 @@ private:
     bool initialized;
 
 public:
-    smc_squared(int num_particles,int fixed_lag,int mcmc_steps);
-    void initialize(vector<Mat> _images, Rect ground_truth);
+    smc_squared(int num_particles,int m_particles,int fixed_lag,int mcmc_steps);
+    void initialize(Mat& current_frame, Rect ground_truth);
     bool is_initialized();
-    void reinitialize(Mat &image, Rect ground_truth);
+    void reinitialize();
     void predict();
     void update(Mat& image);
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);
+    void resample();
     ~smc_squared();
 
 };

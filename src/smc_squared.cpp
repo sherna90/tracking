@@ -39,7 +39,7 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
         filter=new particle_filter(n_particles);
         filter->initialize(current_frame,ground_truth);
         filter->haar=haar;
-        theta_y_prop.clear();
+        /*theta_y_prop.clear();
         VectorXd prop_mu=proposal(theta_y[0],100.0);
         theta_y_prop.push_back(prop_mu);
         VectorXd prop_sig=proposal(theta_y[1],10.0);
@@ -52,11 +52,11 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
         VectorXd prop_std=proposal(theta_x[1],0.01);
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
-        filter_bank.push_back(filter);
         theta_x_pos.row(j) << prop_pos;
         theta_x_scale.row(j) << prop_std;
         theta_y_mu.row(j) << prop_mu;
-        theta_y_sig.row(j) << prop_sig;
+        theta_y_sig.row(j) << prop_sig;*/
+        filter_bank.push_back(filter);
         theta_weights.push_back(weight);
     }
     images.clear();
@@ -132,11 +132,12 @@ void smc_squared::update(Mat& current_frame){
 Rect smc_squared::estimate(Mat& image,bool draw){
     int _x=0,_y=0,_width=0,_height=0;
     for(int j=0;j<m_particles;++j){
+        double weight=theta_weights[j];
         Rect estimate=filter_bank[j]->estimate(image,draw);
-        _x+=theta_weights[j]*estimate.x;
-        _y+=theta_weights[j]*estimate.y;
-        _width+=theta_weights[j]*estimate.width;
-        _height+=theta_weights[j]*estimate.height;
+        _x+=weight*estimate.x;
+        _y+=weight*estimate.y;
+        _width+=weight*estimate.width;
+        _height+=weight*estimate.height;
     }
     Rect estimate(cvRound(_x), cvRound(_y), cvRound(_width), cvRound(_height));
     estimates.push_back(estimate);
@@ -144,7 +145,9 @@ Rect smc_squared::estimate(Mat& image,bool draw){
 }
 
 void smc_squared::draw_particles(Mat& image){
-     //filter->draw_particles(image,Scalar(0,255,255));
+    for(int j=0;j<m_particles;++j){
+        filter_bank[j]->draw_particles(image,Scalar(0,255,255));
+    }
 }
 
 void smc_squared::resample(){
@@ -181,7 +184,7 @@ void smc_squared::resample(){
             int ipos = distance(cumulative_sum.begin(), pos);
             particle_filter* filter=filter_bank[ipos];
             new_filter_bank.push_back(filter);
-            theta_weights.at(i)=log(1.0f/m_particles);
+            theta_weights.at(i)=1.0f/m_particles;
         }
         filter_bank.swap(new_filter_bank);
     }

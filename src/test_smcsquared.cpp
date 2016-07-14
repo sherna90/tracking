@@ -36,7 +36,7 @@ TestSMCSampler::TestSMCSampler(string _firstFrameFilename, string _gtFilename, i
 }
 
 void TestSMCSampler::run(){
-  pmmh filter(num_particles,lag,mcmc);
+  smc_squared filter(num_particles,num_theta,lag,mcmc);
   Rect ground_truth;
   Mat current_frame; 
   string current_gt;
@@ -44,27 +44,28 @@ void TestSMCSampler::run(){
   time_t start, end;
   time(&start);
   Performance performance;
-  //namedWindow("Tracker");
-  current_gt=gt_vec[0];
-  ground_truth=generator.stringToRect(current_gt);
-  filter.initialize(images,ground_truth);
-  filter.run_mcmc();
-  for(int k=1;k <num_frames;++k){
-      current_gt=gt_vec[k];
-      ground_truth=generator.stringToRect(current_gt);
-      current_frame = images[k].clone();
-      filter.predict();
-      filter.update(current_frame);
-      filter.draw_particles(current_frame);
-      rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
-      Rect estimate = filter.estimate(current_frame,true);
-      double r1 = performance.calc(ground_truth, estimate);
-      //cout  << "ESS : " << filter.getESS() << "ratio : " << r1 << endl;
-      if(r1<0.1){
-        filter.reinitialize(current_frame,ground_truth);
-        reinit_rate+=1.0;
-      }
-      //imshow("Tracker",current_frame);
+  namedWindow("Tracker");
+  for(int k=0;k <num_frames;++k){
+    current_gt=gt_vec[k];
+    ground_truth=generator.stringToRect(current_gt);
+    current_frame = images[k].clone();
+    if(!filter.is_initialized()){
+        filter.initialize(current_frame,ground_truth);
+    }else{
+        filter.predict();
+        filter.update(current_frame);
+        filter.draw_particles(current_frame);
+        rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
+        Rect estimate = filter.estimate(current_frame,true);
+        double r1 = performance.calc(ground_truth, estimate);
+        //cout  << "ESS : " << filter.getESS() << "ratio : " << r1 << endl;
+        //if(r1<0.1) {
+        //  filter.reinitialize();
+        //  reinit_rate+=1.0;
+        //}
+    }
+    imshow("Tracker",current_frame);
+    waitKey(1);
   }
   waitKey(1);
   time(&end);
@@ -75,7 +76,7 @@ void TestSMCSampler::run(){
 };
 
 int main(int argc, char* argv[]){
-    if(argc != 11) {
+    if(argc != 13) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
         return EXIT_FAILURE;

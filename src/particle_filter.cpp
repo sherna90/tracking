@@ -248,7 +248,7 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     Rect estimate;
     for (int i=0;i<n_particles;i++){
         particle state=states.at(i);
-        double weight=exp(weights.at(i));
+        double weight=weights.at(i);
         _x+=(weight*state.x > 0 && weight*state.x < im_size.width) ? weight*state.x : float(1.0/n_particles)*state.x; 
         _y+=(weight*state.y > 0 && weight*state.y < im_size.height) ? weight*state.y : float(1.0/n_particles)*state.y; 
         _width+=(weight*state.width > 0 && weight*state.width < im_size.width) ? weight*state.width : float(1.0/n_particles)*reference_roi.width; 
@@ -348,7 +348,7 @@ void particle_filter::resample(){
             int ipos = distance(cumulative_sum.begin(), pos);
             particle state=states[ipos];
             new_states.push_back(state);
-            weights.at(i)=log(1.0f/n_particles);
+            weights.at(i)=1.0f/n_particles;
         }
         states.swap(new_states);
     }

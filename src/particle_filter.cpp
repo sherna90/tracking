@@ -78,7 +78,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     if(reference_roi.width>0 && (reference_roi.x+reference_roi.width)<im_size.width && 
         reference_roi.height>0 && (reference_roi.y+reference_roi.height)<im_size.height){
         marginal_likelihood=0.0;
-        double weight=1.0/n_particles;
+        float weight=1.0/n_particles;
         for (int i=0;i<n_particles;i++){
             particle state;
             float _x,_y,_width,_height;
@@ -276,7 +276,7 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
 
 void particle_filter::update(Mat& image)
 {
-    vector<double> tmp_weights;
+    vector<float> tmp_weights;
     //uniform_int_distribution<int> random_feature(0,haar.featureNum-1);
     Mat grayImg;
     cvtColor(image, grayImg, CV_RGB2GRAY);
@@ -296,8 +296,8 @@ void particle_filter::update(Mat& image)
         if (state.y < 0 || state.y>image.rows){
           state.y = reference_roi.y;
         }
-        double weight=weights[i];
-        double prob_haar=0.0f;
+        float weight=weights[i];
+        float prob_haar=0.0f;
         //int feature_index = random_feature(generator);
         for(int j=0;j<haar.featureNum;j++){
             //cout << haar.featureNum << "," << i << "," << j << endl; 
@@ -314,18 +314,18 @@ void particle_filter::update(Mat& image)
 
 
 void particle_filter::resample(){
-    vector<double> cumulative_sum(n_particles);
-    vector<double> normalized_weights(n_particles);
-    vector<double> new_weights(n_particles);
-    vector<double> squared_normalized_weights(n_particles);
-    uniform_real_distribution<double> unif_rnd(0.0,1.0); 
-    double logsumexp=0.0;
-    double max_value = *max_element(weights.begin(), weights.end());
+    vector<float> cumulative_sum(n_particles);
+    vector<float> normalized_weights(n_particles);
+    vector<float> new_weights(n_particles);
+    vector<float> squared_normalized_weights(n_particles);
+    uniform_real_distribution<float> unif_rnd(0.0,1.0); 
+    float logsumexp=0.0f;
+    float max_value = *max_element(weights.begin(), weights.end());
     for (unsigned int i=0; i<weights.size(); i++) {
         new_weights[i]=exp(weights[i]-max_value);
         logsumexp+=new_weights[i];
     }
-    double norm_const=max_value+log(logsumexp);
+    float norm_const=max_value+log(logsumexp);
     for (unsigned int i=0; i<weights.size(); i++) {
         normalized_weights.at(i) = exp(weights.at(i)-norm_const);
     }
@@ -343,8 +343,8 @@ void particle_filter::resample(){
     if(isless(ESS,(float)THRESHOLD)){
         vector<particle> new_states;
         for (int i=0; i<n_particles; i++) {
-            double uni_rand = unif_rnd(generator);
-            vector<double>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
+            float uni_rand = unif_rnd(generator);
+            vector<float>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
             int ipos = distance(cumulative_sum.begin(), pos);
             particle state=states[ipos];
             new_states.push_back(state);
@@ -391,6 +391,6 @@ vector<VectorXd> particle_filter::get_dynamic_model(){
 vector<VectorXd> particle_filter::get_observation_model(){
     return theta_y;
 }
-double particle_filter::getMarginalLikelihood(){
+float particle_filter::getMarginalLikelihood(){
     return marginal_likelihood;
 }

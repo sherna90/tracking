@@ -47,7 +47,7 @@ class particle_filter {
 public:
     int n_particles;
     vector<particle> states;
-    vector<double>  weights;
+    vector<float>  weights;
     Haar haar;
     ~particle_filter();
     particle_filter(int _n_particles);
@@ -65,12 +65,12 @@ public:
     vector<VectorXd> get_dynamic_model();
     vector<VectorXd> get_observation_model();
     float getESS();
-    double getMarginalLikelihood();
+    float getMarginalLikelihood();
     void resample();
     vector<Rect> estimates;
 
 protected:
-    double marginal_likelihood;
+    float marginal_likelihood;
     vector<VectorXd> theta_x;
     vector<VectorXd> theta_y;
     vector<Gaussian> positive_likelihood,negative_likelihood;

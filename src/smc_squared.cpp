@@ -52,7 +52,7 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
         VectorXd prop_std=proposal(theta_x[1],0.01);
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
-        //filter->update_model(theta_x_prop,theta_y_prop);
+        filter->update_model(theta_x_prop,theta_y_prop);
         //theta_x_pos.row(j) << prop_pos;
         //theta_x_scale.row(j) << prop_std;
         //theta_y_mu.row(j) << prop_mu;
@@ -128,8 +128,8 @@ void smc_squared::update(Mat& current_frame){
     theta_weights.swap(tmp_weights);
     tmp_weights.clear();
     resample();
-    pmmh filter(n_particles,0,mcmc_steps);
     for(int j=0;j<m_particles;++j){
+        pmmh filter(n_particles,0,mcmc_steps);
         theta_x=filter_bank[j]->get_dynamic_model();
         theta_y=filter_bank[j]->get_observation_model();
         filter.initialize(images,estimates.front(),theta_x,theta_y);

@@ -27,18 +27,18 @@ smc_squared::~smc_squared(){
 
 void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
     std::gamma_distribution<double> prior(SHAPE,SCALE);
-    /*particle_filter* filter=new particle_filter(n_particles);
+    particle_filter* filter=new particle_filter(n_particles);
     theta_weights.clear();
     filter->initialize(current_frame,ground_truth);
     theta_x=filter->get_dynamic_model();
     theta_y=filter->get_observation_model();
-    haar=filter->haar;*/
+    haar=filter->haar;
     float weight=1.0/m_particles;
     for(int j=0;j<m_particles;++j){
         //delete filter;
-        particle_filter* filter=new particle_filter(n_particles);
-        filter->initialize(current_frame,ground_truth);
-        /*filter->haar=haar;
+        particle_filter* new_filter=new particle_filter(n_particles);
+        new_filter->initialize(current_frame,ground_truth);
+        new_filter->haar=haar;
         theta_y_prop.clear();
         VectorXd prop_mu=proposal(theta_y[0],10.0);
         theta_y_prop.push_back(prop_mu);
@@ -57,14 +57,12 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
         //theta_x_scale.row(j) << prop_std;
         //theta_y_mu.row(j) << prop_mu;
         //theta_y_sig.row(j) << prop_sig;*/
-        filter_bank.push_back(filter);
+        filter_bank.push_back(new_filter);
         theta_weights.push_back(weight);
-        delete filter;
     }
     images.clear();
     images.push_back(current_frame);
     reference_roi=ground_truth;
-
     initialized=true;
     estimates.clear();
     estimates.push_back(ground_truth);
@@ -123,26 +121,37 @@ void smc_squared::update(Mat& current_frame){
     images.push_back(current_frame);
     vector<float> tmp_weights;
     for(int j=0;j<m_particles;++j){
-        float weight=theta_weights[j];
+        float weight=(float)theta_weights[j];
         filter_bank[j]->update(current_frame);
         tmp_weights.push_back(weight+filter_bank[j]->getMarginalLikelihood());
     }
     theta_weights.swap(tmp_weights);
     tmp_weights.clear();
-    //resample();
+    resample();
+    pmmh filter(n_particles,0,mcmc_steps);
+    for(int j=0;j<m_particles;++j){
+        theta_x=filter_bank[j]->get_dynamic_model();
+        theta_y=filter_bank[j]->get_observation_model();
+        filter.initialize(images,estimates.front(),theta_x,theta_y);
+        filter.run_mcmc();
+        theta_x=filter.get_dynamic_model();
+        theta_y=filter.get_observation_model();
+        filter_bank[j]->update_model(theta_x,theta_y);
+    }
 }
 
 Rect smc_squared::estimate(Mat& image,bool draw){
     int _x=0,_y=0,_width=0,_height=0;
     for(int j=0;j<m_particles;++j){
         float weight=theta_weights[j];
+        //float weight=1.0f/m_particles;
         Rect estimate=filter_bank[j]->estimate(image,draw);
-        _x+=estimate.x;
-        _y+=estimate.y;
-        _width+=estimate.width;
-        _height+=estimate.height;
+        _x+=weight*estimate.x;
+        _y+=weight*estimate.y;
+        _width+=weight*estimate.width;
+        _height+=weight*estimate.height;
     }
-    Rect estimate(cvRound(_x/m_particles), cvRound(_y/m_particles), cvRound(_width/m_particles), cvRound(_height/m_particles));
+    Rect estimate(cvRound(_x), cvRound(_y), cvRound(_width), cvRound(_height));
     estimates.push_back(estimate);
     return estimate;
 }

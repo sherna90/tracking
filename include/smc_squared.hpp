@@ -11,6 +11,7 @@
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
 #include "particle_filter.hpp"
+ #include "pmmh.hpp"
 #include "utils.hpp"
 
 //C

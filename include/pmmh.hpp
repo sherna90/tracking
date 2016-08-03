@@ -41,12 +41,13 @@ private:
     vector<VectorXd> theta_y,theta_y_prop;
     vector<Rect> estimates;
     int n_particles,n_theta,fixed_lag,mcmc_steps;
-    
+    MatrixXd matrix_pos,matrix_width,matrix_haar_mu,matrix_haar_std;
     bool initialized;
 
 public:
     pmmh(int num_particles,int fixed_lag,int mcmc_steps);
     void initialize(vector<Mat> _images, Rect ground_truth);
+    void initialize(vector<Mat> _images, Rect ground_truth,vector<VectorXd> theta_x,vector<VectorXd> theta_y);
     bool is_initialized();
     void reinitialize(Mat &image, Rect ground_truth);
     void predict();
@@ -54,6 +55,8 @@ public:
     void run_mcmc();
     void draw_particles(Mat& image);
     Rect estimate(Mat& image,bool draw);
+    vector<VectorXd> get_dynamic_model();
+    vector<VectorXd> get_observation_model();
     ~pmmh();
 
 };

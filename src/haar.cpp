@@ -71,7 +71,7 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double>
 		for (int j=0; j<sampleBoxSize; j++)
 		{
 			tempValue = 0.0f;
-			float scale=(float)_sampleScale[j];
+			//float scale=(float)_sampleScale[j];
 			for (size_t k=0; k<features[i].size(); k++)
 			{
 				xMin = _sampleBox[j].x + cvRound(features[i][k].x);
@@ -80,7 +80,7 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double>
 				yMax = _sampleBox[j].y + cvRound(features[i][k].y + features[i][k].height);
 				//cout << xMin << ","<< xMax << ","<< yMin << ","<< yMax  << endl;
 				//cout << _frame.size() << endl;
-				if(xMax < _frame.cols && yMax < _frame.rows){
+				if(xMax < _frame.cols && yMax < _frame.rows && yMin > 0 && xMin > 0){
 					tempValue += featuresWeight[i][k] *
 						(imageIntegral.at<float>(yMin, xMin) +
 						imageIntegral.at<float>(yMax, xMax) -

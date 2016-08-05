@@ -143,7 +143,7 @@ void smc_squared::update(Mat& current_frame){
 Rect smc_squared::estimate(Mat& image,bool draw){
     int _x=0,_y=0,_width=0,_height=0;
     for(int j=0;j<m_particles;++j){
-        float weight=theta_weights[j];
+        float weight=(float)theta_weights[j];
         //float weight=1.0f/m_particles;
         Rect estimate=filter_bank[j]->estimate(image,draw);
         _x+=weight*estimate.x;

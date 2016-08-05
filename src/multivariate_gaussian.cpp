@@ -3,6 +3,8 @@
 MVNGaussian::MVNGaussian(VectorXd _mean, MatrixXd _cov){
     mean = _mean;
     cov = _cov;
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed);
 }
 
 MVNGaussian::MVNGaussian(MatrixXd &data){
@@ -17,6 +19,8 @@ MVNGaussian::MVNGaussian(MatrixXd &data){
     /* Covariance Matrix */
     centered = data.rowwise() - mean.transpose();
     cov = (centered.adjoint() * centered) / double(data.rows() - 1);
+    unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed);
 }
 
 VectorXd MVNGaussian::getMean(void){
@@ -35,11 +39,21 @@ void MVNGaussian::setCov(MatrixXd _cov){
     cov = _cov;
 }
 
+VectorXd MVNGaussian::sample(){
+    VectorXd mvn_sample,mvn_random;
+    normal_distribution<double> normal(0.0,1.0);
+    for (int i=0;i<mean.size();i++) mvn_random(i)=normal(generator);
+    LLT<MatrixXd> cholSolver(cov);
+    MatrixXd upperL = cholSolver.matrixL();
+    mvn_sample= upperL*mvn_random+ mean;
+    return mvn_sample;
+}
+
+
 VectorXd MVNGaussian::log_likelihood(MatrixXd data){
     double rows = data.rows();
     double cols = data.cols();
     VectorXd loglike = VectorXd::Zero(rows);
-
     /* Getting inverse matrix for 'cov' with Cholesky */
     LLT<MatrixXd> chol(cov);
     MatrixXd L = chol.matrixL();

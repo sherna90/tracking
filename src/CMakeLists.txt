@@ -11,13 +11,13 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories( "/usr/include/eigen3/" )
 
 add_executable( pmmh test_pmmh.cpp pmmh.cpp particle_filter.cpp  utils.cpp gaussian.cpp  image_generator.cpp haar.cpp)
-target_link_libraries( pmmh ${OpenCV_LIBS} -fopenmp  )
+target_link_libraries( pmmh ${OpenCV_LIBS}  )
 
 add_executable( tracker test_particle_filter.cpp particle_filter.cpp  utils.cpp gaussian.cpp image_generator.cpp haar.cpp) 
-target_link_libraries( tracker ${OpenCV_LIBS} -fopenmp  )
+target_link_libraries( tracker ${OpenCV_LIBS} )
 
-add_executable( smc_squared test_smcsquared.cpp  smc_squared.cpp pmmh.cpp particle_filter.cpp utils.cpp gaussian.cpp image_generator.cpp haar.cpp) 
-target_link_libraries( smc_squared ${OpenCV_LIBS} -fopenmp  )
+add_executable( smc_squared test_smcsquared.cpp  smc_squared.cpp pmmh.cpp particle_filter.cpp utils.cpp gaussian.cpp image_generator.cpp haar.cpp multivariate_gaussian.cpp) 
+target_link_libraries( smc_squared ${OpenCV_LIBS}  )
 
 #FILE(GLOB_RECURSE kcf_sourcefiles "kcf/*.cpp")
 #add_executable( kcf test_kcf.cpp ${kcf_sourcefiles} utils.cpp image_generator.cpp)

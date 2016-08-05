@@ -53,10 +53,10 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
         filter->update_model(theta_x_prop,theta_y_prop);
-        //theta_x_pos.row(j) << prop_pos;
-        //theta_x_scale.row(j) << prop_std;
-        //theta_y_mu.row(j) << prop_mu;
-        //theta_y_sig.row(j) << prop_sig;*/
+        theta_x_pos.row(j) = prop_pos;
+        theta_x_scale.row(j) = prop_std;
+        theta_y_mu.row(j) = prop_mu;
+        theta_y_sig.row(j) = prop_sig;
         filter_bank.push_back(new_filter);
         theta_weights.push_back(weight);
     }

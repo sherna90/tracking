@@ -7,10 +7,7 @@
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
 #include "haar.hpp"
-#include "hog.hpp"
-#include "hist.hpp"
 #include "gaussian.hpp"
-#include "multinomial.hpp"
 #include <time.h>
 #include <float.h>
 #include <vector>
@@ -74,7 +71,6 @@ protected:
     vector<VectorXd> theta_x;
     vector<VectorXd> theta_y;
     vector<Gaussian> positive_likelihood,negative_likelihood;
-    Multinomial color_likelihood,lbp_likelihood,hog_likelihood;
     float ESS;
     bool initialized;
     mt19937 generator;

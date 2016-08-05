@@ -71,13 +71,14 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double>
 		for (int j=0; j<sampleBoxSize; j++)
 		{
 			tempValue = 0.0f;
+			float scale=(float)_sampleScale[j];
 			for (size_t k=0; k<features[i].size(); k++)
 			{
-				xMin = _sampleBox[j].x + cvRound(features[i][k].x*_sampleScale[j]);
-				xMax = _sampleBox[j].x + cvRound(features[i][k].x*_sampleScale[j] + features[i][k].width*_sampleScale[j]);
-				yMin = _sampleBox[j].y + cvRound(features[i][k].y*_sampleScale[j]);
-				yMax = _sampleBox[j].y + cvRound(features[i][k].y*_sampleScale[j] + features[i][k].height*_sampleScale[j]);
-				//cout << xMin << ","<< xMax << ","<< yMin << ","<< yMax<< endl;
+				xMin = _sampleBox[j].x + cvRound(features[i][k].x);
+				xMax = _sampleBox[j].x + cvRound(features[i][k].x + features[i][k].width);
+				yMin = _sampleBox[j].y + cvRound(features[i][k].y);
+				yMax = _sampleBox[j].y + cvRound(features[i][k].y + features[i][k].height);
+				//cout << xMin << ","<< xMax << ","<< yMin << ","<< yMax  << endl;
 				//cout << _frame.size() << endl;
 				if(xMax < _frame.cols && yMax < _frame.rows){
 					tempValue += featuresWeight[i][k] *

@@ -174,6 +174,7 @@ void particle_filter::predict(){
     normal_distribution<double> scale_random_width(0.0,theta_x.at(1)(0));
     normal_distribution<double> scale_random_height(0.0,theta_x.at(1)(1));
     sampleBox.clear();//important
+    sampleScale.clear();//important
     if(initialized==true){
         time_stamp++;
         vector<particle> tmp_new_states;
@@ -206,7 +207,7 @@ void particle_filter::predict(){
                 state.width=2*_width-state.width_p;
                 state.height=2*_height-state.height_p;
                 state.scale_p=state.scale;
-                state.scale=(float(reference_roi.width/state.width)+float(reference_roi.height/state.height))/2.0;
+                state.scale=((float)reference_roi.width/(float)state.width)/2.0f+((float)reference_roi.height/(float)state.height)/2.0f;
             }
             else{
                 state.x=state.x;
@@ -217,7 +218,7 @@ void particle_filter::predict(){
                 state.height=cvRound(reference_roi.height);
                 state.width_p=cvRound(reference_roi.width);
                 state.height_p=cvRound(reference_roi.height);
-                state.scale=1.0;
+                state.scale=1.0f;
             }
             Rect box(state.x, state.y, state.width, state.height);
             sampleBox.push_back(box);

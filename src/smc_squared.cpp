@@ -26,6 +26,7 @@ smc_squared::~smc_squared(){
 }
 
 void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
+    //cout << "initialize!" << endl;
     std::gamma_distribution<double> prior(SHAPE,SCALE);
     particle_filter* filter=new particle_filter(n_particles);
     theta_weights.clear();
@@ -129,7 +130,7 @@ void smc_squared::update(Mat& current_frame){
     tmp_weights.clear();
     resample();
     for(int j=0;j<m_particles;++j){
-        pmmh filter(n_particles,0,mcmc_steps);
+        pmmh filter(n_particles,fixed_lag,mcmc_steps);
         theta_x=filter_bank[j]->get_dynamic_model();
         theta_y=filter_bank[j]->get_observation_model();
         filter.initialize(images,estimates.front(),theta_x,theta_y);
@@ -141,7 +142,7 @@ void smc_squared::update(Mat& current_frame){
 }
 
 Rect smc_squared::estimate(Mat& image,bool draw){
-    int _x=0,_y=0,_width=0,_height=0;
+    float _x=0.0f,_y=0.0f,_width=0.0f,_height=0.0f;
     for(int j=0;j<m_particles;++j){
         float weight=(float)theta_weights[j];
         //float weight=1.0f/m_particles;
@@ -150,10 +151,12 @@ Rect smc_squared::estimate(Mat& image,bool draw){
         _y+=weight*estimate.y;
         _width+=weight*estimate.width;
         _height+=weight*estimate.height;
+        //cout << estimate << endl;
     }
-    Rect estimate(cvRound(_x), cvRound(_y), cvRound(_width), cvRound(_height));
-    estimates.push_back(estimate);
-    return estimate;
+    Rect new_estimate(cvRound(_x), cvRound(_y), cvRound(_width), cvRound(_height));
+    //cout << new_estimate << endl;
+    estimates.push_back(new_estimate);
+    return new_estimate;
 }
 
 void smc_squared::draw_particles(Mat& image){
@@ -194,8 +197,8 @@ void smc_squared::resample(){
             float uni_rand = unif_rnd(generator);
             vector<float>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
             int ipos = distance(cumulative_sum.begin(), pos);
-            particle_filter* filter=filter_bank[ipos];
-            new_filter_bank.push_back(filter);
+            //particle_filter* filter=filter_bank[ipos];
+            new_filter_bank.push_back(filter_bank[ipos]);
             theta_weights.at(i)=1.0f/m_particles;
         }
         filter_bank.swap(new_filter_bank);

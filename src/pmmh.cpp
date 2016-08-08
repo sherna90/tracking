@@ -82,14 +82,14 @@ double pmmh::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta
     particle_filter proposal_filter(n_particles);
     //int data_size=(int)images.size();
     //int data_size=fixed_lag;
-    int data_size=(fixed_lag>= (int)images.size()) ? fixed_lag : (int)images.size();
+    int data_size=(fixed_lag >= (int)images.size() || fixed_lag==0) ? (int)images.size() : fixed_lag;
     int time_step= 0 ;
-    Mat current_frame = images.at(time_step).clone(); 
-    proposal_filter.initialize(current_frame,estimates.at(time_step));
+    Mat current_frame = images.front().clone(); 
+    proposal_filter.initialize(current_frame,estimates.front());
     proposal_filter.haar=filter->haar;
     proposal_filter.update_model(theta_x,theta_y);
     for(int k=time_step;k<data_size;++k){
-        //cout << "time step:" << k << "ML: " << proposal_filter.getMarginalLikelihood() << endl;
+        //cout << "time step:" << k << ", ML: " << proposal_filter.getMarginalLikelihood() << endl;
         current_frame = images.at(k).clone();
         proposal_filter.predict();
         proposal_filter.update(current_frame);

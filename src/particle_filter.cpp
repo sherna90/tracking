@@ -7,7 +7,7 @@
 
 #ifndef PARAMS
 const float POS_STD=1.0;
-const float SCALE_STD=0.1;
+const float SCALE_STD=1.0;
 const float  DT=1.0;
 const float  THRESHOLD=0.5;
 #endif 
@@ -84,12 +84,12 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             float _x,_y,_width,_height;
             float _dx=position_random_x(generator);
             float _dy=position_random_y(generator);
-            float _dw=scale_random_width(generator);
+            //float _dw=scale_random_width(generator);
             //float _dh=scale_random_height(generator);
             _x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
             _y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
-            _width=MIN(MAX(cvRound(reference_roi.width+_dw),10.0),im_size.width);
-            _height=MIN(MAX(cvRound(reference_roi.height+_dw),10.0),im_size.height);
+            _width=MIN(MAX(cvRound(reference_roi.width),10.0),im_size.width);
+            _height=MIN(MAX(cvRound(reference_roi.height),10.0),im_size.height);
             //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
             //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
             if( (_x+_width)<im_size.width 
@@ -108,7 +108,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 state.width=_width;
                 state.height=_height;
                 state.scale_p=state.scale;
-                state.scale=(float(reference_roi.width/state.width)+float(reference_roi.height/state.height))/2.0;
+                state.scale=1.0;
             }
             else{
                 state.x=reference_roi.x;
@@ -175,20 +175,21 @@ void particle_filter::predict(){
     normal_distribution<double> scale_random_height(0.0,theta_x.at(1)(1));
     sampleBox.clear();//important
     sampleScale.clear();//important
+    cout << "predicted particles!" <<endl;
     if(initialized==true){
         time_stamp++;
-        vector<particle> tmp_new_states;
+        vector<particle> tmp_new_states(n_particles);
         for (int i=0;i<n_particles;i++){
             particle state=states[i];
             float _x,_y,_width,_height;
             float _dx=position_random_x(generator);
             float _dy=position_random_y(generator);
             float _dw=scale_random_width(generator);
-            //float _dh=scale_random_height(generator);
+            float _dh=scale_random_height(generator);
             _x=MIN(MAX(cvRound(state.x+_dx),0),im_size.width);
             _y=MIN(MAX(cvRound(state.y+_dy),0),im_size.height);
-            _width=MIN(MAX(cvRound(state.width+_dw),0),im_size.width);
-            _height=MIN(MAX(cvRound(state.height+_dw),0),im_size.height);
+            _width=MIN(MAX(cvRound(state.width+_dw),10),im_size.width);
+            _height=MIN(MAX(cvRound(state.height+_dh),10),im_size.height);
             //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
             //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
             if( (_x+_width)<im_size.width 
@@ -206,8 +207,7 @@ void particle_filter::predict(){
                 state.height_p=state.height;       
                 state.width=2*_width-state.width_p;
                 state.height=2*_height-state.height_p;
-                state.scale_p=state.scale;
-                state.scale=((float)reference_roi.width/(float)state.width)/2.0f+((float)reference_roi.height/(float)state.height)/2.0f;
+                state.scale=((float)state.width/(float)reference_roi.width)/2.0f+((float)state.height/(float)reference_roi.height)/2.0f;
             }
             else{
                 state.x=state.x;
@@ -223,8 +223,9 @@ void particle_filter::predict(){
             Rect box(state.x, state.y, state.width, state.height);
             sampleBox.push_back(box);
             sampleScale.push_back(state.scale);
-            //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height <<",scale:" << state.scale << endl;
-            tmp_new_states.push_back(state);
+            //cout << "reference " << reference_roi << endl;
+            cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height <<",scale:" << state.scale << endl;
+            tmp_new_states[i]=state;
         }
         states.swap(tmp_new_states);
         tmp_new_states = vector<particle>();
@@ -247,6 +248,7 @@ void particle_filter::draw_particles(Mat& image, Scalar color=Scalar(0,255,255))
 Rect particle_filter::estimate(Mat& image,bool draw=false){
     float _x=0.0,_y=0.0,_width=0.0,_height=0.0;
     Rect estimate;
+    cout << "resampled particles!" <<endl;
     for (int i=0;i<n_particles;i++){
         particle state=states.at(i);
         double weight=weights.at(i);
@@ -341,13 +343,16 @@ void particle_filter::resample(){
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     marginal_likelihood+=norm_const-log(n_particles); 
     ESS=(1.0f/sum_squared_weights[0])/n_particles;
+    particle state;
     if(isless(ESS,(float)THRESHOLD)){
-        vector<particle> new_states;
+        vector<particle> new_states(n_particles);
         for (int i=0; i<n_particles; i++) {
             float uni_rand = unif_rnd(generator);
             vector<float>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
             int ipos = distance(cumulative_sum.begin(), pos);
-            particle state=states[ipos];
+            cout << ipos << ", ";
+            state=states[ipos];
+            cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
             new_states.push_back(state);
             weights.at(i)=1.0f/n_particles;
         }

@@ -13,7 +13,7 @@
 #include "particle_filter.hpp"
  #include "pmmh.hpp"
 #include "utils.hpp"
-
+#include "multivariate_gaussian.hpp"
 //C
 #include <stdio.h>
 #include <iostream>

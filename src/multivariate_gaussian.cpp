@@ -69,36 +69,3 @@ VectorXd MVNGaussian::log_likelihood(MatrixXd data){
     //cout << loglike << endl;
     return loglike;
 }
-
-
-// int main(){
-//     MatrixXd m(14,4);
-//     m << 1359, 413, 120, 362,
-//          584, 446, 84, 256,
-//          729, 457, 39, 119,
-//          460, 442,  90, 274,
-//          643, 461,  59, 180,
-//          1494, 408, 112 ,338,
-//          572, 364 ,128, 388,
-//          1097, 433,  39, 119,
-//          1324, 258, 182, 550,
-//          1021, 436,  31,  96,
-//          549, 476 , 27,  83,
-//          545, 457,  39, 119,
-//          1254, 446 , 33, 103,
-//          935, 429 , 41, 127;
-    
-//     VectorXd mean(4);
-//     mean << 1193, 989,  20,  50;
-
-//     MatrixXd cov = POSITION_LIKELIHOOD_STD*POSITION_LIKELIHOOD_STD*MatrixXd::Identity(4, 4);
-
-
-//     /* Testing getter and setter */
-//     MVNGaussian element (m);
-//     MVNGaussian element(mean, cov);
-//     cout << "Mean: \n" << element.getMean() << "\n\n";
-//     cout << "Covariance Matrix: \n" << element.getCov() << "\n\n";
-//     cout << "Log Likelihood: \n" << element.log_likelihood(m) << endl;
-//     return 0;
-// }

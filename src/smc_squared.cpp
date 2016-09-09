@@ -119,6 +119,14 @@ double smc_squared::gamma_prior(VectorXd x, double a, double b)
 
 
 void smc_squared::update(Mat& current_frame){
+    //theta_x_pos=MatrixXd::Zero(m_particles, 2);
+    //theta_x_scale=MatrixXd::Zero(m_particles, 2);
+    //theta_y_mu=MatrixXd::Zero(m_particles, haar.featureNum);
+    //theta_y_sig=MatrixXd::Zero(m_particles, haar.featureNum);
+    MVNGaussian theta_x_pos_proposal=MVNGaussian(theta_x_pos);
+    MVNGaussian theta_x_scale_proposal=MVNGaussian(theta_x_scale);
+    MVNGaussian theta_y_mu_proposal=MVNGaussian(theta_y_mu);
+    MVNGaussian theta_y_sig_proposal=MVNGaussian(theta_y_sig);
     images.push_back(current_frame);
     vector<float> tmp_weights;
     for(int j=0;j<m_particles;++j){
@@ -131,6 +139,12 @@ void smc_squared::update(Mat& current_frame){
     resample();
     for(int j=0;j<m_particles;++j){
         pmmh filter(n_particles,fixed_lag,mcmc_steps);
+        theta_x.clear();
+        //theta_x.push_back(theta_x_pos_proposal.sample());
+        //theta_x.push_back(theta_x_scale_proposal.sample());
+        theta_y.clear();
+        //theta_y.push_back(theta_y_mu_proposal.sample());
+        //theta_y.push_back(theta_y_sig_proposal.sample());
         theta_x=filter_bank[j]->get_dynamic_model();
         theta_y=filter_bank[j]->get_observation_model();
         filter.initialize(images,estimates.front(),theta_x,theta_y);

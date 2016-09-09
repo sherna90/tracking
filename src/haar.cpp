@@ -18,22 +18,18 @@ void Haar::HaarFeature(Rect& _objectBox, int _numFeature){
 	features = vector<vector<Rect> >(_numFeature, vector<Rect>());
 	featuresWeight = vector<vector<float> >(_numFeature, vector<float>());
 	
-	int numRect,dim;
-	Rect rectTemp,halfRect;
+	int numRect;
+	Rect rectTemp;
 	float weightTemp;
 	for (int i=0; i<_numFeature; i++)
 	{
 		//cout << "Feature :" << i << ";" ; 
 		numRect = cvFloor(rng.uniform((double)featureMinNumRect, (double)featureMaxNumRect));
-		rectTemp.x = cvFloor(rng.uniform(0.0, (double)(_objectBox.width - 3)));
-		rectTemp.y = cvFloor(rng.uniform(0.0, (double)(_objectBox.height - 3)));
-		rectTemp.width = cvCeil(rng.uniform(8.0, (double)(_objectBox.width - rectTemp.x - 2)));
-		rectTemp.height = cvCeil(rng.uniform(8.0, (double)(_objectBox.height - rectTemp.y - 2)));
-		dim = rng.uniform(0, 2);
+		//int dim = rng.uniform(0, 2);
 		//cout <<dim <<",";
 		for (int j=0; j<numRect; j++)
 		{
-			if(dim==0){
+			/*if(dim==0){
 				halfRect.width=cvCeil(rectTemp.width/numRect);
 				halfRect.x=cvFloor(rectTemp.x+j*halfRect.width);
 				halfRect.y=rectTemp.y;
@@ -44,10 +40,15 @@ void Haar::HaarFeature(Rect& _objectBox, int _numFeature){
 				halfRect.x=rectTemp.x;
 				halfRect.height=cvCeil(rectTemp.height/numRect);
 				halfRect.y=cvFloor(rectTemp.y+j*halfRect.height);
-			}
-			features[i].push_back(halfRect);
-			//weightTemp = (float)pow(-1.0, cvFloor(rng.uniform(0.0, 2.0))) / sqrt(float(numRect));
-			weightTemp = (j % 2 == 0) ? -1.0 : 1.0;
+			}*/
+			rectTemp.x = cvFloor(rng.uniform(0.0, (double)(_objectBox.width - 3)));
+			rectTemp.y = cvFloor(rng.uniform(0.0, (double)(_objectBox.height - 3)));
+			rectTemp.width = cvCeil(rng.uniform(8.0, (double)(_objectBox.width - rectTemp.x - 2)));
+			rectTemp.height = cvCeil(rng.uniform(8.0, (double)(_objectBox.height - rectTemp.y - 2)));
+			
+			features[i].push_back(rectTemp);
+			weightTemp = (float)pow(-1.0, cvFloor(rng.uniform(0.0, 2.0))) / sqrt(float(numRect));
+			//weightTemp = (j % 2 == 0) ? -1.0 : 1.0;
 			featuresWeight[i].push_back(weightTemp);
    			//cout << weightTemp <<"," << halfRect  ;
 		}
@@ -72,12 +73,13 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double>
 		{
 			tempValue = 0.0f;
 			//float scale=(float)_sampleScale[j];
+			float scale=1.0f;
 			for (size_t k=0; k<features[i].size(); k++)
 			{
-				xMin = _sampleBox[j].x + cvRound(features[i][k].x);
-				xMax = _sampleBox[j].x + cvRound(features[i][k].x + features[i][k].width);
-				yMin = _sampleBox[j].y + cvRound(features[i][k].y);
-				yMax = _sampleBox[j].y + cvRound(features[i][k].y + features[i][k].height);
+				xMin = _sampleBox[j].x + cvRound(features[i][k].x*scale);
+				xMax = _sampleBox[j].x + cvRound(features[i][k].x*scale + features[i][k].width*scale);
+				yMin = _sampleBox[j].y + cvRound(features[i][k].y*scale);
+				yMax = _sampleBox[j].y + cvRound(features[i][k].y*scale + features[i][k].height*scale);
 				//cout << xMin << ","<< xMax << ","<< yMin << ","<< yMax  << endl;
 				//cout << _frame.size() << endl;
 				if(xMax < _frame.cols && yMax < _frame.rows && yMin > 0 && xMin > 0){

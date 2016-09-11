@@ -43,12 +43,12 @@ void Haar::HaarFeature(Rect& _objectBox, int _numFeature){
 			}*/
 			rectTemp.x = cvFloor(rng.uniform(0.0, (double)(_objectBox.width - 3)));
 			rectTemp.y = cvFloor(rng.uniform(0.0, (double)(_objectBox.height - 3)));
-			rectTemp.width = cvCeil(rng.uniform(8.0, (double)(_objectBox.width - rectTemp.x - 2)));
-			rectTemp.height = cvCeil(rng.uniform(8.0, (double)(_objectBox.height - rectTemp.y - 2)));
+			rectTemp.width = cvCeil(rng.uniform(4.0, (double)(_objectBox.width - rectTemp.x - 2)));
+			rectTemp.height = cvCeil(rng.uniform(4.0, (double)(_objectBox.height - rectTemp.y - 2)));
 			
 			features[i].push_back(rectTemp);
-			weightTemp = (float)pow(-1.0, cvFloor(rng.uniform(0.0, 2.0))) / sqrt(float(numRect));
-			//weightTemp = (j % 2 == 0) ? -1.0 : 1.0;
+			//weightTemp = (float)pow(-1.0, cvFloor(rng.uniform(0.0, 2.0))) / sqrt(float(numRect));
+			weightTemp = (j % 2 == 0) ? -1.0 : 1.0;
 			featuresWeight[i].push_back(weightTemp);
    			//cout << weightTemp <<"," << halfRect  ;
 		}
@@ -72,17 +72,20 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double>
 		for (int j=0; j<sampleBoxSize; j++)
 		{
 			tempValue = 0.0f;
-			//float scale=(float)_sampleScale[j];
-			float scale=1.0f;
+			float scale;
+			if(j<=(int)_sampleScale.size())
+				scale=(float)_sampleScale[j];
+			else scale=1.0f;
 			for (size_t k=0; k<features[i].size(); k++)
 			{
-				xMin = _sampleBox[j].x + cvRound(features[i][k].x*scale);
-				xMax = _sampleBox[j].x + cvRound(features[i][k].x*scale + features[i][k].width*scale);
-				yMin = _sampleBox[j].y + cvRound(features[i][k].y*scale);
-				yMax = _sampleBox[j].y + cvRound(features[i][k].y*scale + features[i][k].height*scale);
-				//cout << xMin << ","<< xMax << ","<< yMin << ","<< yMax  << endl;
+				xMin = cvRound(_sampleBox[j].x + scale*features[i][k].x);
+				xMax = cvRound(_sampleBox[j].x + scale*(features[i][k].x + features[i][k].width));
+				yMin = cvRound(_sampleBox[j].y + scale*features[i][k].y);
+				yMax = cvRound(_sampleBox[j].y + scale*(features[i][k].y + features[i][k].height));
+				//cout << "Box " << _sampleBox[j].x << ","<< _sampleBox[j].x+_sampleBox[j].width << ","<< _sampleBox[j].y << ","<< _sampleBox[j].y+_sampleBox[j].height  << endl;
+				//cout << "Feature : " << xMin << ","<< xMax << ","<< yMin << ","<< yMax  << endl;
 				//cout << _frame.size() << endl;
-				if(xMax < _frame.cols && yMax < _frame.rows && yMin > 0 && xMin > 0){
+				if(xMax < _sampleBox[j].x+_sampleBox[j].width && yMax < _sampleBox[j].y+_sampleBox[j].height && yMin > 0 && xMin > 0){
 					tempValue += featuresWeight[i][k] *
 						(imageIntegral.at<float>(yMin, xMin) +
 						imageIntegral.at<float>(yMax, xMax) -

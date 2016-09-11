@@ -143,7 +143,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         }
         Mat grayImg;
         cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-        equalizeHist( grayImg, grayImg );
+        //equalizeHist( grayImg, grayImg );
         haar.init(grayImg,reference_roi,sampleBox);
         VectorXd theta_y_mu(haar.featureNum);
         VectorXd theta_y_sig(haar.featureNum);
@@ -175,7 +175,7 @@ void particle_filter::predict(){
     normal_distribution<double> scale_random_height(0.0,theta_x.at(1)(1));
     sampleBox.clear();//important
     sampleScale.clear();//important
-    cout << "predicted particles!" <<endl;
+    //cout << "predicted particles!" <<endl;
     if(initialized==true){
         time_stamp++;
         vector<particle> tmp_new_states(n_particles);
@@ -186,10 +186,10 @@ void particle_filter::predict(){
             float _dy=position_random_y(generator);
             float _dw=scale_random_width(generator);
             float _dh=scale_random_height(generator);
-            _x=MIN(MAX(cvRound(state.x+_dx),0),im_size.width);
-            _y=MIN(MAX(cvRound(state.y+_dy),0),im_size.height);
-            _width=MIN(MAX(cvRound(state.width+_dw),10),im_size.width);
-            _height=MIN(MAX(cvRound(state.height+_dh),10),im_size.height);
+            _x=MIN(MAX(cvRound(state.x),0),im_size.width);
+            _y=MIN(MAX(cvRound(state.y),0),im_size.height);
+            _width=MIN(MAX(cvRound(state.width),10),im_size.width);
+            _height=MIN(MAX(cvRound(state.height),10),im_size.height);
             //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
             //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
             if( (_x+_width)<im_size.width 
@@ -201,12 +201,12 @@ void particle_filter::predict(){
                 && _width>0 && _height>0){
                 state.x_p=state.x;
                 state.y_p=state.y;
-                state.x=2*_x-state.x_p;
-                state.y=2*_y-state.y_p;
+                state.x=cvRound(2*_x-state.x_p+_dx);
+                state.y=cvRound(2*_y-state.y_p+_dy);
                 state.width_p=state.width;
                 state.height_p=state.height;       
-                state.width=2*_width-state.width_p;
-                state.height=2*_height-state.height_p;
+                state.width=cvRound(2*_width-state.width_p+_dw);
+                state.height=cvRound(2*_height-state.height_p+_dw);
                 state.scale=((float)state.width/(float)reference_roi.width)/2.0f+((float)state.height/(float)reference_roi.height)/2.0f;
             }
             else{
@@ -224,7 +224,7 @@ void particle_filter::predict(){
             sampleBox.push_back(box);
             sampleScale.push_back(state.scale);
             //cout << "reference " << reference_roi << endl;
-            cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height <<",scale:" << state.scale << endl;
+            //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height <<",scale:" << state.scale << endl;
             tmp_new_states[i]=state;
         }
         states.swap(tmp_new_states);
@@ -246,31 +246,38 @@ void particle_filter::draw_particles(Mat& image, Scalar color=Scalar(0,255,255))
 }
 
 Rect particle_filter::estimate(Mat& image,bool draw=false){
-    float _x=0.0,_y=0.0,_width=0.0,_height=0.0;
+    float _x=0.0,_y=0.0,_width=0.0,_height=0.0,norm=0.0;
     Rect estimate;
-    cout << "resampled particles!" <<endl;
+    //cout << "estimated particles!" <<endl;
     for (int i=0;i<n_particles;i++){
-        particle state=states.at(i);
-        double weight=weights.at(i);
-        _x+=(weight*state.x > 0 && weight*state.x < im_size.width) ? weight*state.x : float(1.0/n_particles)*state.x; 
-        _y+=(weight*state.y > 0 && weight*state.y < im_size.height) ? weight*state.y : float(1.0/n_particles)*state.y; 
-        _width+=(weight*state.width > 0 && weight*state.width < im_size.width) ? weight*state.width : float(1.0/n_particles)*reference_roi.width; 
-        _height+=(weight*state.height > 0 && weight*state.height < im_size.height) ? weight*state.height : float(1.0/n_particles)*reference_roi.height; 
+        particle state=states[i];
+        //double weight=weights.at(i);
+        if(state.x>0 && state.x<im_size.width 
+            && state.y>0  && state.y<im_size.height 
+            && state.width>0 && state.width<im_size.height 
+            && state.height>0 && state.height<im_size.height){
+            _x+= state.x; 
+            _y+= state.y; 
+            _width+= state.width; 
+            _height+= state.height;
+            norm++;
+        } 
         //cout << "weight:" << weight << endl;
         //cout << "ref x:" << reference_roi.x << ",y:" << reference_roi.y <<",w:" << reference_roi.width <<",h:" << reference_roi.height << endl;
-        //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
+        cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
     }
     Point pt1,pt2;
-    pt1.x=cvRound(_x);
-    pt1.y=cvRound(_y);
-    _width=cvRound(_width);
-    _height=cvRound(_height);
+    pt1.x=cvRound(_x/norm);
+    pt1.y=cvRound(_y/norm);
+    _width=cvRound(_width/norm);
+    _height=cvRound(_height/norm);
     pt2.x=cvRound(pt1.x+_width);
     pt2.y=cvRound(pt1.y+_height); 
     if(pt2.x<im_size.width && pt1.x>=0 && pt2.y<im_size.height && pt1.y>=0){
         if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 2, LINE_AA );
         estimate=Rect(pt1.x,pt1.y,_width,_height);
     }
+    cout << " estimate x:" << estimate.x << ",y:" << estimate.y <<",w:" << estimate.width <<",h:" << estimate.height << endl;
     estimates.push_back(estimate);
     return estimate;
 
@@ -285,8 +292,10 @@ void particle_filter::update(Mat& image)
     cvtColor(image, grayImg, CV_RGB2GRAY);
     equalizeHist( grayImg, grayImg );
     haar.getFeatureValue(grayImg,sampleBox,sampleScale);
+    //cout << "updated particles!" <<endl;
     for (int i=0;i<n_particles;i++){
         particle state=states[i];
+        //cout << i << ", x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
         if (state.width < 0 || state.width>image.cols){
           state.width = reference_roi.width;
         }
@@ -325,38 +334,39 @@ void particle_filter::resample(){
     float logsumexp=0.0f;
     float max_value = *max_element(weights.begin(), weights.end());
     for (unsigned int i=0; i<weights.size(); i++) {
-        new_weights[i]=exp(weights[i]-max_value);
+        new_weights[i]=exp(weights.at(i)-max_value);
         logsumexp+=new_weights[i];
     }
     float norm_const=max_value+log(logsumexp);
-    for (unsigned int i=0; i<weights.size(); i++) {
+    for (int i=0; i<n_particles; i++) {
         normalized_weights.at(i) = exp(weights.at(i)-norm_const);
     }
-    for (unsigned int i=0; i<weights.size(); i++) {
+    for (int i=0; i<n_particles; i++) {
         squared_normalized_weights.at(i)=normalized_weights.at(i)*normalized_weights.at(i);
         if (i==0) {
             cumulative_sum.at(i) = normalized_weights.at(i);
         } else {
             cumulative_sum.at(i) = cumulative_sum.at(i-1) + normalized_weights.at(i);
         }
+        //cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     marginal_likelihood+=norm_const-log(n_particles); 
     ESS=(1.0f/sum_squared_weights[0])/n_particles;
-    particle state;
+    //cout << "resampled particles!" << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
         vector<particle> new_states(n_particles);
         for (int i=0; i<n_particles; i++) {
             float uni_rand = unif_rnd(generator);
             vector<float>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
             int ipos = distance(cumulative_sum.begin(), pos);
-            cout << ipos << ", ";
-            state=states[ipos];
-            cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
-            new_states.push_back(state);
-            weights.at(i)=1.0f/n_particles;
+            particle state=states[ipos];
+            //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
+            new_states[i]=state;
+            weights[i]=1.0f/n_particles;
         }
         states.swap(new_states);
+        new_states = vector<particle>();
     }
     else{
         weights.swap(new_weights);

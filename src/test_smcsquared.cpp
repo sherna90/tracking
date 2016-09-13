@@ -56,6 +56,8 @@ void TestSMCSampler::run(){
         filter.update(current_frame);
         filter.draw_particles(current_frame);
         rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
+        cout << "-------------------" << endl;
+        cout << ground_truth << endl;
         Rect estimate = filter.estimate(current_frame,true);
         double r1 = performance.calc(ground_truth, estimate);
         if(r1<0.1) {

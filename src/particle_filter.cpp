@@ -280,7 +280,7 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
         if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 2, LINE_AA );
         estimate=Rect(pt1.x,pt1.y,_width,_height);
     }
-    cout << " estimate x:" << estimate.x << ",y:" << estimate.y <<",w:" << estimate.width <<",h:" << estimate.height << endl;
+    //cout << " estimate x:" << estimate.x << ",y:" << estimate.y <<",w:" << estimate.width <<",h:" << estimate.height << endl;
     estimates.push_back(estimate);
     return estimate;
 
@@ -351,7 +351,7 @@ void particle_filter::resample(){
         } else {
             cumulative_sum.at(i) = cumulative_sum.at(i-1) + normalized_weights.at(i);
         }
-        cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
+        //cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     marginal_likelihood+=norm_const-log(n_particles); 
@@ -362,7 +362,7 @@ void particle_filter::resample(){
         for (int i=0; i<n_particles; i++) {
             float uni_rand = unif_rnd(generator);
             vector<float>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
-            int ipos = distance(cumulative_sum.begin(), pos);
+            unsigned int ipos = distance(cumulative_sum.begin(), pos);
             particle state=states[ipos];
             //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
             new_states[i]=state;

@@ -6,10 +6,10 @@
 #include "../include/particle_filter.hpp"
 
 #ifndef PARAMS
-const float POS_STD=1.0;
+const float POS_STD=5.0;
 const float SCALE_STD=1.0;
 const float  DT=1.0;
-const float  THRESHOLD=0.5;
+const float  THRESHOLD=0.8;
 #endif 
 
 particle_filter::particle_filter() {
@@ -143,7 +143,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         }
         Mat grayImg;
         cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-        //equalizeHist( grayImg, grayImg );
+        equalizeHist( grayImg, grayImg );
         haar.init(grayImg,reference_roi,sampleBox);
         VectorXd theta_y_mu(haar.featureNum);
         VectorXd theta_y_sig(haar.featureNum);
@@ -261,10 +261,13 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
             _width+= state.width; 
             _height+= state.height;
             norm++;
+        }
+        else{
+            cout << "weight:"  << weights[i] <<", x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
         } 
         //cout << "weight:" << weight << endl;
         //cout << "ref x:" << reference_roi.x << ",y:" << reference_roi.y <<",w:" << reference_roi.width <<",h:" << reference_roi.height << endl;
-        cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
+        //
     }
     Point pt1,pt2;
     pt1.x=cvRound(_x/norm);
@@ -348,7 +351,7 @@ void particle_filter::resample(){
         } else {
             cumulative_sum.at(i) = cumulative_sum.at(i-1) + normalized_weights.at(i);
         }
-        //cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
+        cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     marginal_likelihood+=norm_const-log(n_particles); 
@@ -376,6 +379,8 @@ void particle_filter::resample(){
     new_weights.clear();
     squared_normalized_weights.clear();
 }
+
+
 
 float particle_filter::getESS(){
     return ESS;

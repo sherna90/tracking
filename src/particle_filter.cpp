@@ -262,9 +262,9 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
             _height+= state.height;
             norm++;
         }
-        else{
-            cout << "weight:"  << weights[i] <<", x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
-        } 
+        //else{
+        //    cout << "weight:"  << weights[i] <<", x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
+        //} 
         //cout << "weight:" << weight << endl;
         //cout << "ref x:" << reference_roi.x << ",y:" << reference_roi.y <<",w:" << reference_roi.width <<",h:" << reference_roi.height << endl;
         //

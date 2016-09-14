@@ -88,7 +88,7 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double>
 				cout << "," << imageIntegral.at<float>(yMax, xMin)  << endl;*/
 				//cout << imageIntegral.size() << "," << yMin << "," << xMin << "," << yMax << "," << xMax;
 				if(xMax < _sampleBox[j].x+_sampleBox[j].width && yMax < _sampleBox[j].y+_sampleBox[j].height && yMin > 0 && xMin > 0){
-					tempValue += featuresWeight[i][k] *
+					tempValue += (featuresWeight[i][k]/_sampleBox[j].area()) *
 						(imageIntegral.at<float>(yMin, xMin) +
 						imageIntegral.at<float>(yMax, xMax) -
 						imageIntegral.at<float>(yMin, xMax) -

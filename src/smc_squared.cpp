@@ -2,6 +2,8 @@
 
 const float SHAPE=1.0;
 const float SCALE=1.0;
+const float HAAR_MU=1.0;
+const float HAAR_SIG=1.0;
 const float PRIOR_SD=0.01;
 const float SMC_THRESHOLD=0.5;
 
@@ -41,19 +43,20 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
         new_filter->initialize(current_frame,ground_truth);
         new_filter->haar=haar;
         theta_y_prop.clear();
-        VectorXd prop_mu=proposal(theta_y[0],10.0);
+        VectorXd prop_mu=proposal(theta_y[0],HAAR_MU);
         theta_y_prop.push_back(prop_mu);
-        VectorXd prop_sig=proposal(theta_y[1],1.0);
+        VectorXd prop_sig=proposal(theta_y[1],HAAR_SIG);
         prop_sig=prop_sig.array().abs().matrix();
         theta_y_prop.push_back(prop_sig);
         theta_x_prop.clear();
-        VectorXd prop_pos=proposal(theta_x[0],1.0);
+        VectorXd prop_pos=proposal(theta_x[0],SHAPE);
         prop_pos=prop_pos.array().abs().matrix();
         theta_x_prop.push_back(prop_pos);
-        VectorXd prop_std=proposal(theta_x[1],1.0);
+        VectorXd prop_std=proposal(theta_x[1],SCALE);
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
-        filter->update_model(theta_x_prop,theta_y_prop);
+        new_filter->update_model(theta_x_prop,theta_y_prop);
+        //cout << "dynamic model proposal " << theta_x_prop[0].transpose() << ",scale model proposal " << theta_x_prop[1].transpose() << endl;
         theta_x_pos.row(j) = prop_pos;
         theta_x_scale.row(j) = prop_std;
         theta_y_mu.row(j) = prop_mu;
@@ -134,7 +137,7 @@ void smc_squared::update(Mat& current_frame){
     tmp_weights.clear();
     //resample();
     for(int j=0;j<m_particles;++j){
-        cout << "PMMH, lag:" << fixed_lag << ",mcmc:" << mcmc_steps;
+        //cout << " PMMH ---------------------" << endl;
         pmmh filter(n_particles,fixed_lag,mcmc_steps);
         /*theta_x.clear();
         theta_x.push_back(theta_x_pos_proposal.sample());
@@ -144,11 +147,27 @@ void smc_squared::update(Mat& current_frame){
         theta_y.push_back(theta_y_sig_proposal.sample());*/
         theta_x=filter_bank[j]->get_dynamic_model();
         theta_y=filter_bank[j]->get_observation_model();
-        filter.initialize(images,estimates.front(),theta_x,theta_y);
+        theta_y_prop.clear();
+        VectorXd prop_mu=proposal(theta_y[0],10.0);
+        theta_y_prop.push_back(prop_mu);
+        VectorXd prop_sig=proposal(theta_y[1],1.0);
+        prop_sig=prop_sig.array().abs().matrix();
+        theta_y_prop.push_back(prop_sig);
+        theta_x_prop.clear();
+        VectorXd prop_pos=proposal(theta_x[0],SHAPE);
+        prop_pos=prop_pos.array().abs().matrix();
+        theta_x_prop.push_back(prop_pos);
+        VectorXd prop_std=proposal(theta_x[1],SCALE);
+        prop_std=prop_std.array().abs().matrix();
+        theta_x_prop.push_back(prop_std);
+        filter.initialize(images,estimates.front(),theta_x_prop,theta_y_prop);
         filter.run_mcmc();
         theta_x=filter.get_dynamic_model();
         theta_y=filter.get_observation_model();
         filter_bank[j]->update_model(theta_x,theta_y);
+        //cout << "dynamic model proposal " << theta_x_prop[0].transpose() << ",scale model proposal " << theta_x_prop[1].transpose() << endl;
+        //cout << "appearence mu proposal " << theta_y_prop[0].transpose() << endl;
+        //cout << "appearence sig  proposal " << theta_y_prop[1].transpose() << endl;
     }
 }
 
@@ -172,7 +191,7 @@ Rect smc_squared::estimate(Mat& image,bool draw){
         cout << j <<  ", weight:" << (float)theta_weights[j] << ",x:" << estimate.x << ",y:" << estimate.y << ",w:" << estimate.width << ",h:" << estimate.height << endl;
     }
     Rect new_estimate(cvRound(_x/norm), cvRound(_y/norm), cvRound(_width/norm), cvRound(_height/norm));
-    cout << "final estimate: " << new_estimate << endl;
+    //cout << "final estimate: " << new_estimate << endl;
     estimates.push_back(new_estimate);
     return new_estimate;
 }
@@ -206,7 +225,7 @@ void smc_squared::resample(){
         } else {
             cumulative_sum.at(i) = cumulative_sum.at(i-1) + normalized_weights.at(i);
         }
-        cout << i << ", cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
+        //cout << i << ", cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     float ESS=(1.0f/sum_squared_weights[0])/m_particles;

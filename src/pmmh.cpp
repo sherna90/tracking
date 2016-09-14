@@ -2,6 +2,8 @@
 
 const float SHAPE=0.1;
 const float SCALE=0.1;
+const float HAAR_MU=1.0;
+const float HAAR_SIG=1.0;
 const float PRIOR_SD=0.01;
 
 
@@ -142,16 +144,16 @@ void pmmh::run_mcmc(){
     double accept_rate=0;
     for(int n=0;n<mcmc_steps;n++){
         theta_y_prop.clear();
-        VectorXd prop_mu=proposal(theta_y[0],100.0);
+        VectorXd prop_mu=proposal(theta_y[0],HAAR_MU);
         theta_y_prop.push_back(prop_mu);
-        VectorXd prop_sig=proposal(theta_y[1],10.0);
+        VectorXd prop_sig=proposal(theta_y[1],HAAR_SIG);
         prop_sig=prop_sig.array().abs().matrix();
         theta_y_prop.push_back(prop_sig);
         theta_x_prop.clear();
-        VectorXd prop_pos=proposal(theta_x[0],1.0);
+        VectorXd prop_pos=proposal(theta_x[0],SHAPE);
         prop_pos=prop_pos.array().abs().matrix();
         theta_x_prop.push_back(prop_pos);
-        VectorXd prop_std=proposal(theta_x[1],0.01);
+        VectorXd prop_std=proposal(theta_x[1],SCALE);
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
         double proposal_filter = marginal_likelihood(theta_x_prop,theta_y_prop);

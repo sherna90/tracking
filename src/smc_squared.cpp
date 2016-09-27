@@ -36,7 +36,7 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
     theta_x=filter->get_dynamic_model();
     theta_y=filter->get_observation_model();
     haar=filter->haar;
-    float weight=1.0/m_particles;
+    float weight=1.0f;
     for(int j=0;j<m_particles;++j){
         //delete filter;
         particle_filter* new_filter=new particle_filter(n_particles);
@@ -135,16 +135,10 @@ void smc_squared::update(Mat& current_frame){
     }
     theta_weights.swap(tmp_weights);
     tmp_weights.clear();
-    //resample();
+    resample();
     for(int j=0;j<m_particles;++j){
         //cout << " PMMH ---------------------" << endl;
         pmmh filter(n_particles,fixed_lag,mcmc_steps);
-        /*theta_x.clear();
-        theta_x.push_back(theta_x_pos_proposal.sample());
-        theta_x.push_back(theta_x_scale_proposal.sample());
-        theta_y.clear();
-        theta_y.push_back(theta_y_mu_proposal.sample());
-        theta_y.push_back(theta_y_sig_proposal.sample());*/
         theta_x=filter_bank[j]->get_dynamic_model();
         theta_y=filter_bank[j]->get_observation_model();
         theta_y_prop.clear();
@@ -237,7 +231,7 @@ void smc_squared::resample(){
             unsigned int ipos = distance(cumulative_sum.begin(), pos);
             //particle_filter* filter=filter_bank[ipos];
             new_filter_bank[i]=filter_bank[ipos];
-            theta_weights.at(i)=1.0f/m_particles;
+            theta_weights.at(i)=1.0f;
         }
         filter_bank.swap(new_filter_bank);
     }

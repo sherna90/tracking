@@ -1,6 +1,7 @@
-#include "../include/multivariate_gaussian.hpp"
+#include "multivariate_gaussian.hpp"
 
 MVNGaussian::MVNGaussian(VectorXd _mean, MatrixXd _cov){
+    dim=_mean.size();
     mean = _mean;
     cov = _cov;
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -8,9 +9,9 @@ MVNGaussian::MVNGaussian(VectorXd _mean, MatrixXd _cov){
 }
 
 MVNGaussian::MVNGaussian(MatrixXd &data){
-    double cols = data.cols();
-    mean.resize(cols);
-    cov.resize(cols,cols);
+    dim = data.cols();
+    mean.resize(dim);
+    cov.resize(dim,dim);
     MatrixXd centered;
 
     /* Getting mean for every column */
@@ -49,6 +50,24 @@ VectorXd MVNGaussian::sample(){
     return mvn_sample;
 }
 
+MatrixXd MVNGaussian::sample(int n_samples){
+    MatrixXd mvn_sample,mvn_random;
+    srand((unsigned int) time(0));
+    mvn_random=MatrixXd::Zero(n_samples,dim);
+    mvn_random.noalias() = mvn_random.unaryExpr([](double elem) // changed type of parameter
+    {
+        unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+        mt19937 generator(seed);
+        normal_distribution<double> normal(0.0,1.0);
+        elem=normal(generator);
+        return elem;
+    });
+    LLT<MatrixXd> cholSolver(cov);
+    MatrixXd upperL = cholSolver.matrixL();
+    mvn_sample= mvn_random*upperL;
+    mvn_sample.rowwise()+=mean.transpose();
+    return mvn_sample;
+}
 
 VectorXd MVNGaussian::log_likelihood(MatrixXd data){
     double rows = data.rows();

@@ -78,7 +78,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     if(reference_roi.width>0 && (reference_roi.x+reference_roi.width)<im_size.width && 
         reference_roi.height>0 && (reference_roi.y+reference_roi.height)<im_size.height){
         marginal_likelihood=0.0;
-        float weight=1.0/n_particles;
+        float weight=log(1.0/n_particles);
         for (int i=0;i<n_particles;i++){
             particle state;
             float _x,_y,_width,_height;
@@ -319,7 +319,7 @@ void particle_filter::update(Mat& image)
             float haar_prob=haar.sampleFeatureValue.at<float>(j,i);
             prob_haar += positive_likelihood.at(j).log_likelihood(haar_prob)-negative_likelihood.at(j).log_likelihood(haar_prob);
         }
-        weight+=prob_haar;
+        weight=prob_haar;
         tmp_weights.push_back(weight);
     }
     weights.swap(tmp_weights);
@@ -354,7 +354,7 @@ void particle_filter::resample(){
         //cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    marginal_likelihood+=norm_const-log(n_particles); 
+    marginal_likelihood=norm_const-log(n_particles); 
     ESS=(1.0f/sum_squared_weights[0])/n_particles;
     //cout << "resampled particles!" << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
@@ -366,7 +366,7 @@ void particle_filter::resample(){
             particle state=states[ipos];
             //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
             new_states[i]=state;
-            weights[i]=1.0f/n_particles;
+            weights[i]=log(1.0f/n_particles);
         }
         states.swap(new_states);
         new_states = vector<particle>();

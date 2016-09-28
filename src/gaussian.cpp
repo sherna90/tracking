@@ -17,6 +17,10 @@ void Gaussian::setMean(double n){
     mean = n;
 }
 
+double Gaussian::getSd(void){
+    return sd;
+}
+
 void Gaussian::setSd(double n){
     sd=n;
 }

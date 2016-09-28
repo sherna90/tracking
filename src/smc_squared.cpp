@@ -35,6 +35,7 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
     filter->initialize(current_frame,ground_truth);
     theta_x=filter->get_dynamic_model();
     theta_y=filter->get_observation_model();
+    //cout << "smc_squared" << endl;
     haar=filter->haar;
     float weight=1.0/m_particles;
     for(int j=0;j<m_particles;++j){

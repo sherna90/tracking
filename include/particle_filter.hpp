@@ -15,6 +15,9 @@
 #include <random>
 #include <chrono>
 
+#include "logistic_regression.hpp"
+#include "gaussian_multinomial.hpp"
+
 extern const float POS_STD; 
 extern const float VEL_STD; 
 extern const float SCALE_STD; 
@@ -36,7 +39,6 @@ typedef struct particle {
     float width_p; /** current width coordinate */
     float height_p; /** current height coordinate */
     float scale_p; /** current velocity bounding box scale */
-    
 } particle;
 
 
@@ -46,6 +48,8 @@ public:
     vector<particle> states;
     vector<float>  weights;
     Haar haar;
+    LogisticRegression* logistic_regression;
+    GaussianMultinomial gaussian_multinomial;
     ~particle_filter();
     particle_filter(int _n_particles);
     particle_filter();
@@ -65,6 +69,7 @@ public:
     float getMarginalLikelihood();
     void resample();
     vector<Rect> estimates;
+    particle update_state(particle state, Mat& image);
 
 protected:
     float marginal_likelihood;

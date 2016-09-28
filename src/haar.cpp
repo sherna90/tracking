@@ -107,5 +107,4 @@ void Haar::init(Mat& _frame, Rect& _objectBox,vector<Rect>& _sampleBox)
 	HaarFeature(_objectBox, featureNum);
 	vector<double> initial_scale (featureNum,1.0);
 	getFeatureValue(_frame, _sampleBox, initial_scale);
-
 }

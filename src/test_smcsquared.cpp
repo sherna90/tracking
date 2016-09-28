@@ -52,6 +52,7 @@ void TestSMCSampler::run(){
     if(!filter.is_initialized()){
         filter.initialize(current_frame,ground_truth);
     }else{
+
         filter.predict();
         filter.update(current_frame);
         filter.draw_particles(current_frame);

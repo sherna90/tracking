@@ -17,6 +17,7 @@ class Gaussian
         double likelihood(double test);
         double getMean();
         void setMean( double n);
+        double getSd();
         void setSd( double n);
     private:
         double mean,sd;

@@ -4,12 +4,14 @@
  * @author Sergio Hernandez
  */
 #include "../include/particle_filter.hpp"
+#include <opencv2/ml.hpp>
 
 #ifndef PARAMS
 const float POS_STD=5.0;
 const float SCALE_STD=1.0;
 const float  DT=1.0;
 const float  THRESHOLD=0.8;
+const bool GAUSSIAN_MULTINOMIAL=false; //true:gaussian multinomial - false:logistic regression
 #endif 
 
 particle_filter::particle_filter() {
@@ -57,7 +59,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     normal_distribution<double> scale_random_width(0.0,theta_x.at(1)(0));
     normal_distribution<double> scale_random_height(0.0,theta_x.at(1)(1));
     marginal_likelihood=0.0;
-    vector<Rect > negativeBox;
+    vector<Rect> negativeBox;
     states.clear();
     weights.clear();
     estimates.clear();
@@ -102,7 +104,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 state.x_p=reference_roi.x;
                 state.y_p=reference_roi.y;
                 state.width_p=reference_roi.width;
-                state.height_p=reference_roi.height;       
+                state.height_p=reference_roi.height;
                 state.x=_x;
                 state.y=_y;
                 state.width=_width;
@@ -144,26 +146,32 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         Mat grayImg;
         cvtColor(current_frame, grayImg, CV_RGB2GRAY);
         equalizeHist( grayImg, grayImg );
+
         haar.init(grayImg,reference_roi,sampleBox);
-        VectorXd theta_y_mu(haar.featureNum);
-        VectorXd theta_y_sig(haar.featureNum);
-        Scalar muTemp;
-        Scalar sigmaTemp;
-        for (int i=0; i<haar.sampleFeatureValue.rows; i++){
-            meanStdDev(haar.sampleFeatureValue.row(i), muTemp, sigmaTemp);
-            theta_y_mu[i]=muTemp.val[0];
-            theta_y_sig[i]=sigmaTemp.val[0];
-            Gaussian haar_feature(theta_y_mu[i],theta_y_sig[i]);  
-            positive_likelihood.push_back(haar_feature);
+        if(GAUSSIAN_MULTINOMIAL){
+            Mat positive_sample_feature_values = haar.sampleFeatureValue.clone();
+            haar.getFeatureValue(grayImg, negativeBox, sampleScale);
+            gaussian_multinomial = GaussianMultinomial(positive_sample_feature_values, 
+                                                                haar.sampleFeatureValue);
+            gaussian_multinomial.fit();
+            theta_y.push_back(gaussian_multinomial.theta_y_mu);
+            theta_y.push_back(gaussian_multinomial.theta_y_sigma);
+        }else{// logistic regression
+            MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
+            VectorXd labels(2*n_particles);
+
+            cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
+            haar.getFeatureValue(grayImg,negativeBox,sampleScale);
+            cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
+            MatrixXd eigen_sample_feature_value( eigen_sample_positive_feature_value.rows(),
+                eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
+            eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
+                                            eigen_sample_negative_feature_value;
+            labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
+            logistic_regression = new LogisticRegression(eigen_sample_feature_value.transpose(), labels);
+            logistic_regression->Train(1e3,1e-1,1e-3,1.0);    
         }
-        theta_y.push_back(theta_y_mu);
-        theta_y.push_back(theta_y_sig);
-        haar.getFeatureValue(grayImg,negativeBox,sampleScale);
-        for (int i=0; i<haar.featureNum; i++){
-            meanStdDev(haar.sampleFeatureValue.row(i), muTemp, sigmaTemp);
-            Gaussian haar_feature((double)muTemp.val[0],(double)sigmaTemp.val[0]); 
-            negative_likelihood.push_back(haar_feature);
-        }
+
         initialized=true;
     }
 }
@@ -198,7 +206,7 @@ void particle_filter::predict(){
                 && _y>0 
                 && _width<im_size.width 
                 && _height<im_size.height 
-                && _width>0 && _height>0){
+                && _width>0 && _height>0 ){
                 state.x_p=state.x;
                 state.y_p=state.y;
                 state.x=cvRound(2*_x-state.x_p+_dx);
@@ -286,7 +294,6 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
 
 }
 
-
 void particle_filter::update(Mat& image)
 {
     vector<float> tmp_weights;
@@ -295,38 +302,41 @@ void particle_filter::update(Mat& image)
     cvtColor(image, grayImg, CV_RGB2GRAY);
     equalizeHist( grayImg, grayImg );
     haar.getFeatureValue(grayImg,sampleBox,sampleScale);
-    //cout << "updated particles!" <<endl;
-    for (int i=0;i<n_particles;i++){
-        particle state=states[i];
-        //cout << i << ", x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
-        if (state.width < 0 || state.width>image.cols){
-          state.width = reference_roi.width;
+
+    if(GAUSSIAN_MULTINOMIAL){
+        gaussian_multinomial.setSampleFeatureValue(haar.sampleFeatureValue);
+        for (int i = 0; i < n_particles; ++i)
+        {
+            particle state = update_state(states[i], image);
+            //float weight=weights[i];
+            tmp_weights.push_back(gaussian_multinomial.test(i));
         }
-        if (state.height < 0 || state.height>image.rows){
-          state.height = reference_roi.width;
+    }else{//logistic regression
+        MatrixXd eigen_sample_feature_value;
+        VectorXd phi;
+        cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
+        phi = logistic_regression->Predict(eigen_sample_feature_value.transpose());
+        cout << "phi: " << phi.transpose() << endl; 
+        for (int i = 0; i < n_particles; ++i)
+        {
+            particle state = update_state(states[i], image);
+            tmp_weights.push_back(log(phi(i)));
+
         }
-        if (state.x < 0 || state.x>image.cols){
-          state.x = reference_roi.x;
-        }
-        if (state.y < 0 || state.y>image.rows){
-          state.y = reference_roi.y;
-        }
-        float weight=weights[i];
-        float prob_haar=0.0f;
-        //int feature_index = random_feature(generator);
-        for(int j=0;j<haar.featureNum;j++){
-            //cout << haar.featureNum << "," << i << "," << j << endl; 
-            float haar_prob=haar.sampleFeatureValue.at<float>(j,i);
-            prob_haar += positive_likelihood.at(j).log_likelihood(haar_prob)-negative_likelihood.at(j).log_likelihood(haar_prob);
-        }
-        weight+=prob_haar;
-        tmp_weights.push_back(weight);
+
     }
+
     weights.swap(tmp_weights);
     tmp_weights.clear();
     resample();
-}
 
+
+    /*vector<VectorXd> aux_theta_x = get_dynamic_model();
+    vector<VectorXd> aux_theta_y = get_observation_model();
+    aux_theta_x[0];
+    aux_theta_y[0];
+    update_model(aux_theta_x,aux_theta_y);*/
+}
 
 void particle_filter::resample(){
     vector<float> cumulative_sum(n_particles);
@@ -363,7 +373,9 @@ void particle_filter::resample(){
             float uni_rand = unif_rnd(generator);
             vector<float>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
             unsigned int ipos = distance(cumulative_sum.begin(), pos);
+            
             particle state=states[ipos];
+            
             //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
             new_states[i]=state;
             weights[i]=1.0f/n_particles;
@@ -380,8 +392,6 @@ void particle_filter::resample(){
     squared_normalized_weights.clear();
 }
 
-
-
 float particle_filter::getESS(){
     return ESS;
 }
@@ -389,21 +399,22 @@ float particle_filter::getESS(){
 void particle_filter::update_model(vector<VectorXd> theta_x_new,vector<VectorXd> theta_y_new){
     theta_x.clear();
     theta_y.clear();
-    positive_likelihood.clear();
+    //positive_likelihood.clear();
+    gaussian_multinomial.positive_likelihood.clear();
     VectorXd theta_x_pos=theta_x_new.at(0);
     VectorXd theta_x_scale=theta_x_new.at(1);
     theta_x.push_back(theta_x_pos);
     theta_x.push_back(theta_x_scale);
     VectorXd theta_y_mu=theta_y_new.at(0);
     VectorXd theta_y_sig=theta_y_new.at(1);
+
     for (int i=0; i<haar.featureNum; i++){
         Gaussian haar_feature(theta_y_mu[i],theta_y_sig[i]);  
-        positive_likelihood.push_back(haar_feature);
+        gaussian_multinomial.positive_likelihood.push_back(haar_feature);
     }
     theta_y.push_back(theta_y_mu);
     theta_y.push_back(theta_y_sig);
 }
-
 
 vector<VectorXd> particle_filter::get_dynamic_model(){
     return theta_x;
@@ -414,4 +425,20 @@ vector<VectorXd> particle_filter::get_observation_model(){
 }
 float particle_filter::getMarginalLikelihood(){
     return marginal_likelihood;
+}
+
+particle particle_filter::update_state(particle state, Mat& image){
+    if (state.width < 0 || state.width>image.cols){
+        state.width = reference_roi.width;
+    }
+    if (state.height < 0 || state.height>image.rows){
+        state.height = reference_roi.width;
+    }
+    if (state.x < 0 || state.x>image.cols){
+        state.x = reference_roi.x;
+    }
+    if (state.y < 0 || state.y>image.rows){
+        state.y = reference_roi.y;
+    }
+    return state;
 }

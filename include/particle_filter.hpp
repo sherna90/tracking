@@ -16,7 +16,7 @@
 #include <chrono>
 
 #include "logistic_regression.hpp"
-#include "gaussian_multinomial.hpp"
+#include "gaussian_naivebayes.hpp"
 
 extern const float POS_STD; 
 extern const float VEL_STD; 
@@ -49,7 +49,7 @@ public:
     vector<float>  weights;
     Haar haar;
     LogisticRegression* logistic_regression;
-    GaussianMultinomial gaussian_multinomial;
+    GaussianNaiveBayes gaussian_naivebayes;
     ~particle_filter();
     particle_filter(int _n_particles);
     particle_filter();

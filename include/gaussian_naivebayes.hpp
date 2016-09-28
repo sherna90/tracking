@@ -1,5 +1,5 @@
-#ifndef GAUSSIAN_MULTINOMIAL_H
-#define GAUSSIAN_MULTINOMIAL_H
+#ifndef GAUSSIAN_NAIVEBAYES_H
+#define GAUSSIAN_NAIVEBAYES_H
 
 #include <iostream>
 #include <Eigen/Dense>
@@ -13,10 +13,10 @@ using namespace std;
 using namespace Eigen;
 using namespace cv;
 
-class GaussianMultinomial{
+class GaussianNaiveBayes{
 	public:
-		GaussianMultinomial();
-		GaussianMultinomial(Mat& _positiveFeatureValue, Mat& _negativeFeatureValue);
+		GaussianNaiveBayes();
+		GaussianNaiveBayes(Mat& _positiveFeatureValue, Mat& _negativeFeatureValue);
 		void fit();
 		float test(int index_particle);
 		void setSampleFeatureValue(Mat& _sampleFeatureValue);

@@ -1,8 +1,8 @@
-#include "../include/gaussian_multinomial.hpp"
+#include "../include/gaussian_naivebayes.hpp"
 
-GaussianMultinomial::GaussianMultinomial(){}
+GaussianNaiveBayes::GaussianNaiveBayes(){}
 
-GaussianMultinomial::GaussianMultinomial(Mat& _positiveFeatureValue, Mat& _negativeFeatureValue){
+GaussianNaiveBayes::GaussianNaiveBayes(Mat& _positiveFeatureValue, Mat& _negativeFeatureValue){
 	sampleFeatureValue = &_positiveFeatureValue;
 	negativeFeatureValue = &_negativeFeatureValue;
 	theta_y_mu = VectorXd(sampleFeatureValue->rows);
@@ -10,7 +10,7 @@ GaussianMultinomial::GaussianMultinomial(Mat& _positiveFeatureValue, Mat& _negat
 	initialized = true;
 }
 
-void GaussianMultinomial::fit(){
+void GaussianNaiveBayes::fit(){
 	positive_likelihood.clear();
 	negative_likelihood.clear();
 	Scalar muTemp, sigmaTemp;
@@ -30,11 +30,11 @@ void GaussianMultinomial::fit(){
     }
 }
 
-void GaussianMultinomial::setSampleFeatureValue(Mat& _sampleFeatureValue){
+void GaussianNaiveBayes::setSampleFeatureValue(Mat& _sampleFeatureValue){
 	sampleFeatureValue = &_sampleFeatureValue;
 }
 
-float GaussianMultinomial::test(int index_particle){
+float GaussianNaiveBayes::test(int index_particle){
 	float prob_haar=0.0f;
 	for(int j=0;j<sampleFeatureValue->rows;j++){
  		//cout << haar.featureNum << "," << i << "," << j << endl; 

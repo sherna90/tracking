@@ -11,7 +11,7 @@ const float POS_STD=5.0;
 const float SCALE_STD=1.0;
 const float  DT=1.0;
 const float  THRESHOLD=0.8;
-const bool GAUSSIAN_MULTINOMIAL=false; //true:gaussian multinomial - false:logistic regression
+const bool GAUSSIAN_NAIVEBAYES=false; //true:gaussian naivebayes - false:logistic regression
 #endif 
 
 particle_filter::particle_filter() {
@@ -148,14 +148,14 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         equalizeHist( grayImg, grayImg );
 
         haar.init(grayImg,reference_roi,sampleBox);
-        if(GAUSSIAN_MULTINOMIAL){
+        if(GAUSSIAN_NAIVEBAYES){
             Mat positive_sample_feature_values = haar.sampleFeatureValue.clone();
             haar.getFeatureValue(grayImg, negativeBox, sampleScale);
-            gaussian_multinomial = GaussianMultinomial(positive_sample_feature_values, 
+            gaussian_naivebayes = GaussianNaiveBayes(positive_sample_feature_values, 
                                                                 haar.sampleFeatureValue);
-            gaussian_multinomial.fit();
-            theta_y.push_back(gaussian_multinomial.theta_y_mu);
-            theta_y.push_back(gaussian_multinomial.theta_y_sigma);
+            gaussian_naivebayes.fit();
+            theta_y.push_back(gaussian_naivebayes.theta_y_mu);
+            theta_y.push_back(gaussian_naivebayes.theta_y_sigma);
         }else{// logistic regression
             MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
             VectorXd labels(2*n_particles);
@@ -303,13 +303,14 @@ void particle_filter::update(Mat& image)
     equalizeHist( grayImg, grayImg );
     haar.getFeatureValue(grayImg,sampleBox,sampleScale);
 
-    if(GAUSSIAN_MULTINOMIAL){
-        gaussian_multinomial.setSampleFeatureValue(haar.sampleFeatureValue);
+    if(GAUSSIAN_NAIVEBAYES){
+        gaussian_naivebayes.setSampleFeatureValue(haar.sampleFeatureValue);
         for (int i = 0; i < n_particles; ++i)
         {
-            particle state = update_state(states[i], image);
+            //particle state = update_state(states[i], image);
+            states[i] = update_state(states[i], image);
             //float weight=weights[i];
-            tmp_weights.push_back(gaussian_multinomial.test(i));
+            tmp_weights.push_back(gaussian_naivebayes.test(i));
         }
     }else{//logistic regression
         MatrixXd eigen_sample_feature_value;
@@ -319,7 +320,8 @@ void particle_filter::update(Mat& image)
         cout << "phi: " << phi.transpose() << endl; 
         for (int i = 0; i < n_particles; ++i)
         {
-            particle state = update_state(states[i], image);
+            //particle state = update_state(states[i], image);
+            states[i] = update_state(states[i], image);
             tmp_weights.push_back(log(phi(i)));
         }
     }
@@ -392,7 +394,7 @@ void particle_filter::update_model(vector<VectorXd> theta_x_new,vector<VectorXd>
     theta_x.clear();
     theta_y.clear();
     //positive_likelihood.clear();
-    gaussian_multinomial.positive_likelihood.clear();
+    gaussian_naivebayes.positive_likelihood.clear();
     VectorXd theta_x_pos=theta_x_new.at(0);
     VectorXd theta_x_scale=theta_x_new.at(1);
     theta_x.push_back(theta_x_pos);
@@ -402,7 +404,7 @@ void particle_filter::update_model(vector<VectorXd> theta_x_new,vector<VectorXd>
 
     for (int i=0; i<haar.featureNum; i++){
         Gaussian haar_feature(theta_y_mu[i],theta_y_sig[i]);  
-        gaussian_multinomial.positive_likelihood.push_back(haar_feature);
+        gaussian_naivebayes.positive_likelihood.push_back(haar_feature);
     }
     theta_y.push_back(theta_y_mu);
     theta_y.push_back(theta_y_sig);

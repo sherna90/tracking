@@ -9,6 +9,7 @@ SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
 find_package( OpenCV REQUIRED)
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories( "/usr/local/include/eigen3/" )
+#include_directories( "/usr/include/eigen3/" )
 
 add_executable( pmmh test_pmmh.cpp pmmh.cpp particle_filter.cpp  utils.cpp gaussian.cpp  image_generator.cpp haar.cpp gaussian_naivebayes.cpp logistic_regression.cpp multivariate_gaussian.cpp)
 target_link_libraries( pmmh ${OpenCV_LIBS}  )

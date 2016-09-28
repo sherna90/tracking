@@ -10,7 +10,7 @@
 const float POS_STD=5.0;
 const float SCALE_STD=1.0;
 const float  DT=1.0;
-const float  THRESHOLD=0.8;
+const float  THRESHOLD=0.5;
 const bool GAUSSIAN_NAIVEBAYES=false; //true:gaussian naivebayes - false:logistic regression
 #endif 
 
@@ -169,7 +169,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                                             eigen_sample_negative_feature_value;
             labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
             logistic_regression = new LogisticRegression(eigen_sample_feature_value.transpose(), labels);
-            logistic_regression->Train(1e3,1e-1,1e-3,0.1);    
+            logistic_regression->Train(1e2,1e-1,1e-3,0.1);    
         }
 
         initialized=true;
@@ -193,7 +193,7 @@ void particle_filter::predict(){
             float _dx=position_random_x(generator);
             float _dy=position_random_y(generator);
             float _dw=scale_random_width(generator);
-            float _dh=scale_random_height(generator);
+            //float _dh=scale_random_height(generator);
             _x=MIN(MAX(cvRound(state.x),0),im_size.width);
             _y=MIN(MAX(cvRound(state.y),0),im_size.height);
             _width=MIN(MAX(cvRound(state.width),10),im_size.width);
@@ -304,10 +304,16 @@ void particle_filter::update(Mat& image)
     haar.getFeatureValue(grayImg,sampleBox,sampleScale);
 
     if(GAUSSIAN_NAIVEBAYES){
+//<<<<<<< HEAD
         gaussian_naivebayes.setSampleFeatureValue(haar.sampleFeatureValue);
+        //for (int i = 0; i < n_particles; ++i)
+        //{
+            //particle state = update_state(states[i], image);
+//=======
+        //gaussian_multinomial.setSampleFeatureValue(haar.sampleFeatureValue);
         for (int i = 0; i < n_particles; ++i)
         {
-            //particle state = update_state(states[i], image);
+//>>>>>>> e7a86293c8061da3a77c830153ee73b63389a088
             states[i] = update_state(states[i], image);
             //float weight=weights[i];
             tmp_weights.push_back(gaussian_naivebayes.test(i));
@@ -317,10 +323,9 @@ void particle_filter::update(Mat& image)
         VectorXd phi;
         cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
         phi = logistic_regression->Predict(eigen_sample_feature_value.transpose());
-        cout << "phi: " << phi.transpose() << endl; 
+        //cout << "phi: " << phi.transpose() << endl; 
         for (int i = 0; i < n_particles; ++i)
         {
-            //particle state = update_state(states[i], image);
             states[i] = update_state(states[i], image);
             tmp_weights.push_back(log(phi(i)));
         }

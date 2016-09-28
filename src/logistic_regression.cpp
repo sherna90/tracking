@@ -67,7 +67,7 @@ MatrixXd LogisticRegression::ComputeHessian(MatrixXd _X, VectorXd _P,double _lam
 }
 
 VectorXd LogisticRegression::Predict(MatrixXd X_test){
-	int n_samples=1000;
+	int n_samples=100;
 	MVNGaussian posterior(weights.transpose(),Hessian);
 	MatrixXd samples=posterior.sample(n_samples);
 	X_test.conservativeResize(NoChange, dim+1);

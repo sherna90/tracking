@@ -80,7 +80,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     if(reference_roi.width>0 && (reference_roi.x+reference_roi.width)<im_size.width && 
         reference_roi.height>0 && (reference_roi.y+reference_roi.height)<im_size.height){
         marginal_likelihood=0.0;
-        float weight=1.0/n_particles;
+        float weight=log(1.0/n_particles);
         for (int i=0;i<n_particles;i++){
             particle state;
             float _x,_y,_width,_height;
@@ -169,7 +169,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                                             eigen_sample_negative_feature_value;
             labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
             logistic_regression = new LogisticRegression(eigen_sample_feature_value.transpose(), labels);
-            logistic_regression->Train(1e3,1e-1,1e-3,1.0);    
+            logistic_regression->Train(1e3,1e-1,1e-3,0.1);    
         }
 
         initialized=true;
@@ -321,21 +321,13 @@ void particle_filter::update(Mat& image)
         {
             particle state = update_state(states[i], image);
             tmp_weights.push_back(log(phi(i)));
-
         }
-
     }
 
     weights.swap(tmp_weights);
     tmp_weights.clear();
     resample();
 
-
-    /*vector<VectorXd> aux_theta_x = get_dynamic_model();
-    vector<VectorXd> aux_theta_y = get_observation_model();
-    aux_theta_x[0];
-    aux_theta_y[0];
-    update_model(aux_theta_x,aux_theta_y);*/
 }
 
 void particle_filter::resample(){
@@ -364,7 +356,7 @@ void particle_filter::resample(){
         //cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    marginal_likelihood+=norm_const-log(n_particles); 
+    marginal_likelihood=norm_const-log(n_particles); 
     ESS=(1.0f/sum_squared_weights[0])/n_particles;
     //cout << "resampled particles!" << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
@@ -378,7 +370,7 @@ void particle_filter::resample(){
             
             //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
             new_states[i]=state;
-            weights[i]=1.0f/n_particles;
+            weights[i]=log(1.0f/n_particles);
         }
         states.swap(new_states);
         new_states = vector<particle>();

@@ -5,6 +5,7 @@ LogisticRegression::LogisticRegression(int _n_iter,double _alpha,double _tol,dou
 	alpha=_alpha;
 	tol=_tol;
 	lambda=_lambda;
+	weights = RowVectorXd::Constant(10,0.0);
 }
 
 
@@ -34,17 +35,18 @@ VectorXd LogisticRegression::Train(MatrixXd _X,VectorXd _Y){
   	Y_train.noalias() = indices.asPermutation() * Y_train; 
  	rows = X_train.rows();
 	dim = X_train.cols();
-	weights = RowVectorXd::Constant(dim+1,1.0);
 	X_train.conservativeResize(NoChange, dim+1);
 	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
 	X_train.col(dim) = bias_vec;
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	MatrixXd H(rows,rows);
+	if(weights.sum()==0) weights = RowVectorXd::Constant(dim+1,1.0);
 	for(int i=0;i<n_iter;i++){
 		VectorXd Phi=ComputeSigmoid(X_train,weights);
 		VectorXd Grad=ComputeGradient(X_train,Y_train,Phi,lambda);
-		log_likelihood(i)=LogLikelihood(Y_train,Phi)+LogPrior(lambda);
+		log_likelihood(i)=(1.0/rows)*LogLikelihood(Y_train,Phi)+LogPrior(lambda);
 		weights.noalias()=weights-alpha*Grad.transpose();
+		cout << "mini-batch loss: " << log_likelihood(i) << endl;
 	}
 	VectorXd Phi=ComputeSigmoid(X_train,weights);
 	Hessian = ComputeHessian(X_train,Phi,lambda);
@@ -98,7 +100,7 @@ double LogisticRegression::LogLikelihood(MatrixXd _Y, VectorXd _P){
 
 double LogisticRegression::LogPrior(double _lambda){
 	double B=(float)dim+1.0;
-	return -(B/2.0)*log(_lambda)+(_lambda/2.0)*weights.array().square().sum();
+	return -(B/2.0)*log(_lambda)-(_lambda/2.0)*weights.array().square().sum();
 }
 
 MatrixXd LogisticRegression::BatchNormalization(MatrixXd _X){

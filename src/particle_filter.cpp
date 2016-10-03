@@ -167,7 +167,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
                                             eigen_sample_negative_feature_value;
             labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
-            logistic_regression = new LogisticRegression(1e0,1e-3,1e-3,0.1);
+            logistic_regression = new LogisticRegression(1e2,1e-3,1e-3,0.1);
             logistic_regression->Train(eigen_sample_feature_value.transpose(), labels);    
         }
 
@@ -369,7 +369,7 @@ void particle_filter::update(Mat& image)
     else{// logistic regression
             MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
             VectorXd labels(2*n_particles);
-            cout << sampleBox.size() << "," << sampleScale.size() << endl;
+            //cout << sampleBox.size() << "," << sampleScale.size() << endl;
             haar.getFeatureValue(grayImg,sampleBox,sampleScale);
             cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
             haar.getFeatureValue(grayImg,negativeBox,negativeScale);
@@ -412,7 +412,7 @@ void particle_filter::resample(){
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     marginal_likelihood=norm_const-log(n_particles); 
     ESS=(1.0f/sum_squared_weights[0])/n_particles;
-    cout << "resampled particles : " << ESS << endl;
+    //cout << "resampled particles : " << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
         sampleBox.clear();//important
         sampleScale.clear();//important

@@ -16,11 +16,13 @@ class LogisticRegression
 {
  public:
  	RowVectorXd weights;
-	LogisticRegression(MatrixXd _X,VectorXd _Y);
- 	VectorXd Train(int n_iter,double alpha=0.01,double tol=0.001,double lambda=1.0);
+	LogisticRegression(int n_iter,double alpha=0.01,double tol=0.001,double lambda=1.0);
+ 	VectorXd Train(MatrixXd _X,VectorXd _Y);
  	VectorXd Predict(MatrixXd _X);
  
  private:
+ 	int n_iter;
+ 	double alpha,lambda,tol;
  	MatrixXd X_train;
  	VectorXd Y_train;
  	int rows,dim;
@@ -30,4 +32,5 @@ class LogisticRegression
  	double LogLikelihood(MatrixXd _Y, VectorXd _P);
  	MatrixXd ComputeHessian(MatrixXd _X, VectorXd _P,double _lambda);
  	MatrixXd Hessian;
+ 	MatrixXd BatchNormalization(MatrixXd _X);
 };

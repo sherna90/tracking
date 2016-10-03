@@ -1,20 +1,11 @@
 #include "../include/logistic_regression.hpp"
 
-LogisticRegression::LogisticRegression(MatrixXd _X,VectorXd _Y){
- 	X_train = _X;
- 	Y_train = _Y;
- 	VectorXi indices = VectorXi::LinSpaced(X_train.rows(), 0, X_train.rows());
- 	srand((unsigned int) time(0));
- 	std::random_shuffle(indices.data(), indices.data() + X_train.rows());
-  	X_train.noalias() = indices.asPermutation() * X_train;  
-  	Y_train.noalias() = indices.asPermutation() * Y_train; 
- 	rows = X_train.rows();
-	dim = X_train.cols();
-	weights = RowVectorXd::Constant(dim+1,1.0);
-	X_train.conservativeResize(NoChange, dim+1);
-	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
-	X_train.col(dim) = bias_vec;
- }
+LogisticRegression::LogisticRegression(int _n_iter,double _alpha,double _tol,double _lambda){
+	n_iter=_n_iter;
+	alpha=_alpha;
+	tol=_tol;
+	lambda=_lambda;
+}
 
 
 VectorXd LogisticRegression::ComputeSigmoid(MatrixXd _X, RowVectorXd _W){
@@ -33,7 +24,20 @@ VectorXd LogisticRegression::ComputeSigmoid(MatrixXd _X, RowVectorXd _W){
 	return phi;
 }
 
-VectorXd LogisticRegression::Train(int n_iter,double alpha,double tol,double lambda){
+VectorXd LogisticRegression::Train(MatrixXd _X,VectorXd _Y){
+	X_train = _X;
+ 	Y_train = _Y;
+ 	VectorXi indices = VectorXi::LinSpaced(X_train.rows(), 0, X_train.rows());
+ 	srand((unsigned int) time(0));
+ 	std::random_shuffle(indices.data(), indices.data() + X_train.rows());
+  	X_train.noalias() = indices.asPermutation() * X_train;  
+  	Y_train.noalias() = indices.asPermutation() * Y_train; 
+ 	rows = X_train.rows();
+	dim = X_train.cols();
+	weights = RowVectorXd::Constant(dim+1,1.0);
+	X_train.conservativeResize(NoChange, dim+1);
+	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
+	X_train.col(dim) = bias_vec;
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	MatrixXd H(rows,rows);
 	for(int i=0;i<n_iter;i++){
@@ -77,7 +81,7 @@ VectorXd LogisticRegression::Predict(MatrixXd X_test){
 	for(int i=0; i< n_samples;i++){
 		phi+=ComputeSigmoid(X_test,samples.row(i));	
 	}
-	phi.noalias()=(1.0/n_samples)*phi;
+	phi.noalias()=(1.0/(float)n_samples)*phi;
 	/*phi.noalias() = phi.unaryExpr([](double elem)
 	{
 	    return (elem > 0.5) ? 1.0 : 0.0;
@@ -95,4 +99,15 @@ double LogisticRegression::LogLikelihood(MatrixXd _Y, VectorXd _P){
 double LogisticRegression::LogPrior(double _lambda){
 	double B=(float)dim+1.0;
 	return -(B/2.0)*log(_lambda)+(_lambda/2.0)*weights.array().square().sum();
+}
+
+MatrixXd LogisticRegression::BatchNormalization(MatrixXd _X){
+	MatrixXd centered;
+    /* Getting mean for every column */
+    VectorXd mean = _X.colwise().mean();
+    /* Covariance Matrix */
+    centered = _X.rowwise() - mean.transpose();
+    VectorXd variance= (1.0f/_X.rows())*centered.cwiseProduct(centered).colwise().sum();
+    //centered.rowwise().array() /=variance.array().sqrt();
+    return centered;
 }

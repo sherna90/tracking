@@ -6,7 +6,7 @@ using namespace std;
 
 //------------------------------------------------
 Haar::Haar(){
-	featureNum = 50;	// number of all weaker classifiers, i.e,feature pool
+	featureNum = 500;	// number of all weaker classifiers, i.e,feature pool
 	featureMinNumRect = 2;
 	featureMaxNumRect = 4;	// number of rectangle from 2 to 4
 }
@@ -30,22 +30,21 @@ void Haar::HaarFeature(Rect& _objectBox, int _numFeature){
 		for (int j=0; j<numRect; j++)
 		{
 			/*if(dim==0){
-				halfRect.width=cvCeil(rectTemp.width/numRect);
-				halfRect.x=cvFloor(rectTemp.x+j*halfRect.width);
-				halfRect.y=rectTemp.y;
-				halfRect.height=rectTemp.height;
+				rectTemp.width=cvCeil(rectTemp.width/numRect);
+				rectTemp.x=cvFloor(rectTemp.x+j*rectTemp.width);
+				rectTemp.y=rectTemp.y;
+				rectTemp.height=rectTemp.height;
 			}
 			else if(dim==1){
-				halfRect.width=rectTemp.width;
-				halfRect.x=rectTemp.x;
-				halfRect.height=cvCeil(rectTemp.height/numRect);
-				halfRect.y=cvFloor(rectTemp.y+j*halfRect.height);
+				rectTemp.width=rectTemp.width;
+				rectTemp.x=rectTemp.x;
+				rectTemp.height=cvCeil(rectTemp.height/numRect);
+				rectTemp.y=cvFloor(rectTemp.y+j*rectTemp.height);
 			}*/
 			rectTemp.x = cvFloor(rng.uniform(0.0, (double)(_objectBox.width - 3)));
 			rectTemp.y = cvFloor(rng.uniform(0.0, (double)(_objectBox.height - 3)));
 			rectTemp.width = cvCeil(rng.uniform(4.0, (double)(_objectBox.width - rectTemp.x - 2)));
 			rectTemp.height = cvCeil(rng.uniform(4.0, (double)(_objectBox.height - rectTemp.y - 2)));
-			
 			features[i].push_back(rectTemp);
 			weightTemp = (float)pow(-1.0, cvFloor(rng.uniform(0.0, 2.0))) / sqrt(float(numRect));
 			//weightTemp = (j % 2 == 0) ? -1.0 : 1.0;

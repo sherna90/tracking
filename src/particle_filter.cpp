@@ -159,7 +159,6 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         }else{// logistic regression
             MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
             VectorXd labels(2*n_particles);
-
             cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
             haar.getFeatureValue(grayImg,negativeBox,sampleScale);
             cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
@@ -168,8 +167,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
                                             eigen_sample_negative_feature_value;
             labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
-            logistic_regression = new LogisticRegression(eigen_sample_feature_value.transpose(), labels);
-            logistic_regression->Train(1e2,1e-1,1e-3,0.1);    
+            logistic_regression = new LogisticRegression(1e0,1e-3,1e-3,0.1);
+            logistic_regression->Train(eigen_sample_feature_value.transpose(), labels);    
         }
 
         initialized=true;
@@ -304,19 +303,12 @@ void particle_filter::update(Mat& image)
     haar.getFeatureValue(grayImg,sampleBox,sampleScale);
 
     if(GAUSSIAN_NAIVEBAYES){
-//<<<<<<< HEAD
         gaussian_naivebayes.setSampleFeatureValue(haar.sampleFeatureValue);
-        //for (int i = 0; i < n_particles; ++i)
-        //{
-            //particle state = update_state(states[i], image);
-//=======
-        //gaussian_multinomial.setSampleFeatureValue(haar.sampleFeatureValue);
         for (int i = 0; i < n_particles; ++i)
         {
-//>>>>>>> e7a86293c8061da3a77c830153ee73b63389a088
             states[i] = update_state(states[i], image);
-            //float weight=weights[i];
-            tmp_weights.push_back(gaussian_naivebayes.test(i));
+            float weight=weights[i];
+            tmp_weights.push_back(weight+gaussian_naivebayes.test(i));
         }
     }else{//logistic regression
         MatrixXd eigen_sample_feature_value;
@@ -327,13 +319,68 @@ void particle_filter::update(Mat& image)
         for (int i = 0; i < n_particles; ++i)
         {
             states[i] = update_state(states[i], image);
-            tmp_weights.push_back(log(phi(i)));
+            float weight=weights[i];
+            tmp_weights.push_back(weight+log(phi(i)));
         }
     }
 
     weights.swap(tmp_weights);
     tmp_weights.clear();
     resample();
+    vector<Rect> negativeBox;
+    vector<double> negativeScale;
+    for (int i=0;i<n_particles;i++){
+            normal_distribution<double> negative_random_x(0.0,im_size.width);
+            normal_distribution<double> negative_random_y(0.0,im_size.height);  
+            float _x,_y;
+            float _dx=negative_random_x(generator);
+            float _dy=negative_random_y(generator);
+            _x=MIN(MAX(cvRound(_dx),0),im_size.width);
+            _y=MIN(MAX(cvRound(_dy),0),im_size.height);
+            Rect box;
+            box.x=_x;
+            box.y=_y;
+            box.width=cvRound(reference_roi.width);
+            box.height=cvRound(reference_roi.height);
+            negativeBox.push_back(box);
+            negativeScale.push_back(1.0);    
+    }
+    Rect state=estimates.back();
+    sampleBox.clear();
+    sampleScale.clear();
+    for (int i=0;i<n_particles;i++){
+            normal_distribution<double> positive_random_x(0.0,theta_x.at(0)(0));
+            normal_distribution<double> positive_random_y(0.0,theta_x.at(0)(1));  
+            float _x,_y;
+            float _dx=positive_random_x(generator);
+            float _dy=positive_random_y(generator);
+            _x=MIN(MAX(cvRound(state.x+_dx),0),im_size.width);
+            _y=MIN(MAX(cvRound(state.y+_dy),0),im_size.height);
+            Rect box;
+            box.x=_x;
+            box.y=_y;
+            box.width=cvRound(state.width);
+            box.height=cvRound(state.height);
+            sampleBox.push_back(box);
+            sampleScale.push_back(1.0);    
+    }
+    if(GAUSSIAN_NAIVEBAYES){
+    }
+    else{// logistic regression
+            MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
+            VectorXd labels(2*n_particles);
+            cout << sampleBox.size() << "," << sampleScale.size() << endl;
+            haar.getFeatureValue(grayImg,sampleBox,sampleScale);
+            cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
+            haar.getFeatureValue(grayImg,negativeBox,negativeScale);
+            cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
+            MatrixXd eigen_sample_feature_value( eigen_sample_positive_feature_value.rows(),
+                eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
+            eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
+                                            eigen_sample_negative_feature_value;
+            labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
+            logistic_regression->Train(eigen_sample_feature_value.transpose(), labels);    
+    }
 
 }
 
@@ -365,8 +412,10 @@ void particle_filter::resample(){
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     marginal_likelihood=norm_const-log(n_particles); 
     ESS=(1.0f/sum_squared_weights[0])/n_particles;
-    //cout << "resampled particles!" << ESS << endl;
+    cout << "resampled particles : " << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
+        sampleBox.clear();//important
+        sampleScale.clear();//important
         vector<particle> new_states(n_particles);
         for (int i=0; i<n_particles; i++) {
             float uni_rand = unif_rnd(generator);
@@ -377,6 +426,9 @@ void particle_filter::resample(){
             
             //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
             new_states[i]=state;
+            Rect box(state.x, state.y, state.width, state.height);
+            sampleBox.push_back(box);
+            sampleScale.push_back(state.scale);
             weights[i]=log(1.0f/n_particles);
         }
         states.swap(new_states);

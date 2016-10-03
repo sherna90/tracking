@@ -1,1 +1,1 @@
-gdb --args ./tracker -img vot2014/tunnel/00000001.jpg -gt vot2014/tunnel/groundtruth.txt -npart 1000
+gdb --args ./tracker -img vot2014/car/00000001.jpg -gt vot2014/car/groundtruth.txt -npart 100

@@ -16,6 +16,7 @@ LogisticRegression::LogisticRegression(MatrixXd _X,VectorXd _Y){
 	X_train.col(dim) = bias_vec;
  }
 
+
 VectorXd LogisticRegression::ComputeSigmoid(MatrixXd _X, RowVectorXd _W){
 	VectorXd phi=VectorXd::Zero(_X.rows());
 	VectorXd mu = (-_X*_W.transpose());
@@ -66,7 +67,7 @@ MatrixXd LogisticRegression::ComputeHessian(MatrixXd _X, VectorXd _P,double _lam
 }
 
 VectorXd LogisticRegression::Predict(MatrixXd X_test){
-	int n_samples=100;
+	int n_samples=1000;
 	MVNGaussian posterior(weights.transpose(),Hessian);
 	MatrixXd samples=posterior.sample(n_samples);
 	X_test.conservativeResize(NoChange, dim+1);

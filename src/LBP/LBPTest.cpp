@@ -67,16 +67,16 @@ void example_2( void ) {
 	clock_t startTime, endTime;
 
 	// Read an (RGB) image and convert to monochrome
-	cv::Mat img = imread( "test_image_1.bmp", 0 );
+	cv::Mat img = imread( "../../../../images/muestra0.jpg", 0 );
 	// convert to double precision
 	img.convertTo( img, CV_64F );
 	int w = img.cols, h = img.rows;
 
 	// Create an LBP instance of type rotation invariant uniform 2 using 8 support points
-	LBP lbp( 8, LBP_MAPPING_HF );
+	LBP lbp( 8, LBP_MAPPING_U2 );
 
 	// Calculate the descriptor image and get it
-	lbp.calcLBP( img, 1, true );
+	lbp.calcLBP( img, 2, true );
 
 	// Create a mask same size as the image
 	Mat mask( h, w, CV_8UC1 );
@@ -97,7 +97,7 @@ void example_2( void ) {
 			// Calculate histogram for the ROI
 			startTime = clock();
 			vector<double> hist = lbp.calcHist( mask ).getHist();
-
+			cout << "hist size: " << hist.size() << endl;
 			// Print out the histogram values
 			cout << "hist(" << j << "," << i << ") = [";
 			for( int i = 0; i < hist.size(); i++ ) {
@@ -186,7 +186,7 @@ int main( int argc, char ** argv ) {
 
 	startTime = clock();
 	//example_4();
-	example_1();
+	example_2();
 	endTime = clock();
 	cout << "Example took " << double( endTime - startTime ) / double( CLOCKS_PER_SEC ) << "s"
 				<< endl;

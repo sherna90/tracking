@@ -13,8 +13,14 @@ const float POS_STD=5.0;
 const float SCALE_STD=1.0;
 const float DT=1.0;
 const float THRESHOLD=1.0;
-const bool GAUSSIAN_NAIVEBAYES=false; //true:gaussian naivebayes - false:logistic regression
-const bool HAAR_FEATURE=false; //true: haar - false: lbp
+
+const bool GAUSSIAN_NAIVEBAYES=false;
+const bool LOGISTIC_REGRESSION=true;
+const bool MULTINOMIAL_NAIVEBAYES=false;
+
+const bool HAAR_FEATURE=false;
+const bool LBP_FEATURE=false;
+const bool HOG_FEATURE=true;
 #endif
 
 particle_filter::particle_filter() {
@@ -147,7 +153,6 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         Mat grayImg;
         cvtColor(current_frame, grayImg, CV_RGB2GRAY);
         equalizeHist( grayImg, grayImg );
-
         haar.init(grayImg,reference_roi,sampleBox);
         
         if(GAUSSIAN_NAIVEBAYES){
@@ -159,25 +164,26 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                                                                     haar.sampleFeatureValue);
                 gaussian_naivebayes.fit();
             }
-            else{
+            if(LBP_FEATURE){
                 local_binary_pattern.init(grayImg, sampleBox);
                 local_binary_pattern.getFeatureValue(grayImg, negativeBox, false);
                 Mat cv_positive_sample_feature_values, cv_negative_sample_feature_values;
-
                 MatrixXd auxSample = local_binary_pattern.sampleFeatureValue.transpose();
                 MatrixXd auxSampleNegative = local_binary_pattern.negativeFeatureValue.transpose();
                 eigen2cv(auxSample, cv_positive_sample_feature_values);
                 eigen2cv(auxSampleNegative, cv_negative_sample_feature_values);
-                
                 gaussian_naivebayes = GaussianNaiveBayes(cv_positive_sample_feature_values, 
                                                         cv_negative_sample_feature_values);
                 gaussian_naivebayes.fit();
             }
             theta_y.push_back(gaussian_naivebayes.theta_y_mu);
             theta_y.push_back(gaussian_naivebayes.theta_y_sigma);
-        }else{// logistic regression
+        }
+
+        if(LOGISTIC_REGRESSION){
             VectorXd labels(2*n_particles);
             labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
+            
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
                 cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
@@ -190,7 +196,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 logistic_regression = new LogisticRegression(eigen_sample_feature_value.transpose(), labels);
                 logistic_regression->Train(1e2,1e-1,1e-3,0.1);
             }
-            else{
+
+            if(LBP_FEATURE){
                 //local_binary_pattern = LocalBinaryPattern();
                 local_binary_pattern.init(grayImg, sampleBox);
                 local_binary_pattern.getFeatureValue(grayImg, negativeBox, false);
@@ -201,8 +208,61 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 logistic_regression = new LogisticRegression(eigen_sample_feature_value, labels);
                 logistic_regression->Train(1e2,1e-1,1e-3,0.1);
             }
+
+            if(HOG_FEATURE){
+                //MatrixXd hog_descriptors(sampleBox.size() + negativeBox.size(), 7040);
+                MatrixXd hog_descriptors(0, 7040);
+                VectorXd hist;
+                for (unsigned int i = 0; i < sampleBox.size(); ++i)
+                {
+                    Mat subImage = grayImg(sampleBox.at(i));
+                    calc_hog(subImage, hist);
+
+                    hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
+                    hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+                    /*for (unsigned int j = 0; j < 7040; ++j)
+                    {
+                        hog_descriptors(i,j) = hist[j];
+                    }*/
+                }
+
+                for (unsigned int i = 0; i < negativeBox.size(); ++i)
+                {
+                    Mat subImage = grayImg(negativeBox.at(i));
+                    calc_hog(subImage, hist);
+                    /*for (unsigned int j = 0; j < 7040; ++j)
+                    {
+                        hog_descriptors(sampleBox.size() + i,j) = hist[j];
+                    }*/
+                    hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
+                    hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+                }
+                logistic_regression = new LogisticRegression(hog_descriptors, labels);
+                logistic_regression->Train(1e2,1e-1,1e-3,0.1);
+
+            }
         }
 
+        /*if(MULTINOMIAL_NAIVEBAYES){
+            VectorXd labels(2*n_particles);
+            labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
+            if(HAAR_FEATURE){
+                MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
+                cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
+                haar.getFeatureValue(grayImg,negativeBox,sampleScale);
+                cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
+                MatrixXd eigen_sample_feature_value( eigen_sample_positive_feature_value.rows(),
+                    eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
+                eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
+                                                eigen_sample_negative_feature_value;
+                multinomial_naivebayes = new MultinomialNaiveBayes(eigen_sample_feature_value, labels);
+                multinomial_naivebayes->fit(1e-2);
+            }
+            if(LBP){
+
+            }
+        }*/
+        cout << "initialized" << endl;
         initialized=true;
     }
 }
@@ -345,7 +405,8 @@ void particle_filter::update(Mat& image)
                 states[i] = update_state(states[i], image);
                 tmp_weights.push_back(gaussian_naivebayes.test(i));
             }
-        }else{
+        }
+        if(LBP_FEATURE){
             local_binary_pattern.getFeatureValue(grayImg,sampleBox);
             Mat cv_sample_feature_value;
             MatrixXd auxSample = local_binary_pattern.sampleFeatureValue.transpose();
@@ -357,27 +418,70 @@ void particle_filter::update(Mat& image)
                 tmp_weights.push_back(gaussian_naivebayes.test(i));
             }
         }
-    }else{//logistic regression
+    }
+
+    if(LOGISTIC_REGRESSION){
         VectorXd phi;
+        
         if(HAAR_FEATURE){
             haar.getFeatureValue(grayImg,sampleBox,sampleScale);
             MatrixXd eigen_sample_feature_value;
             cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
             phi = logistic_regression->Predict(eigen_sample_feature_value.transpose());
-            //cout << "phi: " << phi.transpose() << endl; 
-            
+            //cout << "phi: " << phi.transpose() << endl;
         }
-        else{
-            local_binary_pattern.getFeatureValue(grayImg,sampleBox); // segmentation fault
-            //cout << local_binary_pattern.sampleFeatureValue.rows() << "," << local_binary_pattern.sampleFeatureValue.cols() << endl;
+
+        if(LBP_FEATURE){
+            local_binary_pattern.getFeatureValue(grayImg,sampleBox);
             phi = logistic_regression->Predict(local_binary_pattern.sampleFeatureValue);
         }
+
+        if(HOG_FEATURE){
+            //MatrixXd hog_descriptors(sampleBox.size(),7040);
+            MatrixXd hog_descriptors(0,7040);
+            VectorXd hist;
+            for (unsigned int i = 0; i < sampleBox.size(); ++i)
+            {
+                Mat subImage = grayImg(sampleBox.at(i));
+                calc_hog(subImage, hist);
+                
+                hog_descriptors.conservativeResize(hog_descriptors.rows()+1, hog_descriptors.cols());
+                hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+                /*for (unsigned int j = 0; j < 7040; ++j)
+                {
+                    hog_descriptors(i,j) = hist[j];
+                }*/
+            }
+            phi = logistic_regression->Predict(hog_descriptors);
+        }
+
         for (int i = 0; i < n_particles; ++i)
         {
             states[i] = update_state(states[i], image);
             tmp_weights.push_back(weights[i]+log(phi(i)));
         }
     }
+
+    /*if(MULTINOMIAL_NAIVEBAYES){
+        MatrixXd Phi;
+        if(HAAR_FEATURE){
+            haar.getFeatureValue(grayImg,sampleBox,sampleScale);
+            MatrixXd eigen_sample_feature_value;
+            cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
+            eigen_sample_feature_value.transposeInPlace();
+            Phi = multinomial_naivebayes->get_proba(eigen_sample_feature_value);
+            cout << "in loop" << endl;
+        }
+        if(LBP){
+
+        }
+        cout << "update" << endl;
+        for (int i = 0; i < n_particles; ++i)
+        {
+            states[i] = update_state(states[i], image);
+            tmp_weights.push_back(weights[i]+log(Phi(i,1)));
+        }
+    }*/
 
     weights.swap(tmp_weights);
     tmp_weights.clear();

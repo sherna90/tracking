@@ -17,7 +17,9 @@
 
 #include "logistic_regression.hpp"
 #include "gaussian_naivebayes.hpp"
+#include "multinomialnaivebayes.hpp"
 #include "local_binary_pattern.hpp"
+#include "hog.hpp"
 
 extern const float POS_STD; 
 extern const float VEL_STD; 
@@ -50,6 +52,7 @@ public:
     Haar haar;
     LocalBinaryPattern local_binary_pattern;
     LogisticRegression* logistic_regression;
+    MultinomialNaiveBayes* multinomial_naivebayes;
     GaussianNaiveBayes gaussian_naivebayes;
     ~particle_filter();
     particle_filter(int _n_particles);

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project( tracker )
 SET (CMAKE_CXX_COMPILER             "/usr/bin/g++")
-SET (CMAKE_CXX_FLAGS                "-Wall -g -O3 -std=c++11")
+SET (CMAKE_CXX_FLAGS                "-Wall -g -O3 -std=c++11 -fopenmp")
 SET (CMAKE_CXX_FLAGS_DEBUG          "-g")
 SET (CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
 SET (CMAKE_CXX_FLAGS_RELEASE        "-O4 -DNDEBUG")
@@ -15,7 +15,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories( "LBP/" )
 include_directories( "/usr/include/eigen3/" )
 
-add_executable( tracker test_particle_filter.cpp particle_filter.cpp  utils.cpp gaussian.cpp image_generator.cpp haar.cpp logistic_regression.cpp gaussian_naivebayes.cpp multivariate_gaussian.cpp local_binary_pattern.cpp LBP/LBP.cpp) 
+add_executable( tracker test_particle_filter.cpp particle_filter.cpp  utils.cpp gaussian.cpp image_generator.cpp haar.cpp logistic_regression.cpp gaussian_naivebayes.cpp multivariate_gaussian.cpp local_binary_pattern.cpp multinomial.cpp multinomialnaivebayes.cpp hog.cpp LBP/LBP.cpp) 
 target_link_libraries( tracker ${OpenCV_LIBS} ${FFTW_LIBRARY})
 
 #add_executable( pmmh test_pmmh.cpp pmmh.cpp particle_filter.cpp  utils.cpp gaussian.cpp  image_generator.cpp haar.cpp gaussian_naivebayes.cpp logistic_regression.cpp multivariate_gaussian.cpp)

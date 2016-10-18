@@ -15,7 +15,7 @@ using namespace std;
 #define BIN_RANGE (2*CV_PI)/N_BINS
 
 void calc_hog(Mat& image,Mat& hist){
-    // default opencv implmentation
+    // default opencv implementation
     Mat part_hog;
     vector<float> descriptors;
     vector<Point> points;
@@ -33,8 +33,9 @@ void calc_hog(Mat& image,Mat& hist){
     }
     //normalize(hist, hist, 0, 1, NORM_MINMAX);
 }
+
 void calc_hog(Mat& image,Eigen::VectorXd& hist){
-    // default opencv implmentation
+    // default opencv implementation
     Mat part_hog;
     vector<float> descriptors;
     vector<Point> points;
@@ -43,7 +44,7 @@ void calc_hog(Mat& image,Eigen::VectorXd& hist){
     descriptor.nbins=32;
     if(image.cols>0 && image.rows>0){
         resize(image,part_hog,descriptor.winSize,0,0,INTER_LINEAR);
-        cvtColor(part_hog, part_hog, COLOR_RGB2GRAY);
+        //cvtColor(part_hog, part_hog, COLOR_RGB2GRAY);
         descriptor.compute(part_hog,descriptors,Size(0,0), Size(0,0),points);
         hist.setOnes(descriptors.size());
         for(unsigned int i=0;i<descriptors.size();i++){

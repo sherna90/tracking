@@ -216,10 +216,11 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 for (unsigned int i = 0; i < sampleBox.size(); ++i)
                 {
                     Mat subImage = grayImg(sampleBox.at(i));
-                    calc_hog(subImage, hist);
+                    calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
 
                     hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
-                    hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+                    //hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+                    hog_descriptors.row(i) = hist;
                     /*for (unsigned int j = 0; j < 7040; ++j)
                     {
                         hog_descriptors(i,j) = hist[j];
@@ -229,7 +230,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 for (unsigned int i = 0; i < negativeBox.size(); ++i)
                 {
                     Mat subImage = grayImg(negativeBox.at(i));
-                    calc_hog(subImage, hist);
+                    calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
                     /*for (unsigned int j = 0; j < 7040; ++j)
                     {
                         hog_descriptors(sampleBox.size() + i,j) = hist[j];
@@ -320,6 +321,10 @@ void particle_filter::predict(){
                 state.scale=1.0f;
             }
             Rect box(state.x, state.y, state.width, state.height);
+            box.x=MIN(MAX(cvRound(box.x),0),im_size.width);
+            box.y=MIN(MAX(cvRound(box.y),0),im_size.height);
+            box.width=MIN(MAX(cvRound(box.width),10),im_size.width);
+            box.height=MIN(MAX(cvRound(box.height),10),im_size.height);
             sampleBox.push_back(box);
             
             //cout << "box " << box.height << " " << box.width << endl;
@@ -443,7 +448,7 @@ void particle_filter::update(Mat& image)
             for (unsigned int i = 0; i < sampleBox.size(); ++i)
             {
                 Mat subImage = grayImg(sampleBox.at(i));
-                calc_hog(subImage, hist);
+                calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
                 
                 hog_descriptors.conservativeResize(hog_descriptors.rows()+1, hog_descriptors.cols());
                 hog_descriptors.row(hog_descriptors.rows()-1) = hist;

@@ -35,12 +35,14 @@ VectorXd LogisticRegression::ComputeSigmoid(MatrixXd _X, RowVectorXd _W){
 VectorXd LogisticRegression::Train(int n_iter,double alpha,double tol,double lambda){
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	MatrixXd H(rows,rows);
+	cout << "start training!" << endl;
 	for(int i=0;i<n_iter;i++){
 		VectorXd Phi=ComputeSigmoid(X_train,weights);
 		VectorXd Grad=ComputeGradient(X_train,Y_train,Phi,lambda);
 		log_likelihood(i)=LogLikelihood(Y_train,Phi)+LogPrior(lambda);
 		weights.noalias()=weights-alpha*Grad.transpose();
 	}
+	cout << "end training!" << endl;
 	VectorXd Phi=ComputeSigmoid(X_train,weights);
 	Hessian = ComputeHessian(X_train,Phi,lambda);
 	return log_likelihood;
@@ -66,13 +68,13 @@ MatrixXd LogisticRegression::ComputeHessian(MatrixXd _X, VectorXd _P,double _lam
 }
 
 VectorXd LogisticRegression::Predict(MatrixXd X_test){
-	int n_samples=1000;
+	VectorXd phi=VectorXd::Zero(X_test.rows());
+	int n_samples=100;
 	MVNGaussian posterior(weights.transpose(),Hessian);
 	MatrixXd samples=posterior.sample(n_samples);
 	X_test.conservativeResize(NoChange, dim+1);
 	VectorXd bias_vec=VectorXd::Constant(X_test.rows(),1.0);
 	X_test.col(dim) = bias_vec;
-	VectorXd phi=VectorXd::Zero(X_test.rows());
 	for(int i=0; i< n_samples;i++){
 		phi+=ComputeSigmoid(X_test,samples.row(i));	
 	}

@@ -41,7 +41,7 @@ void calc_hog(Mat& image,Eigen::VectorXd& hist,cv::Size reference_size){
     std::vector<Point> points;
     HOGDescriptor descriptor;
     descriptor.winSize=Size(48,96);
-    descriptor.nbins=32;
+    //descriptor.nbins=32;
     if(image.cols>0 && image.rows>0){
         resize(image,part_hog,descriptor.winSize,0,0,INTER_LINEAR);
         //cvtColor(part_hog, part_hog, COLOR_RGB2GRAY);

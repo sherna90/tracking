@@ -195,6 +195,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                                                 eigen_sample_negative_feature_value;
                 eigen_sample_feature_value.transposeInPlace();                                
                 logistic_regression = LogisticRegression(eigen_sample_feature_value, labels);
+                logistic_regression.Train(1e2,1e-1,1e-3,0.1);
             }
 
             if(LBP_FEATURE){
@@ -206,11 +207,12 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
                                               local_binary_pattern.negativeFeatureValue;
                 logistic_regression=LogisticRegression(eigen_sample_feature_value, labels);
+                logistic_regression.Train(1e2,1e-1,1e-3,0.1);
             }
 
             if(HOG_FEATURE){
                 //MatrixXd hog_descriptors(sampleBox.size() + negativeBox.size(), 7040);
-                MatrixXd hog_descriptors(0, 7040);
+                MatrixXd hog_descriptors(0, 1980);
                 VectorXd hist;
                 for (unsigned int i = 0; i < sampleBox.size(); ++i)
                 {
@@ -238,8 +240,9 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 }
                 logistic_regression=LogisticRegression(hog_descriptors, labels);
+                logistic_regression.Train(1e2,1e-1,1e-3,0.1);
             }
-            logistic_regression.Train(1e2,1e-1,1e-3,0.1);
+            
         }
 
         /*if(MULTINOMIAL_NAIVEBAYES){
@@ -321,8 +324,8 @@ void particle_filter::predict(){
             Rect box(state.x, state.y, state.width, state.height);
             box.x=MIN(MAX(cvRound(box.x),0),im_size.width);
             box.y=MIN(MAX(cvRound(box.y),0),im_size.height);
-            box.width=MIN(MAX(cvRound(box.width),10),im_size.width);
-            box.height=MIN(MAX(cvRound(box.height),10),im_size.height);
+            box.width=MIN(MAX(cvRound(box.width),0),im_size.width-box.x);
+            box.height=MIN(MAX(cvRound(box.height),0),im_size.height-box.y);
             sampleBox.push_back(box);
             
             //cout << "box " << box.height << " " << box.width << endl;
@@ -397,7 +400,7 @@ void particle_filter::update(Mat& image)
     //uniform_int_distribution<int> random_feature(0,haar.featureNum-1);
     Mat grayImg;
     cvtColor(image, grayImg, CV_RGB2GRAY);
-    equalizeHist( grayImg, grayImg );
+    //equalizeHist( grayImg, grayImg );
 
     if(GAUSSIAN_NAIVEBAYES){
         if(HAAR_FEATURE){
@@ -442,7 +445,7 @@ void particle_filter::update(Mat& image)
 
         if(HOG_FEATURE){
             //MatrixXd hog_descriptors(sampleBox.size(),7040);
-            MatrixXd hog_descriptors(0,7040);
+            MatrixXd hog_descriptors(0,1980);
             VectorXd hist;
             for (unsigned int i = 0; i < sampleBox.size(); ++i)
             {
@@ -450,7 +453,8 @@ void particle_filter::update(Mat& image)
                 calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
                 
                 hog_descriptors.conservativeResize(hog_descriptors.rows()+1, hog_descriptors.cols());
-                hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+                //hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+                hog_descriptors.row(i) = hist;
                 /*for (unsigned int j = 0; j < 7040; ++j)
                 {
                     hog_descriptors(i,j) = hist[j];

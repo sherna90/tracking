@@ -38,14 +38,14 @@ VectorXd LogisticRegression::ComputeSigmoid(MatrixXd &_X, RowVectorXd &_W){
 VectorXd LogisticRegression::Train(int n_iter,double alpha,double tol,double lambda){
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	MatrixXd H(rows,rows);
-	cout << "start training!" << endl;
+	//cout << "start training!" << endl;
 	for(int i=0;i<n_iter;i++){
 		VectorXd Phi=ComputeSigmoid(*X_train,weights);
 		VectorXd Grad=ComputeGradient(*X_train,*Y_train,Phi,lambda);
 		log_likelihood(i)=LogLikelihood(*Y_train,Phi)+LogPrior(lambda);
 		weights.noalias()=weights-alpha*Grad.transpose();
 	}
-	cout << "end training!" << endl;
+	//cout << "end training!" << endl;
 	VectorXd Phi=ComputeSigmoid(*X_train,weights);
 	Hessian = ComputeHessian(*X_train,Phi,lambda);
 	return log_likelihood;
@@ -71,16 +71,17 @@ MatrixXd LogisticRegression::ComputeHessian(MatrixXd &_X, VectorXd &_P,double _l
 }
 
 VectorXd LogisticRegression::Predict(MatrixXd &_X){
-	X_test = &_X;
+	MatrixXd *X_test=&_X;
 	VectorXd phi=VectorXd::Zero(X_test->rows());
 	int n_samples=100;
 	MVNGaussian posterior(weights.transpose(),Hessian);
 	MatrixXd samples=posterior.sample(n_samples);
-	X_test.conservativeResize(NoChange, dim+1);
+	X_test->conservativeResize(NoChange, dim+1);
 	VectorXd bias_vec=VectorXd::Constant(X_test->rows(),1.0);
-	X_test.col(dim) = bias_vec;
+	X_test->col(dim) = bias_vec;
 	for(int i=0; i< n_samples;i++){
-		phi+=ComputeSigmoid(X_test,samples.row(i));	
+		RowVectorXd sample_weight=samples.row(i);
+		phi+=ComputeSigmoid(*X_test,sample_weight);	
 	}
 	phi.noalias()=(1.0/n_samples)*phi;
 	/*phi.noalias() = phi.unaryExpr([](double elem)
@@ -90,10 +91,10 @@ VectorXd LogisticRegression::Predict(MatrixXd &_X){
 	return phi;
 }
 
-double LogisticRegression::LogLikelihood(MatrixXd & _Y, VectorXd &_P){
+double LogisticRegression::LogLikelihood(VectorXd &_Y, VectorXd &_P){
 	double realmin=numeric_limits<double>::min();
-	ArrayXd vec_like=*_Y.array()*(*_P.array().log());
-	vec_like+=(1.0-*_Y.array())*( (1.0-*_P.array()+realmin).log());
+	ArrayXd vec_like=_Y.array()*(_P.array().log());
+	vec_like+=(1.0 - _Y.array())*( (1.0 - _P.array()+realmin).log());
 	return vec_like.sum();
 }
 

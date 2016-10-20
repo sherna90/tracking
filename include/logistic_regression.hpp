@@ -24,7 +24,6 @@ class LogisticRegression
  private:
  	MatrixXd *X_train;
  	VectorXd *Y_train;
- 	VectorXd *X_test;
  	int rows,dim;
  	VectorXd ComputeSigmoid(MatrixXd &_X , RowVectorXd &_W);
  	VectorXd ComputeGradient(MatrixXd &_X, VectorXd &_Y,VectorXd &P,double _lambda);

@@ -9,10 +9,10 @@
 #include <opencv2/core/utility.hpp>
 #include <vector>
 #include <Eigen/Dense>
-#include <opencv2/cudaobjdetect.hpp>
+//#include <opencv2/cudaobjdetect.hpp>
 
 void calc_hog(cv::Mat& image,cv::Mat& hist);
 void calc_hog(cv::Mat& image,Eigen::VectorXd& hist,cv::Size reference_size);
-void calc_hog_gpu(cv::Mat& image,Eigen::VectorXd& hist);
+//void calc_hog_gpu(cv::Mat& image,Eigen::VectorXd& hist);
 
 #endif

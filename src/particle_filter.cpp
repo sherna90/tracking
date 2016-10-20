@@ -183,7 +183,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         if(LOGISTIC_REGRESSION){
             VectorXd labels(2*n_particles);
             labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
-            
+            logistic_regression = LogisticRegression();
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
                 cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
@@ -193,8 +193,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
                 eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
                                                 eigen_sample_negative_feature_value;
-                logistic_regression = new LogisticRegression(eigen_sample_feature_value.transpose(), labels);
-                logistic_regression->Train(1e2,1e-1,1e-3,0.1);
+                eigen_sample_feature_value.transposeInPlace();                                
+                logistic_regression = LogisticRegression(eigen_sample_feature_value, labels);
             }
 
             if(LBP_FEATURE){
@@ -205,8 +205,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                  local_binary_pattern.negativeFeatureValue.rows(), local_binary_pattern.sampleFeatureValue.cols());
                 eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
                                               local_binary_pattern.negativeFeatureValue;
-                logistic_regression = new LogisticRegression(eigen_sample_feature_value, labels);
-                logistic_regression->Train(1e2,1e-1,1e-3,0.1);
+                logistic_regression=LogisticRegression(eigen_sample_feature_value, labels);
             }
 
             if(HOG_FEATURE){
@@ -238,10 +237,9 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
                     hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 }
-                logistic_regression = new LogisticRegression(hog_descriptors, labels);
-                logistic_regression->Train(1e2,1e-1,1e-3,0.1);
-
+                logistic_regression=LogisticRegression(hog_descriptors, labels);
             }
+            logistic_regression.Train(1e2,1e-1,1e-3,0.1);
         }
 
         /*if(MULTINOMIAL_NAIVEBAYES){
@@ -432,13 +430,14 @@ void particle_filter::update(Mat& image)
             haar.getFeatureValue(grayImg,sampleBox,sampleScale);
             MatrixXd eigen_sample_feature_value;
             cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
-            phi = logistic_regression->Predict(eigen_sample_feature_value.transpose());
+            eigen_sample_feature_value.transposeInPlace();
+            phi = logistic_regression.Predict(eigen_sample_feature_value);
             //cout << "phi: " << phi.transpose() << endl;
         }
 
         if(LBP_FEATURE){
             local_binary_pattern.getFeatureValue(grayImg,sampleBox);
-            phi = logistic_regression->Predict(local_binary_pattern.sampleFeatureValue);
+            phi = logistic_regression.Predict(local_binary_pattern.sampleFeatureValue);
         }
 
         if(HOG_FEATURE){
@@ -457,7 +456,7 @@ void particle_filter::update(Mat& image)
                     hog_descriptors(i,j) = hist[j];
                 }*/
             }
-            phi = logistic_regression->Predict(hog_descriptors);
+            phi = logistic_regression.Predict(hog_descriptors);
         }
 
         for (int i = 0; i < n_particles; ++i)

@@ -51,7 +51,7 @@ public:
     vector<float>  weights;
     Haar haar;
     LocalBinaryPattern local_binary_pattern;
-    LogisticRegression* logistic_regression;
+    LogisticRegression logistic_regression;
     MultinomialNaiveBayes* multinomial_naivebayes;
     GaussianNaiveBayes gaussian_naivebayes;
     ~particle_filter();

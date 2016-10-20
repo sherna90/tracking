@@ -53,7 +53,7 @@ void calc_hog(Mat& image,Eigen::VectorXd& hist,cv::Size reference_size){
     }
 }
 
-void calc_hog_gpu(Mat& image,Eigen::VectorXd& hist){
+/*void calc_hog_gpu(Mat& image,Eigen::VectorXd& hist){
     // default opencv implementation
     Mat part_hog;
     cuda::GpuMat gpu_img;
@@ -72,4 +72,4 @@ void calc_hog_gpu(Mat& image,Eigen::VectorXd& hist){
         }
     }
     //normalize(hist, hist, 0, 1, NORM_MINMAX);
-}
+}*/

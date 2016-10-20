@@ -1,22 +1,25 @@
 #include "../include/logistic_regression.hpp"
 
-LogisticRegression::LogisticRegression(MatrixXd _X,VectorXd _Y){
- 	X_train = _X;
- 	Y_train = _Y;
- 	VectorXi indices = VectorXi::LinSpaced(X_train.rows(), 0, X_train.rows());
+LogisticRegression::LogisticRegression(){
+}
+
+LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y){
+ 	X_train = &_X;
+ 	Y_train = &_Y;
+ 	VectorXi indices = VectorXi::LinSpaced(X_train->rows(), 0, X_train->rows());
  	srand((unsigned int) time(0));
- 	std::random_shuffle(indices.data(), indices.data() + X_train.rows());
-  	X_train.noalias() = indices.asPermutation() * X_train;  
-  	Y_train.noalias() = indices.asPermutation() * Y_train; 
- 	rows = X_train.rows();
-	dim = X_train.cols();
+ 	std::random_shuffle(indices.data(), indices.data() + X_train->rows());
+  	X_train->noalias() = indices.asPermutation() * *X_train;  
+  	Y_train->noalias() = indices.asPermutation() * *Y_train; 
+ 	rows = X_train->rows();
+	dim = X_train->cols();
 	weights = RowVectorXd::Constant(dim+1,1.0);
-	X_train.conservativeResize(NoChange, dim+1);
+	X_train->conservativeResize(NoChange, dim+1);
 	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
-	X_train.col(dim) = bias_vec;
+	X_train->col(dim) = bias_vec;
  }
 
-VectorXd LogisticRegression::ComputeSigmoid(MatrixXd _X, RowVectorXd _W){
+VectorXd LogisticRegression::ComputeSigmoid(MatrixXd &_X, RowVectorXd &_W){
 	VectorXd phi=VectorXd::Zero(_X.rows());
 	VectorXd mu = (-_X*_W.transpose());
 	mu.noalias() = mu.unaryExpr([](double elem) // changed type of parameter
@@ -37,25 +40,25 @@ VectorXd LogisticRegression::Train(int n_iter,double alpha,double tol,double lam
 	MatrixXd H(rows,rows);
 	cout << "start training!" << endl;
 	for(int i=0;i<n_iter;i++){
-		VectorXd Phi=ComputeSigmoid(X_train,weights);
-		VectorXd Grad=ComputeGradient(X_train,Y_train,Phi,lambda);
-		log_likelihood(i)=LogLikelihood(Y_train,Phi)+LogPrior(lambda);
+		VectorXd Phi=ComputeSigmoid(*X_train,weights);
+		VectorXd Grad=ComputeGradient(*X_train,*Y_train,Phi,lambda);
+		log_likelihood(i)=LogLikelihood(*Y_train,Phi)+LogPrior(lambda);
 		weights.noalias()=weights-alpha*Grad.transpose();
 	}
 	cout << "end training!" << endl;
-	VectorXd Phi=ComputeSigmoid(X_train,weights);
-	Hessian = ComputeHessian(X_train,Phi,lambda);
+	VectorXd Phi=ComputeSigmoid(*X_train,weights);
+	Hessian = ComputeHessian(*X_train,Phi,lambda);
 	return log_likelihood;
 }
 
-VectorXd LogisticRegression::ComputeGradient(MatrixXd _X, MatrixXd _Y,VectorXd _P,double _lambda){
+VectorXd LogisticRegression::ComputeGradient(MatrixXd &_X, VectorXd &_Y,VectorXd &_P,double _lambda){
 	VectorXd E_d=_X.transpose()*(_P-_Y);
 	VectorXd E_w=(_lambda/2.0)*weights.transpose();
 	VectorXd grad=E_d+E_w;
 	return grad;
 }
 
-MatrixXd LogisticRegression::ComputeHessian(MatrixXd _X, VectorXd _P,double _lambda){
+MatrixXd LogisticRegression::ComputeHessian(MatrixXd &_X, VectorXd &_P,double _lambda){
 	double realmin=numeric_limits<double>::min();
 	MatrixXd I=MatrixXd::Identity(dim+1,dim+1);
 	MatrixXd H(dim+1,dim+1);
@@ -67,13 +70,14 @@ MatrixXd LogisticRegression::ComputeHessian(MatrixXd _X, VectorXd _P,double _lam
 	return H.inverse();
 }
 
-VectorXd LogisticRegression::Predict(MatrixXd X_test){
-	VectorXd phi=VectorXd::Zero(X_test.rows());
+VectorXd LogisticRegression::Predict(MatrixXd &_X){
+	X_test = &_X;
+	VectorXd phi=VectorXd::Zero(X_test->rows());
 	int n_samples=100;
 	MVNGaussian posterior(weights.transpose(),Hessian);
 	MatrixXd samples=posterior.sample(n_samples);
 	X_test.conservativeResize(NoChange, dim+1);
-	VectorXd bias_vec=VectorXd::Constant(X_test.rows(),1.0);
+	VectorXd bias_vec=VectorXd::Constant(X_test->rows(),1.0);
 	X_test.col(dim) = bias_vec;
 	for(int i=0; i< n_samples;i++){
 		phi+=ComputeSigmoid(X_test,samples.row(i));	
@@ -86,10 +90,10 @@ VectorXd LogisticRegression::Predict(MatrixXd X_test){
 	return phi;
 }
 
-double LogisticRegression::LogLikelihood(MatrixXd _Y, VectorXd _P){
+double LogisticRegression::LogLikelihood(MatrixXd & _Y, VectorXd &_P){
 	double realmin=numeric_limits<double>::min();
-	ArrayXd vec_like=_Y.array()*(_P.array().log());
-	vec_like+=(1.0-_Y.array())*( (1.0-_P.array()+realmin).log());
+	ArrayXd vec_like=*_Y.array()*(*_P.array().log());
+	vec_like+=(1.0-*_Y.array())*( (1.0-*_P.array()+realmin).log());
 	return vec_like.sum();
 }
 

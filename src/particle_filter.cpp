@@ -138,16 +138,13 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             sampleScale.push_back(state.scale);    
         }
         for (int i=0;i<n_particles;i++){
-            float _x,_y;
             float _dx=negative_random_pos(generator);
             float _dy=negative_random_pos(generator);
-            _x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
-            _y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
             Rect box;
-            box.x=_x;
-            box.y=_y;
-            box.width=cvRound(reference_roi.width);
-            box.height=cvRound(reference_roi.height);
+            box.x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
+            box.y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
+            box.width=MIN(MAX(cvRound(reference_roi.width),0),im_size.width-box.x);
+            box.height=MIN(MAX(cvRound(reference_roi.height),0),im_size.height-box.y);
             negativeBox.push_back(box);    
         }
         Mat grayImg;
@@ -160,7 +157,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             if(HAAR_FEATURE){
                 Mat positive_sample_feature_values = haar.sampleFeatureValue.clone();
                 haar.getFeatureValue(grayImg, negativeBox, sampleScale);
-                cout << positive_sample_feature_values.rows << "," << positive_sample_feature_values.cols << endl;
+                //cout << positive_sample_feature_values.rows << "," << positive_sample_feature_values.cols << endl;
                 gaussian_naivebayes = GaussianNaiveBayes(positive_sample_feature_values, 
                                                                     haar.sampleFeatureValue);
                 gaussian_naivebayes.fit();
@@ -173,7 +170,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 MatrixXd auxSampleNegative = local_binary_pattern.negativeFeatureValue.transpose();
                 eigen2cv(auxSample, cv_positive_sample_feature_values);
                 eigen2cv(auxSampleNegative, cv_negative_sample_feature_values);
-                cout << cv_positive_sample_feature_values.rows << "," << cv_positive_sample_feature_values.cols << endl;
+                //cout << cv_positive_sample_feature_values.rows << "," << cv_positive_sample_feature_values.cols << endl;
                 gaussian_naivebayes = GaussianNaiveBayes(cv_positive_sample_feature_values, 
                                                         cv_negative_sample_feature_values);
                 gaussian_naivebayes.fit();
@@ -184,6 +181,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 VectorXd hist;
                 for (unsigned int i = 0; i < sampleBox.size(); ++i)
                 {
+                    //cout << sampleBox.at(i).x << "," << sampleBox.at(i).y << ","<< sampleBox.at(i).width << ","<< sampleBox.at(i).height << endl;
                     Mat subImage = grayImg(sampleBox.at(i));
                     calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
 
@@ -193,6 +191,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
 
                 for (unsigned int i = 0; i < negativeBox.size(); ++i)
                 {
+                    //cout << negativeBox.at(i).x << "," << negativeBox.at(i).y << ","<< negativeBox.at(i).width << ","<< negativeBox.at(i).height << endl;
                     Mat subImage = grayImg(negativeBox.at(i));
                     calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
                     negative_descriptors.conservativeResize( negative_descriptors.rows()+1, negative_descriptors.cols() );
@@ -286,6 +285,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             }
         }*/
         initialized=true;
+        cout << "init!" << endl;
     }
 }
 

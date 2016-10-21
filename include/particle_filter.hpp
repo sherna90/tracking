@@ -15,6 +15,7 @@
 #include <random>
 #include <chrono>
 
+#include "mb_lbp.hpp"
 #include "logistic_regression.hpp"
 #include "gaussian_naivebayes.hpp"
 #include "multinomialnaivebayes.hpp"
@@ -51,6 +52,7 @@ public:
     vector<float>  weights;
     Haar haar;
     LocalBinaryPattern local_binary_pattern;
+    MultiScaleBlockLBP multiblock_local_binary_patterns;
     LogisticRegression logistic_regression;
     MultinomialNaiveBayes* multinomial_naivebayes;
     GaussianNaiveBayes gaussian_naivebayes;

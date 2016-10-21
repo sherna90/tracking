@@ -6,8 +6,12 @@ CMakeFiles/particle_filter.dir/main.cpp.o: ../LBP/LBPGPU.cuh
 CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/gaussian.hpp
 CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/gaussian_naivebayes.hpp
 CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/haar.hpp
+CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/hog.hpp
 CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/local_binary_pattern.hpp
 CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/logistic_regression.hpp
+CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/mb_lbp.hpp
+CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/multinomial.hpp
+CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/multinomialnaivebayes.hpp
 CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/multivariate_gaussian.hpp
 CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/particle_filter.hpp
 CMakeFiles/particle_filter.dir/main.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/vot.h
@@ -1774,8 +1778,12 @@ CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/gaussian.hpp
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/gaussian_naivebayes.hpp
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/haar.hpp
+CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/hog.hpp
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/local_binary_pattern.hpp
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/logistic_regression.hpp
+CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/mb_lbp.hpp
+CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/multinomial.hpp
+CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/multinomialnaivebayes.hpp
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/multivariate_gaussian.hpp
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/include/particle_filter.hpp
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp
@@ -2018,6 +2026,7 @@ CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /usr/local/include/opencv2/imgcodecs.hpp
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /usr/local/include/opencv2/imgcodecs/imgcodecs_c.h
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /usr/local/include/opencv2/imgproc.hpp
+CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /usr/local/include/opencv2/imgproc/imgproc.hpp
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /usr/local/include/opencv2/imgproc/imgproc_c.h
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /usr/local/include/opencv2/imgproc/types_c.h
 CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp.o: /usr/local/include/opencv2/ml.hpp

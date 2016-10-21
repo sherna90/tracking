@@ -7,8 +7,12 @@ CMakeFiles/particle_filter.dir/main.cpp.o
  /media/sf_felipe/Documents/codes/cpp/tracking/include/gaussian.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/gaussian_naivebayes.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/haar.hpp
+ /media/sf_felipe/Documents/codes/cpp/tracking/include/hog.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/local_binary_pattern.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/logistic_regression.hpp
+ /media/sf_felipe/Documents/codes/cpp/tracking/include/mb_lbp.hpp
+ /media/sf_felipe/Documents/codes/cpp/tracking/include/multinomial.hpp
+ /media/sf_felipe/Documents/codes/cpp/tracking/include/multinomialnaivebayes.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/multivariate_gaussian.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/particle_filter.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/vot.h
@@ -1775,8 +1779,12 @@ CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/
  /media/sf_felipe/Documents/codes/cpp/tracking/include/gaussian.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/gaussian_naivebayes.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/haar.hpp
+ /media/sf_felipe/Documents/codes/cpp/tracking/include/hog.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/local_binary_pattern.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/logistic_regression.hpp
+ /media/sf_felipe/Documents/codes/cpp/tracking/include/mb_lbp.hpp
+ /media/sf_felipe/Documents/codes/cpp/tracking/include/multinomial.hpp
+ /media/sf_felipe/Documents/codes/cpp/tracking/include/multinomialnaivebayes.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/multivariate_gaussian.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/include/particle_filter.hpp
  /media/sf_felipe/Documents/codes/cpp/tracking/src/particle_filter.cpp
@@ -2019,6 +2027,7 @@ CMakeFiles/particle_filter.dir/media/sf_felipe/Documents/codes/cpp/tracking/src/
  /usr/local/include/opencv2/imgcodecs.hpp
  /usr/local/include/opencv2/imgcodecs/imgcodecs_c.h
  /usr/local/include/opencv2/imgproc.hpp
+ /usr/local/include/opencv2/imgproc/imgproc.hpp
  /usr/local/include/opencv2/imgproc/imgproc_c.h
  /usr/local/include/opencv2/imgproc/types_c.h
  /usr/local/include/opencv2/ml.hpp

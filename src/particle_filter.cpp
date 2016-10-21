@@ -14,13 +14,14 @@ const float SCALE_STD=1.0;
 const float DT=1.0;
 const float THRESHOLD=1.0;
 
-const bool GAUSSIAN_NAIVEBAYES=false;
-const bool LOGISTIC_REGRESSION=true;
+const bool GAUSSIAN_NAIVEBAYES=true;
+const bool LOGISTIC_REGRESSION=false;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
 const bool HAAR_FEATURE=false;
 const bool LBP_FEATURE=false;
-const bool HOG_FEATURE=true;
+const bool HOG_FEATURE=false;
+const bool MB_LBP_FEATURE=true;
 #endif
 
 particle_filter::particle_filter() {
@@ -138,16 +139,20 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             sampleScale.push_back(state.scale);    
         }
         for (int i=0;i<n_particles;i++){
-            float _x,_y;
+            //float _x,_y;
             float _dx=negative_random_pos(generator);
             float _dy=negative_random_pos(generator);
-            _x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
-            _y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
+            //_x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
+            //_y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
             Rect box;
-            box.x=_x;
-            box.y=_y;
-            box.width=cvRound(reference_roi.width);
-            box.height=cvRound(reference_roi.height);
+            box.x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
+            box.y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
+            box.width=MIN(MAX(cvRound(reference_roi.width),0),im_size.width-box.x);
+            box.height=MIN(MAX(cvRound(reference_roi.height),0),im_size.height-box.y);
+            //box.x=_x;
+            //box.y=_y;
+            //box.width=cvRound(reference_roi.width);
+            //box.height=cvRound(reference_roi.height);
             negativeBox.push_back(box);    
         }
         Mat grayImg;
@@ -173,6 +178,19 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen2cv(auxSample, cv_positive_sample_feature_values);
                 eigen2cv(auxSampleNegative, cv_negative_sample_feature_values);
                 gaussian_naivebayes = GaussianNaiveBayes(cv_positive_sample_feature_values, 
+                                                        cv_negative_sample_feature_values);
+                gaussian_naivebayes.fit();
+            }
+            if(MB_LBP_FEATURE){
+                multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false);
+                multiblock_local_binary_patterns.init(grayImg, sampleBox);
+                multiblock_local_binary_patterns.getFeatureValue(grayImg, negativeBox, false);
+                Mat cv_positive_sample_feature_values, cv_negative_sample_feature_values;
+                MatrixXd auxSample = multiblock_local_binary_patterns.sampleFeatureValue.transpose();
+                MatrixXd auxSampleNegative = multiblock_local_binary_patterns.negativeFeatureValue.transpose();
+                eigen2cv(auxSample, cv_positive_sample_feature_values);
+                eigen2cv(auxSampleNegative, cv_negative_sample_feature_values);
+                gaussian_naivebayes = GaussianNaiveBayes(cv_positive_sample_feature_values,
                                                         cv_negative_sample_feature_values);
                 gaussian_naivebayes.fit();
             }
@@ -207,6 +225,18 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
                                               local_binary_pattern.negativeFeatureValue;
                 logistic_regression=LogisticRegression(eigen_sample_feature_value, labels);
+                logistic_regression.Train(1e2,1e-1,1e-3,0.1);
+            }
+
+            if(MB_LBP_FEATURE){
+                multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false);
+                multiblock_local_binary_patterns.init(grayImg, sampleBox);
+                multiblock_local_binary_patterns.getFeatureValue(grayImg, negativeBox, false);
+                MatrixXd eigen_sample_feature_value(multiblock_local_binary_patterns.sampleFeatureValue.rows() +
+                    multiblock_local_binary_patterns.negativeFeatureValue.rows(), multiblock_local_binary_patterns.sampleFeatureValue.cols());
+                eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
+                                              multiblock_local_binary_patterns.negativeFeatureValue;
+                logistic_regression = LogisticRegression(eigen_sample_feature_value, labels);
                 logistic_regression.Train(1e2,1e-1,1e-3,0.1);
             }
 
@@ -424,6 +454,18 @@ void particle_filter::update(Mat& image)
                 tmp_weights.push_back(gaussian_naivebayes.test(i));
             }
         }
+        if(MB_LBP_FEATURE){
+            multiblock_local_binary_patterns.getFeatureValue(grayImg, sampleBox);
+            Mat cv_sample_feature_value;
+            MatrixXd auxSample = multiblock_local_binary_patterns.sampleFeatureValue.transpose();
+            eigen2cv(auxSample, cv_sample_feature_value);
+            gaussian_naivebayes.setSampleFeatureValue(cv_sample_feature_value);
+            for (int i = 0; i < n_particles; ++i)
+            {
+                states[i] = update_state(states[i], image);
+                tmp_weights.push_back(gaussian_naivebayes.test(i));
+            }
+        }
     }
 
     if(LOGISTIC_REGRESSION){
@@ -441,6 +483,11 @@ void particle_filter::update(Mat& image)
         if(LBP_FEATURE){
             local_binary_pattern.getFeatureValue(grayImg,sampleBox);
             phi = logistic_regression.Predict(local_binary_pattern.sampleFeatureValue);
+        }
+
+        if(MB_LBP_FEATURE){
+            multiblock_local_binary_patterns.getFeatureValue(grayImg, sampleBox, true);
+            phi = logistic_regression.Predict(multiblock_local_binary_patterns.sampleFeatureValue);
         }
 
         if(HOG_FEATURE){

@@ -1,5 +1,4 @@
 #include "../include/local_binary_pattern.hpp"
-
 #include <sstream>
 
 
@@ -13,22 +12,22 @@ LocalBinaryPattern::LocalBinaryPattern(){
 }
 
 void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, bool _isPositiveBox){
-	int xMin, xMax, yMin, yMax;
+	//int xMin, xMax, yMin, yMax;
 	for (unsigned int k = 0; k < _sampleBox.size(); ++k)
 	{
-		Rect box = _sampleBox.at(k);
+		//Rect box = _sampleBox.at(k);
 
 		Size size(50,50);
 		//cout << "x: " << box.x << "  y: " << box.y << "  height: " << box.height << "  width: " << box.width << endl;
 
-		xMin = MIN(MAX(box.x,0),_image.cols);
+		/*xMin = MIN(MAX(box.x,0),_image.cols);
 		xMax = MIN(box.x + box.width, _image.cols);
 		yMin = MIN(MAX(box.y,0),_image.rows);
-		yMax = MIN(box.y + box.height, _image.rows);
+		yMax = MIN(box.y + box.height, _image.rows);*/
 		//cout << "xMin: " << xMin << "  xMax: " << xMax << "  yMin: " << yMin << "  yMax: " << yMax << endl;		
 
 		//Mat subImage = _image(Rect(xMin, yMin, xMax-xMin, yMax-yMin));
-		Mat auxSubImage = _image(Rect(xMin, yMin, xMax-xMin, yMax-yMin));
+		Mat auxSubImage = _image(_sampleBox.at(k));
 		Mat subImage;
 		auxSubImage.copyTo(subImage);
 		

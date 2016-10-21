@@ -15,7 +15,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories( "LBP/" )
 include_directories( "/usr/include/eigen3/" )
 
-add_executable( tracker test_particle_filter.cpp particle_filter.cpp  utils.cpp gaussian.cpp image_generator.cpp haar.cpp logistic_regression.cpp gaussian_naivebayes.cpp multivariate_gaussian.cpp local_binary_pattern.cpp multinomial.cpp multinomialnaivebayes.cpp hog.cpp LBP/LBP.cpp) 
+add_executable( tracker test_particle_filter.cpp particle_filter.cpp  utils.cpp gaussian.cpp image_generator.cpp haar.cpp logistic_regression.cpp gaussian_naivebayes.cpp multivariate_gaussian.cpp local_binary_pattern.cpp multinomial.cpp multinomialnaivebayes.cpp hog.cpp mb_lbp.cpp LBP/LBP.cpp) 
 target_link_libraries( tracker ${OpenCV_LIBS} ${FFTW_LIBRARY})
 
 #add_executable( pmmh test_pmmh.cpp pmmh.cpp particle_filter.cpp  utils.cpp gaussian.cpp  image_generator.cpp haar.cpp gaussian_naivebayes.cpp logistic_regression.cpp multivariate_gaussian.cpp)

@@ -72,8 +72,8 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double>
 		{
 			tempValue = 0.0f;
 			float scale=1.0f;
-			if(j<=(int)_sampleScale.size())
-				scale=(float)_sampleScale[j];
+			//if(j<=(int)_sampleScale.size())
+				//scale=(float)_sampleScale[j];
 			for (size_t k=0; k<features[i].size(); k++)
 			{
 				xMin = MIN(MAX(cvRound(_sampleBox[j].x + scale*features[i][k].x),0),imageIntegral.cols);

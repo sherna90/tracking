@@ -19,8 +19,6 @@ void MultiScaleBlockLBP::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 	//int xMin, xMax, yMin, yMax;
 	for (unsigned int k = 0; k < _sampleBox.size(); ++k){
 		Mat auxSubImage = _image(_sampleBox.at(k));
-		cout << _sampleBox.at(k).x << "," << _sampleBox.at(k).y << "," << _sampleBox.at(k).width << "," << _sampleBox.at(k).height << endl;
-
 		Mat subImage;
 		auxSubImage.copyTo(subImage);
 		

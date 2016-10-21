@@ -54,7 +54,7 @@ public:
     LocalBinaryPattern local_binary_pattern;
     MultiScaleBlockLBP multiblock_local_binary_patterns;
     LogisticRegression logistic_regression;
-    MultinomialNaiveBayes* multinomial_naivebayes;
+    MultinomialNaiveBayes multinomial_naivebayes;
     GaussianNaiveBayes gaussian_naivebayes;
     ~particle_filter();
     particle_filter(int _n_particles);

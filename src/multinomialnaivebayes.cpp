@@ -32,6 +32,7 @@ void MultinomialNaiveBayes::fit(double alpha)
             }
         }
     }
+
 }
 
 VectorXd MultinomialNaiveBayes::test(MatrixXd &Xtest)

@@ -8,7 +8,7 @@ LocalBinaryPattern::LocalBinaryPattern(){
 	numSupportPoints = 8;
 	mapping = "u2";
 	rad = 2;
-	normalizedHist = true;
+	normalizedHist = false;
 }
 
 void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, bool _isPositiveBox){
@@ -17,7 +17,7 @@ void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 	{
 		//Rect box = _sampleBox.at(k);
 
-		Size size(50,50);
+		Size size(64,128);
 		//cout << "x: " << box.x << "  y: " << box.y << "  height: " << box.height << "  width: " << box.width << endl;
 
 		/*xMin = MIN(MAX(box.x,0),_image.cols);
@@ -32,7 +32,7 @@ void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 		auxSubImage.copyTo(subImage);
 		
 		resize(subImage, subImage, size);
-		equalizeHist(subImage, subImage); //Equalize Image
+		//equalizeHist(subImage, subImage); //Equalize Image
         
         subImage.convertTo( subImage, CV_64F );
         int width = subImage.cols, height = subImage.rows;

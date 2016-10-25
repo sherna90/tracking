@@ -24,12 +24,13 @@ private:
 	Mat imageIntegral;
 	Mat detectFeatureValue;
 	RNG rng;
+	Rect reference_roi;
 
 private:
 	void HaarFeature(Rect& _objectBox, int _numFeature);
 
 public:
-	void getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double> _sampleScale);
+	void getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox);
 	void init(Mat& _frame, Rect& _objectBox,vector<Rect>& _sampleBox);
 	
 };

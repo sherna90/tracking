@@ -13,10 +13,11 @@ const float POS_STD=5.0;
 const float SCALE_STD=1.0;
 const float DT=1.0;
 const float THRESHOLD=1.0;
+const float OVERLAP_RATIO=0.8;
 
-const bool GAUSSIAN_NAIVEBAYES=false;
+const bool GAUSSIAN_NAIVEBAYES=true;
 const bool LOGISTIC_REGRESSION=false;
-const bool MULTINOMIAL_NAIVEBAYES=true;
+const bool MULTINOMIAL_NAIVEBAYES=false;
 
 const bool HAAR_FEATURE=true;
 const bool LBP_FEATURE=false;
@@ -70,11 +71,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     states.clear();
     weights.clear();
     estimates.clear();
-    positive_likelihood.clear();
-    negative_likelihood.clear();
     sampleBox.clear();
-    sampleScale.clear();
-    theta_y.clear();
     estimates.push_back(ground_truth);
     //cout << "INIT!!!!!" << endl;
     //cout << ground_truth << endl;
@@ -135,18 +132,21 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             weights.push_back(weight);
             ESS=0.0f;   
             Rect box(state.x, state.y, state.width, state.height);
-            sampleBox.push_back(box);
-            sampleScale.push_back(state.scale);    
+            sampleBox.push_back(box);   
         }
         for (int i=0;i<n_particles;i++){
-            float _dx=negative_random_pos(generator);
-            float _dy=negative_random_pos(generator);
-            Rect box;
-            box.x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
-            box.y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
-            box.width=MIN(MAX(cvRound(reference_roi.width),0),im_size.width-box.x);
-            box.height=MIN(MAX(cvRound(reference_roi.height),0),im_size.height-box.y);
-            negativeBox.push_back(box);    
+            Rect box=reference_roi;
+            Rect intersection=(box & reference_roi);
+            while( double(intersection.area())/double(reference_roi.area()) > OVERLAP_RATIO ){
+                float _dx=negative_random_pos(generator);
+                float _dy=negative_random_pos(generator);
+                box.x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
+                box.y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
+                box.width=MIN(MAX(cvRound(reference_roi.width),0),im_size.width-box.x);
+                box.height=MIN(MAX(cvRound(reference_roi.height),0),im_size.height-box.y);
+                intersection=(box & reference_roi);
+            }
+            negativeBox.push_back(box); 
         }
         Mat grayImg;
         cvtColor(current_frame, grayImg, CV_RGB2GRAY);
@@ -157,7 +157,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             gaussian_naivebayes = GaussianNaiveBayes();
             if(HAAR_FEATURE){
                 Mat positive_sample_feature_values = haar.sampleFeatureValue.clone();
-                haar.getFeatureValue(grayImg, negativeBox, sampleScale);
+                haar.getFeatureValue(grayImg, negativeBox);
                 //cout << positive_sample_feature_values.rows << "," << positive_sample_feature_values.cols << endl;
                 gaussian_naivebayes = GaussianNaiveBayes(positive_sample_feature_values, 
                                                                     haar.sampleFeatureValue);
@@ -233,7 +233,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
                 cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
-                haar.getFeatureValue(grayImg,negativeBox,sampleScale);
+                haar.getFeatureValue(grayImg,negativeBox);
                 cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
                 MatrixXd eigen_sample_feature_value( eigen_sample_positive_feature_value.rows(),
                     eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
@@ -300,7 +300,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
                 cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
-                haar.getFeatureValue(grayImg,negativeBox,sampleScale);
+                haar.getFeatureValue(grayImg,negativeBox);
                 cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
                 MatrixXd eigen_sample_feature_value( eigen_sample_positive_feature_value.rows(),
                     eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
@@ -308,7 +308,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                                                 eigen_sample_negative_feature_value;
                 eigen_sample_feature_value.transposeInPlace();
                 multinomial_naivebayes = MultinomialNaiveBayes(eigen_sample_feature_value, labels);
-                multinomial_naivebayes.fit(1e-2);
+                multinomial_naivebayes.fit(1e-6);
             }
 
             if(LBP_FEATURE){
@@ -319,7 +319,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
                                               local_binary_pattern.negativeFeatureValue;
                 multinomial_naivebayes = MultinomialNaiveBayes(eigen_sample_feature_value, labels);
-                multinomial_naivebayes.fit(1e-2);
+                multinomial_naivebayes.fit(1e-6);
             }
 
             if(MB_LBP_FEATURE){
@@ -331,7 +331,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
                                               multiblock_local_binary_patterns.negativeFeatureValue;
                 multinomial_naivebayes = MultinomialNaiveBayes(eigen_sample_feature_value, labels);
-                multinomial_naivebayes.fit(1e-2);
+                multinomial_naivebayes.fit(1e-6);
             }
 
             if(HOG_FEATURE){
@@ -353,11 +353,11 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 }
                 multinomial_naivebayes=MultinomialNaiveBayes(hog_descriptors, labels);
-                multinomial_naivebayes.fit(1e-2);
+                multinomial_naivebayes.fit(1e-6);
             }
         }
         initialized=true;
-        cout << "init!" << endl;
+        //cout << "init!" << endl;
     }
 }
 
@@ -367,7 +367,6 @@ void particle_filter::predict(){
     normal_distribution<double> scale_random_width(0.0,theta_x.at(1)(0));
     normal_distribution<double> scale_random_height(0.0,theta_x.at(1)(1));
     sampleBox.clear();//important
-    sampleScale.clear();//important
     //cout << "predicted particles!" <<endl;
     if(initialized==true){
         time_stamp++;
@@ -422,7 +421,6 @@ void particle_filter::predict(){
             
             //cout << "box " << box.height << " " << box.width << endl;
 
-            sampleScale.push_back(state.scale);
             //cout << "reference " << reference_roi << endl;
             //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height <<",scale:" << state.scale << endl;
             tmp_new_states[i]=state;
@@ -496,7 +494,7 @@ void particle_filter::update(Mat& image)
 
     if(GAUSSIAN_NAIVEBAYES){
         if(HAAR_FEATURE){
-            haar.getFeatureValue(grayImg,sampleBox,sampleScale);
+            haar.getFeatureValue(grayImg,sampleBox);
             gaussian_naivebayes.setSampleFeatureValue(haar.sampleFeatureValue);
             for (int i = 0; i < n_particles; ++i)
             {
@@ -556,7 +554,7 @@ void particle_filter::update(Mat& image)
         VectorXd phi;
         
         if(HAAR_FEATURE){
-            haar.getFeatureValue(grayImg,sampleBox,sampleScale);
+            haar.getFeatureValue(grayImg,sampleBox);
             MatrixXd eigen_sample_feature_value;
             cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
             eigen_sample_feature_value.transposeInPlace();
@@ -599,7 +597,7 @@ void particle_filter::update(Mat& image)
     if(MULTINOMIAL_NAIVEBAYES){
         MatrixXd Phi;
         if(HAAR_FEATURE){
-            haar.getFeatureValue(grayImg,sampleBox,sampleScale);
+            haar.getFeatureValue(grayImg,sampleBox);
             MatrixXd eigen_sample_feature_value;
             cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
             eigen_sample_feature_value.transposeInPlace();
@@ -704,22 +702,10 @@ float particle_filter::getESS(){
 
 void particle_filter::update_model(vector<VectorXd> theta_x_new,vector<VectorXd> theta_y_new){
     theta_x.clear();
-    theta_y.clear();
-    //positive_likelihood.clear();
-    gaussian_naivebayes.positive_likelihood.clear();
     VectorXd theta_x_pos=theta_x_new.at(0);
     VectorXd theta_x_scale=theta_x_new.at(1);
     theta_x.push_back(theta_x_pos);
     theta_x.push_back(theta_x_scale);
-    VectorXd theta_y_mu=theta_y_new.at(0);
-    VectorXd theta_y_sig=theta_y_new.at(1);
-
-    for (int i=0; i<haar.featureNum; i++){
-        Gaussian haar_feature(theta_y_mu[i],theta_y_sig[i]);  
-        gaussian_naivebayes.positive_likelihood.push_back(haar_feature);
-    }
-    theta_y.push_back(theta_y_mu);
-    theta_y.push_back(theta_y_sig);
 }
 
 vector<VectorXd> particle_filter::get_dynamic_model(){

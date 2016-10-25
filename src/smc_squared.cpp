@@ -1,7 +1,7 @@
 #include "../include/smc_squared.hpp"
 
-const float SHAPE=1.0;
-const float SCALE=1.0;
+const float SHAPE=0.1;
+const float SCALE=0.1;
 const float HAAR_MU=1.0;
 const float HAAR_SIG=1.0;
 const float PRIOR_SD=0.01;
@@ -36,13 +36,11 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
     theta_x=filter->get_dynamic_model();
     theta_y=filter->get_observation_model();
     //cout << "smc_squared" << endl;
-    haar=filter->haar;
     float weight=1.0f;
     for(int j=0;j<m_particles;++j){
         //delete filter;
         particle_filter* new_filter=new particle_filter(n_particles);
         new_filter->initialize(current_frame,ground_truth);
-        new_filter->haar=haar;
         theta_y_prop.clear();
         VectorXd prop_mu=proposal(theta_y[0],HAAR_MU);
         theta_y_prop.push_back(prop_mu);
@@ -136,7 +134,6 @@ void smc_squared::update(Mat& current_frame){
     }
     theta_weights.swap(tmp_weights);
     tmp_weights.clear();
-    resample();
     for(int j=0;j<m_particles;++j){
         //cout << " PMMH ---------------------" << endl;
         pmmh filter(n_particles,fixed_lag,mcmc_steps);
@@ -164,6 +161,7 @@ void smc_squared::update(Mat& current_frame){
         //cout << "appearence mu proposal " << theta_y_prop[0].transpose() << endl;
         //cout << "appearence sig  proposal " << theta_y_prop[1].transpose() << endl;
     }
+    //resample();
 }
 
 Rect smc_squared::estimate(Mat& image,bool draw){
@@ -183,7 +181,7 @@ Rect smc_squared::estimate(Mat& image,bool draw){
             _height+= estimate.height;
             norm++;
         }
-        cout << j <<  ", weight:" << (float)theta_weights[j] << ",x:" << estimate.x << ",y:" << estimate.y << ",w:" << estimate.width << ",h:" << estimate.height << endl;
+        //cout << j <<  ", weight:" << (float)theta_weights[j] << ",x:" << estimate.x << ",y:" << estimate.y << ",w:" << estimate.width << ",h:" << estimate.height << endl;
     }
     Rect new_estimate(cvRound(_x/norm), cvRound(_y/norm), cvRound(_width/norm), cvRound(_height/norm));
     //cout << "final estimate: " << new_estimate << endl;

@@ -91,7 +91,6 @@ protected:
     normal_distribution<double> position_random_walk,velocity_random_walk,scale_random_walk;
     double eps;
     vector<Rect > sampleBox;
-    vector<double > sampleScale;
 };
 
 #endif

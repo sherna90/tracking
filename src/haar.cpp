@@ -55,7 +55,7 @@ void Haar::HaarFeature(Rect& _objectBox, int _numFeature){
 	}
 }
 
-void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double> _sampleScale)
+void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox)
 {
 	integral(_frame, imageIntegral, CV_32F);
 	int sampleBoxSize = _sampleBox.size();
@@ -71,15 +71,16 @@ void Haar::getFeatureValue(Mat& _frame, vector<Rect>& _sampleBox, vector<double>
 		for (int j=0; j<sampleBoxSize; j++)
 		{
 			tempValue = 0.0f;
-			float scale=1.0f;
+			float scale_x=(float)reference_roi.width/_sampleBox[j].width;
+			float scale_y=(float)reference_roi.height/_sampleBox[j].height;
 			//if(j<=(int)_sampleScale.size())
 				//scale=(float)_sampleScale[j];
 			for (size_t k=0; k<features[i].size(); k++)
 			{
-				xMin = MIN(MAX(cvRound(_sampleBox[j].x + scale*features[i][k].x),0),imageIntegral.cols);
-				xMax = MIN(MAX(cvRound(_sampleBox[j].x + scale*(features[i][k].x + features[i][k].width)),0),imageIntegral.cols);
-				yMin = MIN(MAX(cvRound(_sampleBox[j].y + scale*features[i][k].y),0),imageIntegral.rows);
-				yMax = MIN(MAX(cvRound(_sampleBox[j].y + scale*(features[i][k].y + features[i][k].height)),0),imageIntegral.rows);
+				xMin = MIN(MAX(cvRound(_sampleBox[j].x + scale_x*features[i][k].x),0),imageIntegral.cols);
+				xMax = MIN(MAX(cvRound(_sampleBox[j].x + scale_x*(features[i][k].x + features[i][k].width)),0),imageIntegral.cols);
+				yMin = MIN(MAX(cvRound(_sampleBox[j].y + scale_y*features[i][k].y),0),imageIntegral.rows);
+				yMax = MIN(MAX(cvRound(_sampleBox[j].y + scale_y*(features[i][k].y + features[i][k].height)),0),imageIntegral.rows);
 				/*cout << "Feature : " << featuresWeight[i][k] ;
 				cout << "," << imageIntegral.at<float>(yMin, xMin);
 				cout << "," << imageIntegral.at<float>(yMax, xMax);
@@ -103,7 +104,7 @@ void Haar::init(Mat& _frame, Rect& _objectBox,vector<Rect>& _sampleBox)
 {
 	// compute feature template
 	//cout << "frame:" << _frame.size() << endl; 
+	reference_roi=_objectBox;
 	HaarFeature(_objectBox, featureNum);
-	vector<double> initial_scale (featureNum,1.0);
-	getFeatureValue(_frame, _sampleBox, initial_scale);
+	getFeatureValue(_frame, _sampleBox);
 }

@@ -68,7 +68,7 @@ public:
     void predict();
     void update(Mat& image);
     void smoother(int fixed_lag);
-    void update_model(vector<VectorXd> theta_x,vector<VectorXd> theta_y);
+    void update_model(vector<VectorXd> theta_x);
     vector<VectorXd> get_dynamic_model();
     vector<VectorXd> get_observation_model();
     float getESS();

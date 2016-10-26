@@ -38,13 +38,10 @@ private:
     mt19937 generator;
     vector<particle_filter*> filter_bank;
     MatrixXd theta_x_pos,theta_x_scale;
-    MatrixXd theta_y_mu,theta_y_sig;
-    vector<VectorXd> theta_y_prop,theta_y;
     vector<VectorXd> theta_x_prop,theta_x;
     vector<Rect> estimates;
     int n_particles,m_particles,fixed_lag,mcmc_steps;
     vector<float>  theta_weights;
-    Haar haar;
     bool initialized;
 
 public:

@@ -13,7 +13,7 @@ const float POS_STD=5.0;
 const float SCALE_STD=1.0;
 const float DT=1.0;
 const float THRESHOLD=1.0;
-const float OVERLAP_RATIO=0.8;
+const float OVERLAP_RATIO=0.9;
 
 const bool GAUSSIAN_NAIVEBAYES=true;
 const bool LOGISTIC_REGRESSION=false;
@@ -150,7 +150,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         }
         Mat grayImg;
         cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-        equalizeHist( grayImg, grayImg );
+        //equalizeHist( grayImg, grayImg );
         haar.init(grayImg,reference_roi,sampleBox);
         
         if(GAUSSIAN_NAIVEBAYES){
@@ -700,7 +700,7 @@ float particle_filter::getESS(){
     return ESS;
 }
 
-void particle_filter::update_model(vector<VectorXd> theta_x_new,vector<VectorXd> theta_y_new){
+void particle_filter::update_model(vector<VectorXd> theta_x_new){
     theta_x.clear();
     VectorXd theta_x_pos=theta_x_new.at(0);
     VectorXd theta_x_scale=theta_x_new.at(1);

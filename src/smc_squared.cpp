@@ -5,7 +5,7 @@ const float SCALE=0.1;
 const float HAAR_MU=1.0;
 const float HAAR_SIG=1.0;
 const float PRIOR_SD=0.01;
-const float SMC_THRESHOLD=0.5;
+const float SMC_THRESHOLD=0.3;
 
 smc_squared::smc_squared(int _n_particles,int _m_particles,int _fixed_lag,int _mcmc_steps){
     unsigned seed1= std::chrono::system_clock::now().time_since_epoch().count();
@@ -17,8 +17,6 @@ smc_squared::smc_squared(int _n_particles,int _m_particles,int _fixed_lag,int _m
     initialized=false;
     theta_x_pos=MatrixXd::Zero(m_particles, 2);
     theta_x_scale=MatrixXd::Zero(m_particles, 2);
-    theta_y_mu=MatrixXd::Zero(m_particles, haar.featureNum);
-    theta_y_sig=MatrixXd::Zero(m_particles, haar.featureNum);
     
 }
 
@@ -34,19 +32,12 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
     theta_weights.clear();
     filter->initialize(current_frame,ground_truth);
     theta_x=filter->get_dynamic_model();
-    theta_y=filter->get_observation_model();
     //cout << "smc_squared" << endl;
     float weight=1.0f;
     for(int j=0;j<m_particles;++j){
         //delete filter;
         particle_filter* new_filter=new particle_filter(n_particles);
         new_filter->initialize(current_frame,ground_truth);
-        theta_y_prop.clear();
-        VectorXd prop_mu=proposal(theta_y[0],HAAR_MU);
-        theta_y_prop.push_back(prop_mu);
-        VectorXd prop_sig=proposal(theta_y[1],HAAR_SIG);
-        prop_sig=prop_sig.array().abs().matrix();
-        theta_y_prop.push_back(prop_sig);
         theta_x_prop.clear();
         VectorXd prop_pos=proposal(theta_x[0],SHAPE);
         prop_pos=prop_pos.array().abs().matrix();
@@ -54,12 +45,10 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
         VectorXd prop_std=proposal(theta_x[1],SCALE);
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
-        new_filter->update_model(theta_x_prop,theta_y_prop);
+        new_filter->update_model(theta_x_prop);
         //cout << "dynamic model proposal " << theta_x_prop[0].transpose() << ",scale model proposal " << theta_x_prop[1].transpose() << endl;
         theta_x_pos.row(j) = prop_pos;
         theta_x_scale.row(j) = prop_std;
-        theta_y_mu.row(j) = prop_mu;
-        theta_y_sig.row(j) = prop_sig;
         filter_bank.push_back(new_filter);
         theta_weights.push_back(weight);
     }
@@ -138,13 +127,6 @@ void smc_squared::update(Mat& current_frame){
         //cout << " PMMH ---------------------" << endl;
         pmmh filter(n_particles,fixed_lag,mcmc_steps);
         theta_x=filter_bank[j]->get_dynamic_model();
-        theta_y=filter_bank[j]->get_observation_model();
-        theta_y_prop.clear();
-        VectorXd prop_mu=proposal(theta_y[0],10.0);
-        theta_y_prop.push_back(prop_mu);
-        VectorXd prop_sig=proposal(theta_y[1],1.0);
-        prop_sig=prop_sig.array().abs().matrix();
-        theta_y_prop.push_back(prop_sig);
         theta_x_prop.clear();
         VectorXd prop_pos=proposal(theta_x[0],SHAPE);
         prop_pos=prop_pos.array().abs().matrix();
@@ -152,16 +134,15 @@ void smc_squared::update(Mat& current_frame){
         VectorXd prop_std=proposal(theta_x[1],SCALE);
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
-        filter.initialize(images,estimates.front(),theta_x_prop,theta_y_prop);
+        filter.initialize(images,estimates.front(),theta_x_prop);
         filter.run_mcmc();
         theta_x=filter.get_dynamic_model();
-        theta_y=filter.get_observation_model();
-        filter_bank[j]->update_model(theta_x,theta_y);
+        filter_bank[j]->update_model(theta_x);
         //cout << "dynamic model proposal " << theta_x_prop[0].transpose() << ",scale model proposal " << theta_x_prop[1].transpose() << endl;
         //cout << "appearence mu proposal " << theta_y_prop[0].transpose() << endl;
         //cout << "appearence sig  proposal " << theta_y_prop[1].transpose() << endl;
     }
-    //resample();
+    resample();
 }
 
 Rect smc_squared::estimate(Mat& image,bool draw){
@@ -183,8 +164,16 @@ Rect smc_squared::estimate(Mat& image,bool draw){
         }
         //cout << j <<  ", weight:" << (float)theta_weights[j] << ",x:" << estimate.x << ",y:" << estimate.y << ",w:" << estimate.width << ",h:" << estimate.height << endl;
     }
-    Rect new_estimate(cvRound(_x/norm), cvRound(_y/norm), cvRound(_width/norm), cvRound(_height/norm));
+    Point pt1,pt2;
+    pt1.x=cvRound(_x/norm);
+    pt1.y=cvRound(_y/norm);
+    _width=cvRound(_width/norm);
+    _height=cvRound(_height/norm);
+    pt2.x=cvRound(pt1.x+_width);
+    pt2.y=cvRound(pt1.y+_height);
+    Rect new_estimate=Rect(pt1.x,pt1.y,_width,_height);
     //cout << "final estimate: " << new_estimate << endl;
+    if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 2, LINE_AA );
     estimates.push_back(new_estimate);
     return new_estimate;
 }

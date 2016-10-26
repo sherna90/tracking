@@ -28,7 +28,6 @@ void pmmh::initialize(vector<Mat> _images, Rect ground_truth){
     filter->initialize(images[0],ground_truth);
     reference_roi=ground_truth;
     theta_x=filter->get_dynamic_model();
-    theta_y=filter->get_observation_model();
     initialized=true;
     estimates.clear();
     estimates.push_back(ground_truth);
@@ -38,22 +37,19 @@ void pmmh::initialize(vector<Mat> _images, Rect ground_truth){
     matrix_haar_std=MatrixXd::Zero(mcmc_steps, filter->haar.featureNum);
 }
 
-void pmmh::initialize(vector<Mat> _images, Rect ground_truth,vector<VectorXd> _theta_x, vector<VectorXd> _theta_y){
+void pmmh::initialize(vector<Mat> _images, Rect ground_truth,vector<VectorXd> _theta_x){
     //std::gamma_distribution<double> prior(SHAPE,SCALE);
     filter=new particle_filter(n_particles);
     images=_images;
     filter->initialize(images[0],ground_truth);
     reference_roi=ground_truth;
     theta_x=_theta_x;
-    theta_y=_theta_y;
-    filter->update_model(theta_x,theta_y);
+    filter->update_model(theta_x);
     initialized=true;
     estimates.clear();
     estimates.push_back(ground_truth);
     matrix_pos=MatrixXd::Zero(mcmc_steps, 2);
     matrix_width=MatrixXd::Zero(mcmc_steps, 2);
-    matrix_haar_mu=MatrixXd::Zero(mcmc_steps, filter->haar.featureNum);
-    matrix_haar_std=MatrixXd::Zero(mcmc_steps, filter->haar.featureNum);
 }
 bool pmmh::is_initialized(){
     return initialized;
@@ -62,14 +58,11 @@ bool pmmh::is_initialized(){
 void pmmh::reinitialize(Mat& current_frame, Rect ground_truth){
     if(mcmc_steps>0){
         theta_x=get_dynamic_model();
-        theta_y=get_observation_model();
     }
-    Haar haar=filter->haar;
     if(is_initialized()) delete filter;
     filter=new particle_filter(n_particles);
     filter->initialize(current_frame,ground_truth);
-    filter->haar=haar;
-    filter->update_model(theta_x,theta_y);
+    filter->update_model(theta_x);
 }
 
 void pmmh::predict(){
@@ -80,7 +73,7 @@ void pmmh::update(Mat& image){
     filter->update(image);
 }
 
-double pmmh::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta_y){
+double pmmh::marginal_likelihood(vector<VectorXd> theta_x){
     particle_filter proposal_filter(n_particles);
     //int data_size=(int)images.size();
     //int data_size=fixed_lag;
@@ -89,7 +82,7 @@ double pmmh::marginal_likelihood(vector<VectorXd> theta_x,vector<VectorXd> theta
     Mat current_frame = images.front().clone(); 
     proposal_filter.initialize(current_frame,estimates.front());
     proposal_filter.haar=filter->haar;
-    proposal_filter.update_model(theta_x,theta_y);
+    proposal_filter.update_model(theta_x);
     for(int k=time_step;k<data_size;++k){
         //cout << "time step:" << k << ", ML: " << proposal_filter.getMarginalLikelihood() << endl;
         current_frame = images.at(k).clone();
@@ -140,15 +133,9 @@ double pmmh::gamma_prior(VectorXd x, double a, double b)
 
 void pmmh::run_mcmc(){
     uniform_real_distribution<double> unif_rnd(0.0,1.0);
-    double forward_filter = marginal_likelihood(theta_x,theta_y);
+    double forward_filter = marginal_likelihood(theta_x);
     double accept_rate=0;
     for(int n=0;n<mcmc_steps;n++){
-        theta_y_prop.clear();
-        VectorXd prop_mu=proposal(theta_y[0],HAAR_MU);
-        theta_y_prop.push_back(prop_mu);
-        VectorXd prop_sig=proposal(theta_y[1],HAAR_SIG);
-        prop_sig=prop_sig.array().abs().matrix();
-        theta_y_prop.push_back(prop_sig);
         theta_x_prop.clear();
         VectorXd prop_pos=proposal(theta_x[0],SHAPE);
         prop_pos=prop_pos.array().abs().matrix();
@@ -156,9 +143,8 @@ void pmmh::run_mcmc(){
         VectorXd prop_std=proposal(theta_x[1],SCALE);
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
-        double proposal_filter = marginal_likelihood(theta_x_prop,theta_y_prop);
+        double proposal_filter = marginal_likelihood(theta_x_prop);
         double acceptprob = proposal_filter - forward_filter;
-        acceptprob+=igamma_prior(prop_sig,SHAPE,SCALE)-igamma_prior(theta_y.at(1),SHAPE,SCALE);
         acceptprob+=igamma_prior(prop_pos,SHAPE,SCALE)-igamma_prior(theta_x.at(0),SHAPE,SCALE);
         acceptprob+=igamma_prior(prop_std,SHAPE,SCALE)-igamma_prior(theta_x.at(1),SHAPE,SCALE);
         //if(n % 100 == 0){
@@ -170,23 +156,17 @@ void pmmh::run_mcmc(){
             && (log(u) < acceptprob) 
             && (theta_x_prop.at(0).array()>0).all() 
             && (theta_x_prop.at(1).array()>0).all() 
-            && (theta_y_prop.at(1).array()>0).all()
-            //&& (theta_y_prop.at(2).array()>0).all()
             ){
-            theta_y=theta_y_prop;
             theta_x=theta_x_prop;
-            filter->update_model(theta_x,theta_y);
+            filter->update_model(theta_x);
             forward_filter=proposal_filter;
             accept_rate++;
             }
         else {
-            theta_y_prop=theta_y;
             theta_x_prop=theta_x;
         }
         matrix_pos.row(n)=theta_x_prop.at(0).transpose() ;
-        matrix_width.row(n)=theta_x_prop.at(1).transpose();
-        matrix_haar_mu.row(n)=theta_y_prop.at(0).transpose();
-        matrix_haar_std.row(n)=theta_y_prop.at(1).transpose();   
+        matrix_width.row(n)=theta_x_prop.at(1).transpose();  
     }
 }
 
@@ -209,11 +189,3 @@ vector<VectorXd> pmmh::get_dynamic_model(){
     return theta_x_prop;
 }
 
-vector<VectorXd> pmmh::get_observation_model(){
-    theta_y_prop.clear();
-    VectorXd prop_mu=matrix_haar_mu.colwise().sum()/mcmc_steps;
-    theta_y_prop.push_back(prop_mu);
-    VectorXd prop_sig=matrix_haar_std.colwise().sum()/mcmc_steps;
-    theta_y_prop.push_back(prop_sig);
-    return theta_y_prop;
-}

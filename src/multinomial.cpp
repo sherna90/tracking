@@ -17,7 +17,7 @@ Multinomial::Multinomial(MatrixXd &counts, double &alpha)
     // std::cout<<"counts sum:"<<counts.sum() << " "<<counts.cols()<<std::endl;
     theta=VectorXd(counts.cols());
     //#pragma omp parallel for
-    for (unsigned int i = 0; i < counts.cols(); ++i) {
+    for (int i = 0; i < counts.cols(); ++i) {
          theta(i)=(counts.col(i).sum()+alpha)/total;
          sufficient(i)=counts.col(i).sum();
     }
@@ -35,8 +35,7 @@ double Multinomial::log_likelihood(const VectorXd &test)
     double log_like=0.0;
     double sum_test=0.0;
     double sum_theta=0.0;
-    unsigned int i=0;
-    for(i=0;i<test.size();i++){
+    for(unsigned int i=0;i<test.size();i++){
         sum_test+=lgamma(test[i]+1);
         sum_theta+= (this->theta[i]!=0.0) ? test[i]*log(this->theta[i]) : 0.0;
     }

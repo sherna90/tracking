@@ -5,32 +5,51 @@ MultiScaleBlockLBP::MultiScaleBlockLBP()
     initialized=false;
 }
 
-MultiScaleBlockLBP::MultiScaleBlockLBP(int _p_blocks, int _n_features, int _slider, bool _copy_border, bool _multiscale){
-	p_blocks = _p_blocks;
+MultiScaleBlockLBP::MultiScaleBlockLBP(int _p_blocks, int _n_features, int _slider, bool _copy_border, bool _multiscale, int _multiscale_slider, int _n_scales){
+	initial_p_blocks = _p_blocks;
+	multiscale_slider = _multiscale_slider;
 	n_features = _n_features;
 	slider = _slider;
 	copy_border = _copy_border;
 	multiscale = _multiscale;
+	n_scales = _n_scales;
 	initialized=true;
 }
 
 void MultiScaleBlockLBP::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, bool _isPositiveBox){
 	if (!initialized) exit(1);
 	//int xMin, xMax, yMin, yMax;
+    Mat IntegralImage;
+    integral(_image, IntegralImage, CV_32F);
 	for (unsigned int k = 0; k < _sampleBox.size(); ++k){
-		Mat auxSubImage = _image(_sampleBox.at(k));
-		Mat subImage;
-		auxSubImage.copyTo(subImage);
+		Mat auxSubImage;
+		auxSubImage = IntegralImage(_sampleBox.at(k));
+		//cout << _sampleBox.at(k).x << "," << _sampleBox.at(k).y << "," << _sampleBox.at(k).width << "," << _sampleBox.at(k).height << endl;
 		
-		if (!multiscale){
-			Size size(50,50);
-			resize(subImage, subImage, size);
+		// if (false){
+		// 	Size size(50,50);
+		// 	resize(auxSubImage, auxSubImage, size);
+		// }
+		
+		p_blocks = initial_p_blocks;
+		vector<float> hist;
+		if (multiscale){
+			for (int i = 0; i < n_scales; ++i){
+				multiScaleBlock_Image( auxSubImage );
+				vector<float> histAux = multiScaleBlock_Mapping();
+				hist.insert(hist.end(), histAux.begin(), histAux.end());
+				p_blocks += multiscale_slider;
+			}
 		}
+		else{
+			multiScaleBlock_Image( auxSubImage );
+			hist = multiScaleBlock_Mapping();
+		}
+		
 
-		multiScaleBlock_Image( subImage );
-		vector<float> hist = multiScaleBlock_Mapping();
+		//multiScaleBlock_Image( auxSubImage );
+		//vector<float> hist = multiScaleBlock_Mapping();
 		//for (unsigned int i = 0; i < hist.size(); ++i) cout << hist.at(i) << endl;		
-
         if(_isPositiveBox){
 	        for (unsigned int i = 0; i < hist.size(); ++i){
 	        	sampleFeatureValue(k,i) = hist[i];
@@ -45,8 +64,8 @@ void MultiScaleBlockLBP::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 
 void MultiScaleBlockLBP::init(Mat& _image, vector<Rect> _sampleBox){
 	if (!initialized) exit(1);
-	sampleFeatureValue = MatrixXd(_sampleBox.size(),n_features);
-    negativeFeatureValue = MatrixXd(_sampleBox.size(),n_features);
+	sampleFeatureValue = MatrixXd(_sampleBox.size(),n_features*n_scales);
+    negativeFeatureValue = MatrixXd(_sampleBox.size(),n_features*n_scales);
     getFeatureValue(_image, _sampleBox, true);
 }
 
@@ -57,7 +76,7 @@ void MultiScaleBlockLBP::multiScaleBlock_Image(Mat& d_img) {
 	// if( d_img.type() < CV_64F ) {
 	//  	d_img.convertTo( d_img, CV_64F );
 	// }
- 
+
     int y =0, x =0;
     h_size = 256;
 
@@ -73,16 +92,18 @@ void MultiScaleBlockLBP::multiScaleBlock_Image(Mat& d_img) {
       	int xsize = d_img.cols;
       	int ysize = d_img.rows;
       	
-      	histogram.resize(h_size,0); // 2 ^ 8 = binary patterns combinations
+      	vector<int> _histogram;
+      	_histogram.resize(h_size,0); // 2 ^ 8 = binary patterns combinations
       	while ((y+ 3*p_blocks + slider) <= ysize){ // ybox = 3 blocks * p_block
         		while ((x+ 3*p_blocks + slider) <= xsize){  // xbox = 3 blocks * p_block
                 	int lbp_code = multiScaleBlock_LBP(d_img, y, x);
-          			histogram.at(lbp_code)++;
+          			_histogram.at(lbp_code)++;
           			x += slider;
       		}
       		y += slider;
       		x = 0;
     	}  
+    	histogram= _histogram;
    }  
    else{
       cout << "Error: N_features should be smaller than 256" << endl;
@@ -92,27 +113,27 @@ void MultiScaleBlockLBP::multiScaleBlock_Image(Mat& d_img) {
 
 int MultiScaleBlockLBP::multiScaleBlock_LBP(Mat& d_img, int y, int x){
 	if (!initialized) exit(1);
-	int neiboneighborhood = 8;
+	int neighborhood = 8;
 	int central_rect_y = y + p_blocks; 
 	int central_rect_x = x + p_blocks;
-	vector<int> y_offsets{-1, -1, -1, 0, 1, 1, 1, 0}; //neiboneighborhood = 8, 8 positions, clockwise direction
-	vector<int> x_offsets{-1, 0, 1, 1, 1, 0, -1, -1}; //neiboneighborhood = 8, 8 positions, clockwise direction
-	bitset<8> binary_code;  //neiboneighborhood = 8, binary pattern lenght
+	vector<int> y_offsets{-1, -1, -1, 0, 1, 1, 1, 0}; //neighborhood = 8, 8 positions, clockwise direction
+	vector<int> x_offsets{-1, 0, 1, 1, 1, 0, -1, -1}; //neighborhood = 8, 8 positions, clockwise direction
+	bitset<8> binary_code;  //neighborhood = 8, binary pattern lenght
 	int y_shift = p_blocks -1; 
 	int x_shift = p_blocks -1;
 
-	for (int i = 0; i < neiboneighborhood; ++i){
+	for (int i = 0; i < neighborhood; ++i){
 	  y_offsets.at(i) = p_blocks*y_offsets.at(i);
 	  x_offsets.at(i) = p_blocks*x_offsets.at(i);
 	}
 
 	double central_value = Integrate(d_img, central_rect_y, central_rect_x, central_rect_y +y_shift, central_rect_x + x_shift);
 
-	for (int i = 0; i < neiboneighborhood; ++i){
+	for (int i = 0; i < neighborhood; ++i){
 	  int current_rect_y = central_rect_y + y_offsets.at(i);
 	  int current_rect_x = central_rect_x + x_offsets.at(i);
 	  double current_rect_val = Integrate(d_img, current_rect_y, current_rect_x, current_rect_y + y_shift, current_rect_x + x_shift);
-	  binary_code.set((neiboneighborhood-1) -i, current_rect_val >= central_value);
+	  binary_code.set((neighborhood-1) -i, current_rect_val >= central_value);
 	}
   	return binary_code.to_ulong();
 }
@@ -135,7 +156,6 @@ double MultiScaleBlockLBP::Integrate(Mat& d_img, int r0, int c0, int r1, int c1)
 vector<float> MultiScaleBlockLBP::multiScaleBlock_Mapping(){
 	if (!initialized) exit(1);
 	sort(histogram.begin(), histogram.end());
-	//for (unsigned int i = 0; i < histogram.size(); ++i) cout << histogram.at(i) << endl;		
 	vector<float> features(histogram.end()- n_features+1 , histogram.end());
 	features.push_back(accumulate(histogram.begin(), histogram.end() - n_features+1, 0));
 	vector<float>::const_iterator max_value; 

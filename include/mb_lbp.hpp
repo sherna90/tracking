@@ -27,9 +27,9 @@ class MultiScaleBlockLBP
 {
 public:
     MultiScaleBlockLBP();
-    MultiScaleBlockLBP(int _p_blocks, int _n_features, int _slider, bool _copy_border, bool _multiscale);
+    MultiScaleBlockLBP(int _p_blocks, int _n_features, int _slider, bool _copy_border, bool _multiscale = false, int _multiscale_slider = 3, int _n_scales = 1);
     void init(Mat& _image, vector<Rect> _sampleBox);
-    void getFeatureValue(Mat& _image, vector<Rect> _sampleBox, bool _isPositiveBox=true);
+    void getFeatureValue(Mat& _image, vector<Rect> _sampleBox, bool _isPositiveBox);
     int multiScaleBlock_LBP(Mat& d_img, int y, int x);
     void multiScaleBlock_Image(Mat& d_img);
     vector<float> multiScaleBlock_Mapping();
@@ -38,7 +38,7 @@ public:
 private:
     double Integrate(Mat& d_img, int r0, int c0, int r1, int c1);
     bool initialized, copy_border, multiscale;
-    int p_blocks, n_features, slider, h_size;
+    int initial_p_blocks, p_blocks, n_features, slider, h_size, multiscale_slider, n_scales;
     vector<int> histogram;
 };
 

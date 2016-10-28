@@ -12,16 +12,20 @@ find_library(FFTW_LIBRARY fftw3 ${FFTW_LIBRARY_DIRS})
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 #include_directories( "/usr/local/include/eigen3/" )
-include_directories( "LBP/" )
+include_directories( "likelihood/" )
+include_directories( "models/" )
+include_directories( "features/" )
+include_directories( "utils/" )
+include_directories( "features/LBP/" )
 include_directories( "/usr/include/eigen3/" )
 
-add_executable( tracker test_particle_filter.cpp particle_filter.cpp  utils.cpp gaussian.cpp image_generator.cpp haar.cpp logistic_regression.cpp gaussian_naivebayes.cpp multivariate_gaussian.cpp local_binary_pattern.cpp multinomial.cpp multinomialnaivebayes.cpp hog.cpp mb_lbp.cpp LBP/LBP.cpp) 
+add_executable( tracker test_particle_filter.cpp models/particle_filter.cpp  utils/utils.cpp likelihood/gaussian.cpp utils/image_generator.cpp features/haar.cpp likelihood/logistic_regression.cpp likelihood/gaussian_naivebayes.cpp likelihood/multivariate_gaussian.cpp features/local_binary_pattern.cpp likelihood/multinomial.cpp likelihood/multinomialnaivebayes.cpp features/hog.cpp features/mb_lbp.cpp features/LBP/LBP.cpp) 
 target_link_libraries( tracker ${OpenCV_LIBS} ${FFTW_LIBRARY})
 
 #add_executable( pmmh test_pmmh.cpp pmmh.cpp particle_filter.cpp  utils.cpp gaussian.cpp  image_generator.cpp haar.cpp gaussian_naivebayes.cpp logistic_regression.cpp multivariate_gaussian.cpp)
 #target_link_libraries( pmmh ${OpenCV_LIBS}  )
 
-add_executable( smc_squared test_smcsquared.cpp  smc_squared.cpp pmmh.cpp particle_filter.cpp utils.cpp gaussian.cpp image_generator.cpp haar.cpp multivariate_gaussian.cpp gaussian_naivebayes.cpp logistic_regression.cpp multivariate_gaussian.cpp local_binary_pattern.cpp multinomial.cpp multinomialnaivebayes.cpp hog.cpp mb_lbp.cpp LBP/LBP.cpp) 
+add_executable( smc_squared test_smcsquared.cpp  models/smc_squared.cpp models/pmmh.cpp models/particle_filter.cpp  utils/utils.cpp likelihood/gaussian.cpp utils/image_generator.cpp features/haar.cpp likelihood/logistic_regression.cpp likelihood/gaussian_naivebayes.cpp likelihood/multivariate_gaussian.cpp features/local_binary_pattern.cpp likelihood/multinomial.cpp likelihood/multinomialnaivebayes.cpp features/hog.cpp features/mb_lbp.cpp features/LBP/LBP.cpp) 
 target_link_libraries( smc_squared ${OpenCV_LIBS}  ${FFTW_LIBRARY} )
 
 #FILE(GLOB_RECURSE kcf_sourcefiles "kcf/*.cpp")

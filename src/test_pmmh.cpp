@@ -1,6 +1,6 @@
-#include "../include/pmmh.hpp"
-#include "../include/utils.hpp"
-#include "../include/image_generator.hpp"
+#include "models/pmmh.hpp"
+#include "utils/utils.hpp"
+#include "utils/image_generator.hpp"
 
 #include <time.h>
 #include <iostream>

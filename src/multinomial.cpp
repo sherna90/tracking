@@ -35,7 +35,7 @@ double Multinomial::log_likelihood(const VectorXd &test)
     double log_like=0.0;
     double sum_test=0.0;
     double sum_theta=0.0;
-    for(unsigned int i=0;i<test.size();i++){
+    for(int i=0;i<test.size();i++){
         sum_test+=lgamma(test[i]+1);
         sum_theta+= (this->theta[i]!=0.0) ? test[i]*log(this->theta[i]) : 0.0;
     }

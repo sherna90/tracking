@@ -515,7 +515,7 @@ void particle_filter::update(Mat& image)
             }
         }
         if(MB_LBP_FEATURE){
-            multiblock_local_binary_patterns.getFeatureValue(grayImg, sampleBox);
+            multiblock_local_binary_patterns.getFeatureValue(grayImg, sampleBox, true);
             Mat cv_sample_feature_value;
             MatrixXd auxSample = multiblock_local_binary_patterns.sampleFeatureValue.transpose();
             eigen2cv(auxSample, cv_sample_feature_value);

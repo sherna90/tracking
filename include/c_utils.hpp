@@ -1,3 +1,4 @@
+// Author: Diego Vergara
 #ifndef C_UTILS_H
 #define C_UTILS_H
 

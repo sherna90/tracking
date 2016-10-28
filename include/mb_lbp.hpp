@@ -1,3 +1,4 @@
+// Author: Diego Vergara
 #ifndef MB_LBP_H
 #define MB_LBP_H
 

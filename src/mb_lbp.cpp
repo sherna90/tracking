@@ -1,3 +1,4 @@
+// Author: Diego Vergara
 #include "../include/mb_lbp.hpp"
 
 MultiScaleBlockLBP::MultiScaleBlockLBP()

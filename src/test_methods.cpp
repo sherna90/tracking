@@ -1,3 +1,4 @@
+// Author: Diego Vergara
 //#include "../include/particle_filter.hpp"
 #include "../include/utils.hpp"
 #include "../include/image_generator.hpp"

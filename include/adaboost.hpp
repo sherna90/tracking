@@ -1,3 +1,4 @@
+// Author: Diego Vergara
 #ifndef ADABOOST_H
 #define ADABOOST_H
 
@@ -5,7 +6,7 @@
 #include <iomanip>  
 #include <Eigen/Dense>
 #include "multinomialnaivebayes.hpp"
-#include "gaussiannaivebayes.hpp"
+#include "weighted_gaussiannaivebayes.hpp"
 #include <Eigen/Core>
 #include <string>
 #include <fstream>

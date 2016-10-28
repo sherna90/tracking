@@ -1,3 +1,4 @@
+// Author: Diego Vergara
 #include "../include/adaboost.hpp"
 #include "../include/c_utils.hpp"
 
@@ -22,13 +23,13 @@ double Adaboost::boost_discrete(VectorXd &w, int iteration, VectorXd &errors, ve
   VectorXi predicted_labels;
   VectorXd index = VectorXd::Zero(n_data);
   ///////////////////////////////
-  MultinomialNaiveBayes naive_bayes(*getdata(),*getlabels());
-  naive_bayes.fit(M_alpha, w);
-  predicted_labels=naive_bayes.test(*getdata());
-
-  //GaussianNaiveBayes naive_bayes(*getdata(),*getlabels());
-  //naive_bayes.fit(w);
+  //MultinomialNaiveBayes naive_bayes(*getdata(),*getlabels());
+  //naive_bayes.fit(M_alpha, w);
   //predicted_labels=naive_bayes.test(*getdata());
+
+  GaussianNaiveBayes naive_bayes(*getdata(),*getlabels());
+  naive_bayes.fit(w);
+  predicted_labels=naive_bayes.test(*getdata());
 
   ///////////////////////////////
   classifiers.push_back(naive_bayes);
@@ -67,13 +68,13 @@ double Adaboost::boost_real(VectorXd &w, int iteration, VectorXd &errors, vector
   MatrixXd proba;
   
   ///////////////////////////////
-  MultinomialNaiveBayes naive_bayes(*getdata(),*getlabels());
-  naive_bayes.fit(M_alpha, w);
-  proba=naive_bayes.get_proba(*getdata());
+  //MultinomialNaiveBayes naive_bayes(*getdata(),*getlabels());
+  //naive_bayes.fit(M_alpha, w);
+  //proba=naive_bayes.get_proba(*getdata());
 
-  //GaussianNaiveBayes naive_bayes(*getdata(),*getlabels());
-  //naive_bayes.fit(w);
-  //proba = naive_bayes.get_proba(*getdata());
+  GaussianNaiveBayes naive_bayes(*getdata(),*getlabels());
+  naive_bayes.fit(w);
+  proba = naive_bayes.get_proba(*getdata());
 
   MatrixXf::Index   maxIndex[proba.rows()];
   for (int j =0; j< proba.rows(); ++j){

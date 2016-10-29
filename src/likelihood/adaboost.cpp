@@ -17,7 +17,7 @@ Adaboost::Adaboost(string _algorithm, int _n_estimators, double _alpha, double _
 }
 
 
-double Adaboost::boost_discrete(VectorXd &w, int iteration, VectorXd &errors, vector<MultinomialNaiveBayes> &classifiers){
+double Adaboost::boost_discrete(VectorXd &w, int iteration, VectorXd &errors, vector<GaussianNaiveBayes> &classifiers){
   
 
   VectorXi predicted_labels;
@@ -59,7 +59,7 @@ double Adaboost::boost_discrete(VectorXd &w, int iteration, VectorXd &errors, ve
   return alpha;
 }
 
-double Adaboost::boost_real(VectorXd &w, int iteration, VectorXd &errors, vector<MultinomialNaiveBayes> &classifiers){
+double Adaboost::boost_real(VectorXd &w, int iteration, VectorXd &errors, vector<GaussianNaiveBayes> &classifiers){
   
 
   VectorXi predicted_labels(n_data);
@@ -148,7 +148,7 @@ void Adaboost::fit(MatrixXd &data, VectorXi &labels){
   }
 }
 
-MatrixXd Adaboost::get_proba(MultinomialNaiveBayes classifier){
+MatrixXd Adaboost::get_proba(GaussianNaiveBayes classifier){
   MatrixXd proba = classifier.get_proba(*gettest());
   VectorXd temp(proba.rows());
   temp = (1. / n_classes) * proba.rowwise().sum();

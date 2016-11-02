@@ -3,18 +3,15 @@
 
 GaussianNaiveBayes::GaussianNaiveBayes()
 {
-    initialized=false;
-}
-
-GaussianNaiveBayes::GaussianNaiveBayes(MatrixXd &datos,VectorXi &clases)
-{
-    X=&datos;
-    Y=&clases;
     initialized=true;
 }
-void GaussianNaiveBayes::fit(VectorXd weights)
+
+
+void GaussianNaiveBayes::fit(MatrixXd &datos,VectorXi &clases,VectorXd weights)
 {   
     if (initialized){
+        X=&datos;
+        Y=&clases;
         int rows = X->rows();
         int cols = X->cols();
         double total_weights = 0.0; // new

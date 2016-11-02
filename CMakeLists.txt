@@ -19,18 +19,12 @@ include_directories( "src/utils/" )
 include_directories( "src/features/LBP/" )
 include_directories( "/usr/include/eigen3/" )
 
-add_executable( tracker src/test_particle_filter.cpp src/models/particle_filter.cpp  src/utils/utils.cpp src/likelihood/gaussian.cpp src/utils/image_generator.cpp src/features/haar.cpp src/likelihood/logistic_regression.cpp src/likelihood/gaussian_naivebayes.cpp src/likelihood/multivariate_gaussian.cpp src/features/local_binary_pattern.cpp src/likelihood/multinomial.cpp src/likelihood/multinomialnaivebayes.cpp src/features/hog.cpp src/features/mb_lbp.cpp src/features/LBP/LBP.cpp) 
+add_executable( tracker src/test_particle_filter.cpp src/models/particle_filter.cpp  src/utils/utils.cpp src/likelihood/gaussian.cpp src/utils/image_generator.cpp src/features/haar.cpp src/likelihood/logistic_regression.cpp src/likelihood/gaussian_naivebayes.cpp src/likelihood/multivariate_gaussian.cpp src/features/local_binary_pattern.cpp src/likelihood/multinomial.cpp src/likelihood/multinomialnaivebayes.cpp src/features/hog.cpp src/features/mb_lbp.cpp  src/features/LBP/LBP.cpp) 
 target_link_libraries( tracker ${OpenCV_LIBS} ${FFTW_LIBRARY})
 
 #add_executable( pmmh src/test_pmmh.cpp src/pmmh.cpp src/particle_filter.cpp  src/utils.cpp src/gaussian.cpp  src/image_generator.cpp src/haar.cpp src/gaussian_naivebayes.cpp src/logistic_regression.cpp src/multivariate_gaussian.cpp)
 #target_link_libraries( pmmh ${OpenCV_LIBS}  )
 
-add_executable( smc_squared src/test_smcsquared.cpp  src/models/smc_squared.cpp src/models/pmmh.cpp src/models/particle_filter.cpp  src/utils/utils.cpp src/likelihood/gaussian.cpp src/utils/image_generator.cpp src/features/haar.cpp src/likelihood/logistic_regression.cpp src/likelihood/gaussian_naivebayes.cpp src/likelihood/multivariate_gaussian.cpp src/features/local_binary_pattern.cpp src/likelihood/multinomial.cpp src/likelihood/multinomialnaivebayes.cpp src/features/hog.cpp src/features/mb_lbp.cpp src/features/LBP/LBP.cpp) 
+add_executable( smc_squared src/test_smcsquared.cpp  src/models/smc_squared.cpp src/models/pmmh.cpp src/models/particle_filter.cpp  src/utils/utils.cpp src/likelihood/gaussian.cpp src/utils/image_generator.cpp src/features/haar.cpp src/likelihood/logistic_regression.cpp src/likelihood/gaussian_naivebayes.cpp src/likelihood/multivariate_gaussian.cpp src/features/local_binary_pattern.cpp src/likelihood/multinomial.cpp src/likelihood/multinomialnaivebayes.cpp  src/features/hog.cpp src/features/mb_lbp.cpp src/features/LBP/LBP.cpp) 
 target_link_libraries( smc_squared ${OpenCV_LIBS}  ${FFTW_LIBRARY} )
 
-#FILE(GLOB_RECURSE kcf_sourcefiles "src/kcf/*.cpp")
-#add_executable( kcf src/test_kcf.cpp ${kcf_sourcefiles} src/utils.cpp src/image_generator.cpp)
-#target_link_libraries( kcf ${OpenCV_LIBS} )
-
-#add_executable( ct src/test_ct.cpp src/ct/CompressiveTracker.cpp src/utils.cpp src/image_generator.cpp)
-#target_link_libraries( ct ${OpenCV_LIBS} )

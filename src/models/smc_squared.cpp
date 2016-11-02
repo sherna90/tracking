@@ -1,11 +1,9 @@
 #include "smc_squared.hpp"
 
-const float SHAPE=0.1;
-const float SCALE=0.1;
-const float HAAR_MU=1.0;
-const float HAAR_SIG=1.0;
+const float SHAPE=0.5;
+const float SCALE=0.5;
 const float PRIOR_SD=0.01;
-const float SMC_THRESHOLD=0.3;
+const float SMC_THRESHOLD=0.5;
 
 smc_squared::smc_squared(int _n_particles,int _m_particles,int _fixed_lag,int _mcmc_steps){
     unsigned seed1= std::chrono::system_clock::now().time_since_epoch().count();
@@ -27,18 +25,14 @@ smc_squared::~smc_squared(){
 
 void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
     //cout << "initialize!" << endl;
-    std::gamma_distribution<double> prior(SHAPE,SCALE);
-    particle_filter* filter=new particle_filter(n_particles);
     theta_weights.clear();
-    filter->initialize(current_frame,ground_truth);
-    theta_x=filter->get_dynamic_model();
     //cout << "smc_squared" << endl;
-    float weight=1.0f;
+    float weight=log(1.0f/m_particles);
     for(int j=0;j<m_particles;++j){
         //delete filter;
         particle_filter* new_filter=new particle_filter(n_particles);
         new_filter->initialize(current_frame,ground_truth);
-        theta_x_prop.clear();
+        theta_x=new_filter->get_dynamic_model();
         VectorXd prop_pos=proposal(theta_x[0],SHAPE);
         prop_pos=prop_pos.array().abs().matrix();
         theta_x_prop.push_back(prop_pos);
@@ -110,16 +104,13 @@ double smc_squared::gamma_prior(VectorXd x, double a, double b)
 
 
 void smc_squared::update(Mat& current_frame){
-    /*MVNGaussian theta_x_pos_proposal=MVNGaussian(theta_x_pos);
-    MVNGaussian theta_x_scale_proposal=MVNGaussian(theta_x_scale);
-    MVNGaussian theta_y_mu_proposal=MVNGaussian(theta_y_mu);
-    MVNGaussian theta_y_sig_proposal=MVNGaussian(theta_y_sig);*/
     images.push_back(current_frame);
     vector<float> tmp_weights;
     for(int j=0;j<m_particles;++j){
         float weight=(float)theta_weights[j];
         filter_bank[j]->update(current_frame);
-        tmp_weights.push_back(weight+filter_bank[j]->getMarginalLikelihood());
+        filter_bank[j]->resample();
+        tmp_weights.push_back(weight+filter_bank[j]->getMarginalLikelihood()/n_particles);
     }
     theta_weights.swap(tmp_weights);
     tmp_weights.clear();
@@ -211,6 +202,7 @@ void smc_squared::resample(){
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     float ESS=(1.0f/sum_squared_weights[0])/m_particles;
+    //cout << "ESS: " << ESS  << endl;
     if(isless(ESS,(float)SMC_THRESHOLD)){
         vector<particle_filter*> new_filter_bank(m_particles);
         for (int i=0; i<m_particles; i++) {
@@ -219,7 +211,7 @@ void smc_squared::resample(){
             unsigned int ipos = distance(cumulative_sum.begin(), pos);
             //particle_filter* filter=filter_bank[ipos];
             new_filter_bank[i]=filter_bank[ipos];
-            theta_weights.at(i)=1.0f;
+            theta_weights.at(i)=log(1.0f/m_particles);
         }
         filter_bank.swap(new_filter_bank);
     }

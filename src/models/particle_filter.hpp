@@ -20,6 +20,7 @@
 #include "../likelihood/logistic_regression.hpp"
 #include "../likelihood/gaussian_naivebayes.hpp"
 #include "../likelihood/multinomialnaivebayes.hpp"
+//#include "../likelihood/weighted_gaussiannaivebayes.hpp"
 #include "../features/local_binary_pattern.hpp"
 #include "../features/hog.hpp"
 

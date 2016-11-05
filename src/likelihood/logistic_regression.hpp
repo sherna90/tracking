@@ -20,15 +20,17 @@ class LogisticRegression
 	LogisticRegression(MatrixXd &_X,VectorXd &_Y);
  	VectorXd Train(int n_iter,double alpha=0.01,double tol=0.001,double lambda=1.0);
  	VectorXd Predict(MatrixXd &_X);
+ 	double foo(RowVectorXd& _weights, VectorXd& grad);
+ 	VectorXd ComputeGradient(MatrixXd &_X, VectorXd &_Y,RowVectorXd &_W,double _lambda);
+ 	double LogLikelihood(MatrixXd &_X,VectorXd &_Y,RowVectorXd &_W);
+ 	double LogPrior(RowVectorXd &_W,double lambda);
  
  private:
  	MatrixXd *X_train;
  	VectorXd *Y_train;
  	int rows,dim;
- 	VectorXd ComputeSigmoid(MatrixXd &_X , RowVectorXd &_W);
- 	VectorXd ComputeGradient(MatrixXd &_X, VectorXd &_Y,VectorXd &P,double _lambda);
- 	double LogPrior(double lambda);
- 	double LogLikelihood(VectorXd &_Y, VectorXd &_P);
- 	MatrixXd ComputeHessian(MatrixXd &_X, VectorXd &_P,double _lambda);
+ 	VectorXd Sigmoid(VectorXd &_eta);
+ 	VectorXd LogSigmoid(VectorXd &_eta);
+ 	MatrixXd ComputeHessian(MatrixXd &_X,  VectorXd &_Y,RowVectorXd &_W,double _lambda);
  	MatrixXd Hessian;
 };

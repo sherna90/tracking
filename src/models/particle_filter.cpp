@@ -14,8 +14,8 @@ const float DT=1.0;
 const float THRESHOLD=1.0;
 const float OVERLAP_RATIO=0.9;
 
-const bool GAUSSIAN_NAIVEBAYES=true;
-const bool LOGISTIC_REGRESSION=false;
+const bool GAUSSIAN_NAIVEBAYES=false;
+const bool LOGISTIC_REGRESSION=true;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
 const bool HAAR_FEATURE=true;
@@ -227,7 +227,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
 
         if(LOGISTIC_REGRESSION){
             VectorXd labels(2*n_particles);
-            labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
+            labels << VectorXd::Ones(n_particles), VectorXd::Constant(n_particles,-1.0);
             logistic_regression = LogisticRegression();
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;

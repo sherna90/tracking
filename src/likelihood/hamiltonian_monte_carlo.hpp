@@ -1,3 +1,5 @@
+#ifndef HAMILTONIAN_MC_H
+#define HAMILTONIAN_MC_H
 #include <iostream>
 #include <stdlib.h>
 #include <cfloat>
@@ -5,6 +7,7 @@
 #include <algorithm>
 #include <vector>
 #include <Eigen/Sparse>
+#include <chrono>
 #include <random>
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -20,18 +23,19 @@ class Hamiltonian_MC
 public:
 	Hamiltonian_MC();
 	Hamiltonian_MC(MatrixXd &_X,VectorXd &_Y, double _lamda);
-	VectorXd run(int _iterations, double _step_size, int _num_step);
+	void run(int _iterations, double _step_size, int _num_step);
 	VectorXd simulation(VectorXd &_initial_x);
+	VectorXd predict(MatrixXd &_X_test);
 private:
 	void leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v);
 	double hamiltonian(VectorXd &_position, VectorXd &_velocity);
 	double kinetic_energy(VectorXd &_velocity);
 	bool init;
 	double step_size;
-	int num_step;
-	MatrixXd *X_train;
- 	VectorXd *Y_train;
+	int num_step, dim;
+ 	MatrixXd weights;
+ 	mt19937 generator;
  	LogisticRegression logistic_regression;
+};
 
-
-}
+#endif // HAMILTONIAN_MC_H

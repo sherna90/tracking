@@ -6,33 +6,54 @@ Hamiltonian_MC::Hamiltonian_MC(){
 }
 
 
-Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X,VectorXd &_Y, double _lambda){
-    logistic_regresion = LogisticRegresion(_X,_Y, _lambda);
+Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, VectorXd &_Y, double _lambda){
+	dim = _X.cols()+1;
+    logistic_regression = LogisticRegression(_X, _Y, _lambda);
     init = true;
+    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed1);
+
 }
 
-VectorXd Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
+void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
 	if (init)
 	{	
 		step_size = _step_size;
 		num_step = _num_step;
-		/*iterations = _iterations;
-		std::default_random_engine generator;
+		MatrixXd _weights(_iterations, dim);
+
+		//iterations = _iterations;
+		/*std::default_random_engine generator;
   		std::normal_distribution<double> distribution(0.0,1.0);
-  		auto normal = [&] (double) {return distribution(generator);};*/
-
-		//VectorXd initial_x = VectorXd::NullaryExpr(_X.cols(), normal);
-		VectorXd initial_x = VectorXd::Zero(_X.cols());
+  		auto normal = [&] (double) {return distribution(generator);};
+		VectorXd initial_x = VectorXd::NullaryExpr(dim, normal);*/
+		VectorXd initial_x = VectorXd::Zero(dim);
 		for (int i = 0; i < _iterations; ++i)
-		{
-			VectorXd sample = simulation(initial_x);
-		}
+		{	
 
-		return sample
+			_weights.row(i) = simulation(initial_x);
+			
+		}
+		weights = _weights;
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
-		return 0;
+	}
+}
+
+VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test){
+	VectorXd predict;
+	if (init)
+	{	
+		VectorXd mean_weights = weights.colwise().mean();
+		logistic_regression.setWeights(mean_weights);
+		predict = logistic_regression.Predict(_X_test);
+		return predict;
+		
+	}
+	else{
+		cout << "Error: No initialized function"<< endl;
+		return predict;
 	}
 }
 
@@ -57,18 +78,20 @@ VectorXd Hamiltonian_MC::simulation(VectorXd &_initial_x){
 	if (init)
 	{
 
-  		//VectorXd v0 = VectorXd::NullaryExpr(_initial_x.rows(), normal);
+  		/*std::default_random_engine generator;
+  		std::normal_distribution<double> distribution(0.0,1.0);
+  		auto normal = [&] (double) {return distribution(generator);};
+		VectorXd v0 = VectorXd::NullaryExpr(dim, normal);*/
   		VectorXd v0 = VectorXd::Zero(_initial_x.rows());
   		VectorXd x(_initial_x.rows());
   		VectorXd v(_initial_x.rows());
-
   		leap_Frog(_initial_x, v0, x, v);
-		
 		double orig = hamiltonian(_initial_x, v0);
 		double current = hamiltonian(x, v);
 		double p_accept = min(1.0, exp(orig - current));
 
-		if (p_accept > normal(generator))
+		normal_distribution<double> dnormal(0.0,1.0);
+		if (p_accept > dnormal(generator))
 		{
 			return x;
 		}
@@ -79,28 +102,34 @@ VectorXd Hamiltonian_MC::simulation(VectorXd &_initial_x){
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
-		return 0;
+		return _initial_x;
 	}
 }
 
 void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v){
 	//Start by updating the velocity a half-step
-	VectorXd v = v0 - 0.5 * step_size * logistic_regresion.Gradient(_x0);
+	// x(dim);
+	// v(dim);
+	RowVectorXd rowX(dim);
+	rowX << _x0.transpose();
+	v = _v0 - 0.5 * step_size * logistic_regression.Gradient(rowX);
 	//Initalize x to be the first step
-	VectorXd x = _x0 + step_size * v;
-
+	//RowVectorXd x= Map<RowVectorXd>(_x,dim);
+	x = _x0 + step_size * v;
+	rowX << x.transpose();
 	for (int i = 0; i < num_step; ++i)
 	{
 		//Compute gradient of the log-posterior with respect to x
-		double gradient = logistic_regresion.Gradient(x);
+		VectorXd gradient = logistic_regression.Gradient(rowX);
 		//Update velocity
 		v = v - step_size * gradient;
 		//Update x
 		x = x + step_size * v;
+		rowX << x.transpose();
 	}
 	//Do a final update of the velocity for a half step
 	//return new proposal state
-	v = v -0.5 * step_size * logistic_regresion.Gradient(x);
+	v = v -0.5 * step_size * logistic_regression.Gradient(rowX);
 
 }
 
@@ -122,8 +151,10 @@ double Hamiltonian_MC::hamiltonian(VectorXd &_position, VectorXd &_velocity){
     hamitonian : double
     */
 
-	double energy_function = - logistic_regresion.LogPosterior(_position);
-	return energy_function(_velocity) + kinetic_energy(_velocity);
+	RowVectorXd rowPosition(dim);
+	rowPosition << _position.transpose();
+	double energy_function = - logistic_regression.LogPosterior(rowPosition);
+	return energy_function + kinetic_energy(_velocity);
 }
 
 double Hamiltonian_MC::kinetic_energy(VectorXd &_velocity){

@@ -50,10 +50,11 @@ VectorXd LogisticRegression::LogSigmoid(VectorXd &eta){
 	return phi;
 }
 
+
 VectorXd LogisticRegression::Train(int n_iter,double alpha,double tol){
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	MatrixXd H(rows,rows);
-	//cout << "start training!" << endl;
+	cout << "start training!" << endl;
 	for(int i=0;i<n_iter;i++){
 		VectorXd Grad=foo2(weights);
 		log_likelihood(i)=foo(weights);
@@ -64,6 +65,7 @@ VectorXd LogisticRegression::Train(int n_iter,double alpha,double tol){
 	Hessian = ComputeHessian(*X_train,*Y_train,weights);
 	return log_likelihood;
 }
+
 
 VectorXd LogisticRegression::ComputeGradient(MatrixXd &_X, VectorXd &_Y, RowVectorXd &_W){
 	VectorXd eta = (_X*_W.transpose());
@@ -105,10 +107,10 @@ VectorXd LogisticRegression::Predict(MatrixXd &_X){
 		VectorXd eta = (*X_test)*sample_weight.transpose();
 		phi+=(1.0/n_samples)*Sigmoid(eta);	
 	}	
-	phi.noalias() = phi.unaryExpr([](double elem)
+	/*phi.noalias() = phi.unaryExpr([](double elem)
 	{
 	    return (elem > 0.5) ? 1.0 : -1.0;
-	});
+	});*/
 	return phi;
 }
 
@@ -140,3 +142,4 @@ void LogisticRegression::setWeights(VectorXd& _W){
 VectorXd LogisticRegression::getWeights(){
 	return weights;
 }
+

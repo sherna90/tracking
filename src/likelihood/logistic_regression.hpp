@@ -27,7 +27,8 @@ class LogisticRegression
  	VectorXd foo2(RowVectorXd& _weights);
  	void setWeights(VectorXd &_W);
  	VectorXd getWeights();
- 
+
+
  private:
  	RowVectorXd weights;
  	MatrixXd *X_train;

@@ -19,7 +19,7 @@
 #include <opencv2/imgproc.hpp>
 #include <float.h>
 
-#include "LBP/LBP.hpp"
+#include "../libs/LBP/LBP.hpp"
 
 using std::vector;
 using namespace cv;

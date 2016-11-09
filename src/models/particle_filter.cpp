@@ -14,8 +14,8 @@ const float DT=1.0;
 const float THRESHOLD=1.0;
 const float OVERLAP_RATIO=0.9;
 
-const bool GAUSSIAN_NAIVEBAYES=true;
-const bool LOGISTIC_REGRESSION=false;
+const bool GAUSSIAN_NAIVEBAYES=false;
+const bool LOGISTIC_REGRESSION=true;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
 const bool HAAR_FEATURE=true;
@@ -178,7 +178,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             }
 
             if(MB_LBP_FEATURE){
-                multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false);
+                multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false,3,3);
                 multiblock_local_binary_patterns.init(grayImg, sampleBox);
                 multiblock_local_binary_patterns.getFeatureValue(grayImg, negativeBox, false);
                 Mat cv_positive_sample_feature_values, cv_negative_sample_feature_values;
@@ -239,8 +239,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
                                                 eigen_sample_negative_feature_value;
                 eigen_sample_feature_value.transposeInPlace();                                
-                logistic_regression = LogisticRegression(eigen_sample_feature_value, labels);
-                logistic_regression.Train(1e2,1e-1,1e-3,0.1);
+                logistic_regression = LogisticRegression(eigen_sample_feature_value, labels,0.01);
+                logistic_regression.Train(1e3,1e-2,1e-3);
             }
 
             if(LBP_FEATURE){
@@ -251,20 +251,20 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 local_binary_pattern.negativeFeatureValue.rows(), local_binary_pattern.sampleFeatureValue.cols());
                 eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
                                               local_binary_pattern.negativeFeatureValue;
-                logistic_regression=LogisticRegression(eigen_sample_feature_value, labels);
-                logistic_regression.Train(1e2,1e-1,1e-3,0.1);
+                logistic_regression=LogisticRegression(eigen_sample_feature_value, labels,0.01);
+                logistic_regression.Train(1e2,1e-1,1e-3);
             }
 
             if(MB_LBP_FEATURE){
-                multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false);
+                multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false,3,3);
                 multiblock_local_binary_patterns.init(grayImg, sampleBox);
                 multiblock_local_binary_patterns.getFeatureValue(grayImg, negativeBox, false);
                 MatrixXd eigen_sample_feature_value(multiblock_local_binary_patterns.sampleFeatureValue.rows() +
                     multiblock_local_binary_patterns.negativeFeatureValue.rows(), multiblock_local_binary_patterns.sampleFeatureValue.cols());
                 eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
                                               multiblock_local_binary_patterns.negativeFeatureValue;
-                logistic_regression = LogisticRegression(eigen_sample_feature_value, labels);
-                logistic_regression.Train(1e2,1e-1,1e-3,0.1);
+                logistic_regression = LogisticRegression(eigen_sample_feature_value, labels,0.01);
+                logistic_regression.Train(1e2,1e-1,1e-3);
             }
 
             if(HOG_FEATURE){
@@ -286,8 +286,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
                     hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 }
-                logistic_regression=LogisticRegression(hog_descriptors, labels);
-                logistic_regression.Train(1e2,1e-1,1e-3,0.1);
+                logistic_regression=LogisticRegression(hog_descriptors, labels,0.1);
+                logistic_regression.Train(1e2,1e-1,1e-3);
             }
             
         }
@@ -322,7 +322,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             }
 
             if(MB_LBP_FEATURE){
-                multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false);
+                multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false,3,3);
                 multiblock_local_binary_patterns.init(grayImg, sampleBox);
                 multiblock_local_binary_patterns.getFeatureValue(grayImg, negativeBox, false);
                 MatrixXd eigen_sample_feature_value(multiblock_local_binary_patterns.sampleFeatureValue.rows() +

@@ -11,16 +11,16 @@
 const float POS_STD=5.0;
 const float SCALE_STD=1.0;
 const float DT=1.0;
-const float THRESHOLD=1.0;
+const float THRESHOLD=0.7;
 const float OVERLAP_RATIO=0.9;
 
-const bool GAUSSIAN_NAIVEBAYES=false;
-const bool LOGISTIC_REGRESSION=true;
+const bool GAUSSIAN_NAIVEBAYES=true;
+const bool LOGISTIC_REGRESSION=false;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
-const bool HAAR_FEATURE=false;
+const bool HAAR_FEATURE=true;
 const bool LBP_FEATURE=false;
-const bool HOG_FEATURE=true;
+const bool HOG_FEATURE=false;
 const bool MB_LBP_FEATURE=false;
 #endif
 
@@ -221,8 +221,6 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 gaussian_naivebayes.fit();
             }
 
-            theta_y.push_back(gaussian_naivebayes.theta_y_mu);
-            theta_y.push_back(gaussian_naivebayes.theta_y_sigma);
         }
 
         if(LOGISTIC_REGRESSION){
@@ -244,11 +242,13 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 LogRegWrapper f(eigen_sample_feature_value, labels,0.01);
                 VectorXd beta = VectorXd::Random(f.getDim());
                 cppoptlib::Criteria<double> crit = cppoptlib::Criteria<double>::defaults(); // Create a Criteria class to set the solver's stop conditions
-                cppoptlib::BfgsSolver<LogRegWrapper> solver;
+                cppoptlib::GradientDescentSolver<LogRegWrapper> solver;
                 solver.setStopCriteria(crit);
-                solver.minimize(f, beta);                                
-                logistic_regression = LogisticRegression(eigen_sample_feature_value, labels,0.01);
-                logistic_regression.setWeights(beta);
+                //solver.minimize(f, beta);  
+                //std::cout << "Solver status: " << solver.status() << std::endl;                              
+                logistic_regression = LogisticRegression(eigen_sample_feature_value, labels,1.0);
+                logistic_regression.Train(1e2,1e-3,1);
+                //logistic_regression.setWeights(beta);
             }
 
             if(LBP_FEATURE){
@@ -297,9 +297,11 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 LogRegWrapper f(hog_descriptors, labels,1.0);
                 VectorXd beta = VectorXd::Random(f.getDim());
                 cppoptlib::Criteria<double> crit = cppoptlib::Criteria<double>::defaults(); // Create a Criteria class to set the solver's stop conditions
-                cppoptlib::BfgsSolver<LogRegWrapper> solver;
+                cppoptlib::LbfgsSolver<LogRegWrapper> solver;
+                crit.iterations = 1e4;    
                 solver.setStopCriteria(crit);
-                solver.minimize(f, beta);                                
+                solver.minimize(f, beta);  
+                std::cout << "Solver status: " << solver.status() << std::endl;                              
                 logistic_regression = LogisticRegression(hog_descriptors, labels,1.0);
                 logistic_regression.setWeights(beta);
             }
@@ -719,6 +721,50 @@ void particle_filter::update_model(vector<VectorXd> theta_x_new){
     VectorXd theta_x_scale=theta_x_new.at(1);
     theta_x.push_back(theta_x_pos);
     theta_x.push_back(theta_x_scale);
+}
+
+void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_examples,vector<Rect> negative_examples){
+    Mat grayImg;
+    cvtColor(current_frame, grayImg, CV_RGB2GRAY);
+    if(LOGISTIC_REGRESSION){
+        VectorXd labels(positive_examples.size()+negative_examples.size());
+        labels << VectorXd::Ones(positive_examples.size()), VectorXd::Constant(negative_examples.size(),-1.0);
+        if(HAAR_FEATURE){
+            haar.init(grayImg,reference_roi,positive_examples);
+            MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
+            cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
+            haar.getFeatureValue(grayImg,negative_examples);
+            cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
+            MatrixXd eigen_sample_feature_value( eigen_sample_positive_feature_value.rows(),
+                eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
+            eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
+                                            eigen_sample_negative_feature_value;
+            eigen_sample_feature_value.transposeInPlace();
+            logistic_regression.setData(eigen_sample_feature_value, labels);
+            logistic_regression.Train(1e2,1e-3,1);
+        }
+        if(HOG_FEATURE){
+            //MatrixXd hog_descriptors(sampleBox.size() + negativeBox.size(), 7040);
+            MatrixXd hog_descriptors(0, 3780);
+            VectorXd hist;
+            for (unsigned int i = 0; i < positive_examples.size(); ++i)
+            {
+                Mat subImage = grayImg(positive_examples.at(i));
+                calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
+                hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
+                hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+            }
+
+            for (unsigned int i = 0; i < negative_examples.size(); ++i)
+            {
+                Mat subImage = grayImg(negative_examples.at(i));
+                calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
+                hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
+                hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+            }
+            //logistic_regression.Train(1e3,1e-3,1);
+        }
+     }   
 }
 
 vector<VectorXd> particle_filter::get_dynamic_model(){

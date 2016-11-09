@@ -11,6 +11,7 @@
 #include "../libs/cppoptlib/meta.h"
 #include "../libs/cppoptlib/problem.h"
 #include "../libs/cppoptlib/solver/bfgssolver.h"
+#include "../libs/cppoptlib/solver/lbfgssolver.h"
 #include "../libs/cppoptlib/solver/gradientdescentsolver.h"
 
 using namespace Eigen;
@@ -26,6 +27,7 @@ class LogisticRegression
  	double LogPosterior(RowVectorXd& _weights);
  	VectorXd Gradient(RowVectorXd& _weights);
  	void setWeights(VectorXd &_W);
+    void setData(MatrixXd &_X,VectorXd &_Y);
  	VectorXd getWeights();
 
 

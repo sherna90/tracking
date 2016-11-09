@@ -1,9 +1,9 @@
 #include "smc_squared.hpp"
 
-const float SHAPE=0.5;
-const float SCALE=0.5;
+const float SHAPE=1.0;
+const float SCALE=1.0;
 const float PRIOR_SD=0.01;
-const float SMC_THRESHOLD=0.5;
+const float SMC_THRESHOLD=1.0;
 
 smc_squared::smc_squared(int _n_particles,int _m_particles,int _fixed_lag,int _mcmc_steps){
     unsigned seed1= std::chrono::system_clock::now().time_since_epoch().count();
@@ -31,7 +31,6 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
     for(int j=0;j<m_particles;++j){
         //delete filter;
         particle_filter* new_filter=new particle_filter(n_particles);
-        new_filter->initialize(current_frame,ground_truth);
         theta_x=new_filter->get_dynamic_model();
         VectorXd prop_pos=proposal(theta_x[0],SHAPE);
         prop_pos=prop_pos.array().abs().matrix();
@@ -40,6 +39,7 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
         prop_std=prop_std.array().abs().matrix();
         theta_x_prop.push_back(prop_std);
         new_filter->update_model(theta_x_prop);
+        new_filter->initialize(current_frame,ground_truth);
         //cout << "dynamic model proposal " << theta_x_prop[0].transpose() << ",scale model proposal " << theta_x_prop[1].transpose() << endl;
         theta_x_pos.row(j) = prop_pos;
         theta_x_scale.row(j) = prop_std;
@@ -105,33 +105,32 @@ double smc_squared::gamma_prior(VectorXd x, double a, double b)
 
 void smc_squared::update(Mat& current_frame){
     images.push_back(current_frame);
+    normal_distribution<double> negative_random_pos(0.0,20.0);
+    Size im_size=current_frame.size();
     vector<float> tmp_weights;
+    vector<Rect> positive_examples,negative_examples;
     for(int j=0;j<m_particles;++j){
         float weight=(float)theta_weights[j];
         filter_bank[j]->update(current_frame);
         filter_bank[j]->resample();
-        tmp_weights.push_back(weight+filter_bank[j]->getMarginalLikelihood()/n_particles);
+        tmp_weights.push_back(weight+filter_bank[j]->getMarginalLikelihood());
+        Rect estimate=filter_bank[j]->estimate(current_frame,false);
+        positive_examples.push_back(estimate);
+    }
+    for (int i=0;i<m_particles;i++){
+        Rect box;
+        float _dx=negative_random_pos(generator);
+        float _dy=negative_random_pos(generator);
+        box.x=MIN(MAX(cvRound(positive_examples[i].x+_dx),0),im_size.width);
+        box.y=MIN(MAX(cvRound(positive_examples[i].y+_dy),0),im_size.height);
+        box.width=MIN(MAX(cvRound(positive_examples[i].width),0),im_size.width-box.x);
+        box.height=MIN(MAX(cvRound(positive_examples[i].height),0),im_size.height-box.y);
+        negative_examples.push_back(box); 
     }
     theta_weights.swap(tmp_weights);
     tmp_weights.clear();
     for(int j=0;j<m_particles;++j){
-        //cout << " PMMH ---------------------" << endl;
-        pmmh filter(n_particles,fixed_lag,mcmc_steps);
-        theta_x=filter_bank[j]->get_dynamic_model();
-        theta_x_prop.clear();
-        VectorXd prop_pos=proposal(theta_x[0],SHAPE);
-        prop_pos=prop_pos.array().abs().matrix();
-        theta_x_prop.push_back(prop_pos);
-        VectorXd prop_std=proposal(theta_x[1],SCALE);
-        prop_std=prop_std.array().abs().matrix();
-        theta_x_prop.push_back(prop_std);
-        filter.initialize(images,estimates.front(),theta_x_prop);
-        filter.run_mcmc();
-        theta_x=filter.get_dynamic_model();
-        filter_bank[j]->update_model(theta_x);
-        //cout << "dynamic model proposal " << theta_x_prop[0].transpose() << ",scale model proposal " << theta_x_prop[1].transpose() << endl;
-        //cout << "appearence mu proposal " << theta_y_prop[0].transpose() << endl;
-        //cout << "appearence sig  proposal " << theta_y_prop[1].transpose() << endl;
+        filter_bank[j]->update_model(current_frame,positive_examples,negative_examples);
     }
     resample();
 }

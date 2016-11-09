@@ -54,11 +54,10 @@ VectorXd LogisticRegression::LogSigmoid(VectorXd &eta){
 VectorXd LogisticRegression::Train(int n_iter,double alpha,double tol){
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	MatrixXd H(rows,rows);
-	cout << "start training!" << endl;
 	for(int i=0;i<n_iter;i++){
 		VectorXd Grad=Gradient(weights);
 		log_likelihood(i)=LogPosterior(weights);
-		//cout << i << ", w:" << weights <<  ", ll:" << log_likelihood(i)  <<  ", g:" << Grad.transpose() <<endl;
+		//cout << i << ", ll:" << log_likelihood(i)  <<endl;
 		weights.noalias()=weights-alpha*Grad.transpose();
 	}
 	//cout << "end training!" << endl;
@@ -99,14 +98,16 @@ VectorXd LogisticRegression::Predict(MatrixXd &_X){
 	VectorXd bias_vec=VectorXd::Constant(X_test->rows(),1.0);
 	X_test->col(dim) = bias_vec;
 	VectorXd phi=VectorXd::Zero(X_test->rows());
-	int n_samples=100;
+	VectorXd eta = (*X_test)*weights.transpose();
+	phi=Sigmoid(eta);
+	/*int n_samples=100;
 	MVNGaussian posterior(weights.transpose(),Hessian);
 	MatrixXd samples=posterior.sample(n_samples);
 	for(int i=0; i< n_samples;i++){
 		RowVectorXd sample_weight=samples.row(i);
 		VectorXd eta = (*X_test)*sample_weight.transpose();
 		phi+=(1.0/n_samples)*Sigmoid(eta);	
-	}	
+	}*/	
 	/*phi.noalias() = phi.unaryExpr([](double elem)
 	{
 	    return (elem > 0.5) ? 1.0 : -1.0;
@@ -136,10 +137,27 @@ VectorXd LogisticRegression::Gradient(RowVectorXd& _weights){
 
 void LogisticRegression::setWeights(VectorXd& _W){
 	weights=_W.transpose();
-	Hessian = ComputeHessian(*X_train,*Y_train,weights);
+	//Hessian = ComputeHessian(*X_train,*Y_train,weights);
 }
 
 VectorXd LogisticRegression::getWeights(){
 	return weights;
 }
 
+void LogisticRegression::setData(MatrixXd &_X,VectorXd &_Y){
+	X_train = &_X;
+ 	Y_train = &_Y;
+ 	VectorXi indices = VectorXi::LinSpaced(X_train->rows(), 0, X_train->rows());
+ 	srand((unsigned int) time(0));
+ 	std::random_shuffle(indices.data(), indices.data() + X_train->rows());
+  	X_train->noalias() = indices.asPermutation() * *X_train;  
+  	Y_train->noalias() = indices.asPermutation() * *Y_train; 
+ 	rows = X_train->rows();
+	dim = X_train->cols();
+	featureMeans = X_train->colwise().mean();
+	X_train->rowwise()-=featureMeans.transpose();
+	weights = RowVectorXd::Zero(dim+1);
+	X_train->conservativeResize(NoChange, dim+1);
+	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
+	X_train->col(dim) = bias_vec;
+}

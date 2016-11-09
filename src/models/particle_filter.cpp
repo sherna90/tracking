@@ -18,9 +18,9 @@ const bool GAUSSIAN_NAIVEBAYES=false;
 const bool LOGISTIC_REGRESSION=true;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
-const bool HAAR_FEATURE=true;
+const bool HAAR_FEATURE=false;
 const bool LBP_FEATURE=false;
-const bool HOG_FEATURE=false;
+const bool HOG_FEATURE=true;
 const bool MB_LBP_FEATURE=false;
 #endif
 
@@ -228,6 +228,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         if(LOGISTIC_REGRESSION){
             VectorXd labels(2*n_particles);
             labels << VectorXd::Ones(n_particles), VectorXd::Constant(n_particles,-1.0);
+            typedef double T;
+            typedef LogisticRegressionWrapper<T> LogRegWrapper;
             logistic_regression = LogisticRegression();
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
@@ -238,9 +240,15 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
                 eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
                                                 eigen_sample_negative_feature_value;
-                eigen_sample_feature_value.transposeInPlace();                                
+                eigen_sample_feature_value.transposeInPlace();
+                LogRegWrapper f(eigen_sample_feature_value, labels,0.01);
+                VectorXd beta = VectorXd::Random(f.getDim());
+                cppoptlib::Criteria<double> crit = cppoptlib::Criteria<double>::defaults(); // Create a Criteria class to set the solver's stop conditions
+                cppoptlib::BfgsSolver<LogRegWrapper> solver;
+                solver.setStopCriteria(crit);
+                solver.minimize(f, beta);                                
                 logistic_regression = LogisticRegression(eigen_sample_feature_value, labels,0.01);
-                logistic_regression.Train(1e3,1e-2,1e-3);
+                logistic_regression.setWeights(beta);
             }
 
             if(LBP_FEATURE){
@@ -286,8 +294,14 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
                     hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 }
-                logistic_regression=LogisticRegression(hog_descriptors, labels,0.1);
-                logistic_regression.Train(1e2,1e-1,1e-3);
+                LogRegWrapper f(hog_descriptors, labels,1.0);
+                VectorXd beta = VectorXd::Random(f.getDim());
+                cppoptlib::Criteria<double> crit = cppoptlib::Criteria<double>::defaults(); // Create a Criteria class to set the solver's stop conditions
+                cppoptlib::BfgsSolver<LogRegWrapper> solver;
+                solver.setStopCriteria(crit);
+                solver.minimize(f, beta);                                
+                logistic_regression = LogisticRegression(hog_descriptors, labels,1.0);
+                logistic_regression.setWeights(beta);
             }
             
         }

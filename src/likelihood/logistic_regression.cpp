@@ -56,8 +56,8 @@ VectorXd LogisticRegression::Train(int n_iter,double alpha,double tol){
 	MatrixXd H(rows,rows);
 	cout << "start training!" << endl;
 	for(int i=0;i<n_iter;i++){
-		VectorXd Grad=foo2(weights);
-		log_likelihood(i)=foo(weights);
+		VectorXd Grad=Gradient(weights);
+		log_likelihood(i)=LogPosterior(weights);
 		//cout << i << ", w:" << weights <<  ", ll:" << log_likelihood(i)  <<  ", g:" << Grad.transpose() <<endl;
 		weights.noalias()=weights-alpha*Grad.transpose();
 	}
@@ -125,12 +125,12 @@ double LogisticRegression::LogPrior(RowVectorXd &_W){
 	return -(lambda/2.0)*_W.squaredNorm();
 }
 
-double LogisticRegression::foo(RowVectorXd& _weights){
+double LogisticRegression::LogPosterior(RowVectorXd& _weights){
 	double log_likelihood=-LogLikelihood(*X_train,*Y_train,_weights)-LogPrior(_weights);
     return log_likelihood;
 }
 
-VectorXd LogisticRegression::foo2(RowVectorXd& _weights){
+VectorXd LogisticRegression::Gradient(RowVectorXd& _weights){
 	return ComputeGradient(*X_train,*Y_train, _weights);
 }
 

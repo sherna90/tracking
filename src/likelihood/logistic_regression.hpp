@@ -23,8 +23,8 @@ class LogisticRegression
 	LogisticRegression(MatrixXd &_X,VectorXd &_Y,double lambda=1.0);
  	VectorXd Train(int n_iter,double alpha=0.01,double tol=0.001);
  	VectorXd Predict(MatrixXd &_X);
- 	double foo(RowVectorXd& _weights);
- 	VectorXd foo2(RowVectorXd& _weights);
+ 	double LogPosterior(RowVectorXd& _weights);
+ 	VectorXd Gradient(RowVectorXd& _weights);
  	void setWeights(VectorXd &_W);
  	VectorXd getWeights();
 
@@ -62,12 +62,12 @@ class LogisticRegressionWrapper : public cppoptlib::Problem<T> {
 
     T value(const TVector &beta) {
         Eigen::RowVectorXd w=beta.transpose();
-        return logistic->foo(w);
+        return logistic->LogPosterior(w);
     }
 
     void gradient(const TVector &beta, TVector &grad) {
         Eigen::RowVectorXd w=beta.transpose();
-        grad = logistic->foo2(w);
+        grad = logistic->Gradient(w);
     }
 
     int getDim(){

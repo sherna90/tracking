@@ -26,6 +26,7 @@ public:
 	void run(int _iterations, double _step_size, int _num_step);
 	VectorXd simulation(VectorXd &_initial_x);
 	VectorXd predict(MatrixXd &_X_test);
+	void fit_map(int _numstart);
 private:
 	void leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v);
 	double hamiltonian(VectorXd &_position, VectorXd &_velocity);
@@ -35,6 +36,9 @@ private:
 	int num_step, dim;
  	MatrixXd weights;
  	mt19937 generator;
+ 	double lambda;
+ 	MatrixXd *X_train;
+ 	VectorXd *Y_train;
  	LogisticRegression logistic_regression;
 };
 

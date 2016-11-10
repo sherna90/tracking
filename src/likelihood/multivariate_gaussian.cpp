@@ -4,6 +4,7 @@ MVNGaussian::MVNGaussian(VectorXd _mean, MatrixXd _cov){
     dim=_mean.size();
     mean = _mean;
     cov = _cov;
+    //cout <<  "MVN Random  m:" << mean << ",cov : "<< cov  << endl;
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     generator.seed(seed);
 }
@@ -41,12 +42,13 @@ void MVNGaussian::setCov(MatrixXd _cov){
 }
 
 VectorXd MVNGaussian::sample(){
-    VectorXd mvn_sample,mvn_random;
-    normal_distribution<double> normal(0.0,1.0);
-    for (int i=0;i<mean.size();i++) mvn_random(i)=normal(generator);
-    LLT<MatrixXd> cholSolver(cov);
+    VectorXd mvn_sample=VectorXd::Zero(dim);
+    VectorXd mvn_random=VectorXd::Random(dim);
+    //normal_distribution<double> normal(0.0,1.0);
+    //for (int i=0;i<dim;i++) mvn_random(i)=normal(generator);
+    /*LLT<MatrixXd> cholSolver(cov);
     MatrixXd upperL = cholSolver.matrixL();
-    mvn_sample= upperL*mvn_random+ mean;
+    mvn_sample= upperL*mvn_random+ mean;*/
     return mvn_sample;
 }
 

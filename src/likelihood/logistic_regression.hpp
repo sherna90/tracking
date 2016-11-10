@@ -1,3 +1,5 @@
+#ifndef LOGISTIC_H
+#define LOGISTIC_H
 #include <iostream>
 #include <stdlib.h>
 #include <cfloat>
@@ -53,13 +55,9 @@ class LogisticRegressionWrapper : public cppoptlib::Problem<T> {
   public:
     using typename cppoptlib::Problem<T>::TVector;
     LogisticRegression *logistic;
-    Eigen::MatrixXd x_train;
-    Eigen::VectorXd y_train;
 
-    LogisticRegressionWrapper(const MatrixXd &X_, const VectorXd &y_,double _lambda) {
-      x_train=X_;
-      y_train=y_;
-      logistic=new LogisticRegression(x_train,y_train,_lambda);
+    LogisticRegressionWrapper(MatrixXd &X_, VectorXd &y_,double _lambda) {
+      logistic=new LogisticRegression(X_,y_,_lambda);
     }
 
     T value(const TVector &beta) {
@@ -76,3 +74,4 @@ class LogisticRegressionWrapper : public cppoptlib::Problem<T> {
     	return logistic->getWeights().size();
     }
 };
+#endif

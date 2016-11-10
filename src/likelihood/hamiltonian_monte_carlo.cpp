@@ -7,7 +7,10 @@ Hamiltonian_MC::Hamiltonian_MC(){
 
 
 Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, VectorXd &_Y, double _lambda){
-	dim = _X.cols()+1;
+	lambda=_lambda;
+	X_train = &_X;
+ 	Y_train = &_Y;
+	dim = _X.cols();
     logistic_regression = LogisticRegression(_X, _Y, _lambda);
     init = true;
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
@@ -27,7 +30,7 @@ void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
   		std::normal_distribution<double> distribution(0.0,1.0);
   		auto normal = [&] (double) {return distribution(generator);};
 		VectorXd initial_x = VectorXd::NullaryExpr(dim, normal);*/
-		VectorXd initial_x = VectorXd::Zero(dim);
+		VectorXd initial_x = VectorXd::Random(dim);
 		for (int i = 0; i < _iterations; ++i)
 		{	
 
@@ -45,7 +48,13 @@ VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test){
 	VectorXd predict;
 	if (init)
 	{	
-		VectorXd mean_weights = weights.colwise().mean();
+		VectorXd mean_weights;
+		if(weights.rows()>0) {
+			mean_weights = weights.colwise().mean();
+		}
+		else {
+			mean_weights = VectorXd::Random(dim);
+		}
 		logistic_regression.setWeights(mean_weights);
 		predict = logistic_regression.Predict(_X_test);
 		return predict;
@@ -173,4 +182,31 @@ double Hamiltonian_MC::kinetic_energy(VectorXd &_velocity){
 }
 
 
+void Hamiltonian_MC::fit_map(int _numstart){
+	if (init)
+	{	
+		typedef double T;
+    	typedef LogisticRegressionWrapper<T> LogRegWrapper;
+    	LogRegWrapper fun(*X_train, *Y_train,lambda);
+		MatrixXd _weights(_numstart, dim);
+		VectorXd initial_w = VectorXd::Random(dim);
+		cppoptlib::Criteria<double> crit = cppoptlib::Criteria<double>::defaults(); // Create a Criteria class to set the solver's stop conditions
+    	cppoptlib::BfgsSolver<LogRegWrapper> solver;
+    	solver.setStopCriteria(crit);
+		for (int i = 0; i < _numstart; ++i)
+		{	
+			solver.minimize(fun, initial_w);
+			_weights.row(i) = initial_w;
+			
+		}
+		weights = _weights;
+	}
+	else{
+		cout << "Error: No initialized function"<< endl;
+	}
+       
+}
+
+
+	
 	

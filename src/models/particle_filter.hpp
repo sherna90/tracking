@@ -18,6 +18,7 @@
 #include "../likelihood/gaussian.hpp"
 #include "../features/mb_lbp.hpp"
 #include "../likelihood/logistic_regression.hpp"
+#include "../likelihood/hamiltonian_monte_carlo.hpp"
 #include "../likelihood/gaussian_naivebayes.hpp"
 #include "../likelihood/multinomialnaivebayes.hpp"
 //#include "../likelihood/weighted_gaussiannaivebayes.hpp"
@@ -52,12 +53,6 @@ public:
     int n_particles;
     vector<particle> states;
     vector<float>  weights;
-    Haar haar;
-    LocalBinaryPattern local_binary_pattern;
-    MultiScaleBlockLBP multiblock_local_binary_patterns;
-    LogisticRegression logistic_regression;
-    MultinomialNaiveBayes multinomial_naivebayes;
-    GaussianNaiveBayes gaussian_naivebayes;
     ~particle_filter();
     particle_filter(int _n_particles);
     particle_filter();
@@ -79,6 +74,7 @@ public:
     void resample();
     vector<Rect> estimates;
     particle update_state(particle state, Mat& image);
+    Haar haar;
 
 protected:
     float marginal_likelihood;
@@ -94,6 +90,12 @@ protected:
     normal_distribution<double> position_random_walk,velocity_random_walk,scale_random_walk;
     double eps;
     vector<Rect > sampleBox;
+    LocalBinaryPattern local_binary_pattern;
+    MultiScaleBlockLBP multiblock_local_binary_patterns;
+    LogisticRegression logistic_regression;
+    MultinomialNaiveBayes multinomial_naivebayes;
+    GaussianNaiveBayes gaussian_naivebayes;
+    Hamiltonian_MC hamiltonian_monte_carlo;
 };
 
 #endif

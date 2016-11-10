@@ -12,10 +12,10 @@ const float POS_STD=5.0;
 const float SCALE_STD=1.0;
 const float DT=1.0;
 const float THRESHOLD=0.7;
-const float OVERLAP_RATIO=0.9;
+const float OVERLAP_RATIO=0.1;
 
-const bool GAUSSIAN_NAIVEBAYES=true;
-const bool LOGISTIC_REGRESSION=false;
+const bool GAUSSIAN_NAIVEBAYES=false;
+const bool LOGISTIC_REGRESSION=true;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
 const bool HAAR_FEATURE=true;
@@ -226,9 +226,12 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         if(LOGISTIC_REGRESSION){
             VectorXd labels(2*n_particles);
             labels << VectorXd::Ones(n_particles), VectorXd::Constant(n_particles,-1.0);
-            typedef double T;
-            typedef LogisticRegressionWrapper<T> LogRegWrapper;
-            logistic_regression = LogisticRegression();
+            hamiltonian_monte_carlo=Hamiltonian_MC();
+            /*int num_iter=1e3;
+            double step_size=1e-3;
+            int leapgrog=10;*/
+            double lambda=0.1; 
+            int num_steps=3;
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
                 cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
@@ -239,16 +242,9 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
                                                 eigen_sample_negative_feature_value;
                 eigen_sample_feature_value.transposeInPlace();
-                LogRegWrapper f(eigen_sample_feature_value, labels,0.01);
-                VectorXd beta = VectorXd::Random(f.getDim());
-                cppoptlib::Criteria<double> crit = cppoptlib::Criteria<double>::defaults(); // Create a Criteria class to set the solver's stop conditions
-                cppoptlib::GradientDescentSolver<LogRegWrapper> solver;
-                solver.setStopCriteria(crit);
-                //solver.minimize(f, beta);  
-                //std::cout << "Solver status: " << solver.status() << std::endl;                              
-                logistic_regression = LogisticRegression(eigen_sample_feature_value, labels,1.0);
-                logistic_regression.Train(1e2,1e-3,1);
-                //logistic_regression.setWeights(beta);
+                
+                hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
+                hamiltonian_monte_carlo.fit_map(3);
             }
 
             if(LBP_FEATURE){
@@ -259,8 +255,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 local_binary_pattern.negativeFeatureValue.rows(), local_binary_pattern.sampleFeatureValue.cols());
                 eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
                                               local_binary_pattern.negativeFeatureValue;
-                logistic_regression=LogisticRegression(eigen_sample_feature_value, labels,0.01);
-                logistic_regression.Train(1e2,1e-1,1e-3);
+                hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
+                hamiltonian_monte_carlo.fit_map(num_steps);
             }
 
             if(MB_LBP_FEATURE){
@@ -271,8 +267,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     multiblock_local_binary_patterns.negativeFeatureValue.rows(), multiblock_local_binary_patterns.sampleFeatureValue.cols());
                 eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
                                               multiblock_local_binary_patterns.negativeFeatureValue;
-                logistic_regression = LogisticRegression(eigen_sample_feature_value, labels,0.01);
-                logistic_regression.Train(1e2,1e-1,1e-3);
+                hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
+                hamiltonian_monte_carlo.fit_map(num_steps);
             }
 
             if(HOG_FEATURE){
@@ -294,16 +290,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
                     hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 }
-                LogRegWrapper f(hog_descriptors, labels,1.0);
-                VectorXd beta = VectorXd::Random(f.getDim());
-                cppoptlib::Criteria<double> crit = cppoptlib::Criteria<double>::defaults(); // Create a Criteria class to set the solver's stop conditions
-                cppoptlib::LbfgsSolver<LogRegWrapper> solver;
-                crit.iterations = 1e4;    
-                solver.setStopCriteria(crit);
-                solver.minimize(f, beta);  
-                std::cout << "Solver status: " << solver.status() << std::endl;                              
-                logistic_regression = LogisticRegression(hog_descriptors, labels,1.0);
-                logistic_regression.setWeights(beta);
+                hamiltonian_monte_carlo = Hamiltonian_MC(hog_descriptors, labels,lambda);
+                hamiltonian_monte_carlo.fit_map(num_steps);
             }
             
         }
@@ -573,18 +561,18 @@ void particle_filter::update(Mat& image)
             MatrixXd eigen_sample_feature_value;
             cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
             eigen_sample_feature_value.transposeInPlace();
-            phi = logistic_regression.Predict(eigen_sample_feature_value);
+            phi = hamiltonian_monte_carlo.predict(eigen_sample_feature_value);
             //cout << "phi: " << phi.transpose() << endl;
         }
 
         if(LBP_FEATURE){
             local_binary_pattern.getFeatureValue(grayImg,sampleBox);
-            phi = logistic_regression.Predict(local_binary_pattern.sampleFeatureValue);
+            phi = hamiltonian_monte_carlo.predict(local_binary_pattern.sampleFeatureValue);
         }
 
         if(MB_LBP_FEATURE){
             multiblock_local_binary_patterns.getFeatureValue(grayImg, sampleBox, true);
-            phi = logistic_regression.Predict(multiblock_local_binary_patterns.sampleFeatureValue);
+            phi = hamiltonian_monte_carlo.predict(multiblock_local_binary_patterns.sampleFeatureValue);
         }
 
         if(HOG_FEATURE){
@@ -599,7 +587,7 @@ void particle_filter::update(Mat& image)
                 hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 //hog_descriptors.row(i) = hist;
             }
-            phi = logistic_regression.Predict(hog_descriptors);
+            phi = hamiltonian_monte_carlo.predict(hog_descriptors);
         }
 
         for (int i = 0; i < n_particles; ++i)
@@ -724,7 +712,7 @@ void particle_filter::update_model(vector<VectorXd> theta_x_new){
 }
 
 void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_examples,vector<Rect> negative_examples){
-    Mat grayImg;
+    /*Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
     if(LOGISTIC_REGRESSION){
         VectorXd labels(positive_examples.size()+negative_examples.size());
@@ -740,8 +728,8 @@ void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_exam
             eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
                                             eigen_sample_negative_feature_value;
             eigen_sample_feature_value.transposeInPlace();
-            logistic_regression.setData(eigen_sample_feature_value, labels);
-            logistic_regression.Train(1e2,1e-3,1);
+            //logistic_regression.setData(eigen_sample_feature_value, labels);
+            //logistic_regression.Train(1e2,1e-3,1);
         }
         if(HOG_FEATURE){
             //MatrixXd hog_descriptors(sampleBox.size() + negativeBox.size(), 7040);
@@ -764,7 +752,7 @@ void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_exam
             }
             //logistic_regression.Train(1e3,1e-3,1);
         }
-     }   
+     }*/   
 }
 
 vector<VectorXd> particle_filter::get_dynamic_model(){

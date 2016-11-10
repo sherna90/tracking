@@ -15,11 +15,11 @@ LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda)
  	rows = X_train->rows();
 	dim = X_train->cols();
 	featureMeans = X_train->colwise().mean();
-	X_train->rowwise()-=featureMeans.transpose();
-	weights = RowVectorXd::Zero(dim+1);
-	X_train->conservativeResize(NoChange, dim+1);
+	//X_train->rowwise()-=featureMeans.transpose();
+	weights = RowVectorXd::Random(dim);
+	/*X_train->conservativeResize(NoChange, dim+1);
 	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
-	X_train->col(dim) = bias_vec;
+	X_train->col(dim) = bias_vec;*/
  }
 
 VectorXd LogisticRegression::Sigmoid(VectorXd &eta){
@@ -80,34 +80,33 @@ VectorXd LogisticRegression::ComputeGradient(MatrixXd &_X, VectorXd &_Y, RowVect
 MatrixXd LogisticRegression::ComputeHessian(MatrixXd &_X,  VectorXd &_Y,RowVectorXd &_W){
 	VectorXd eta = (_X*_W.transpose());
 	VectorXd YZ=_Y.cwiseProduct(eta);
-	VectorXd P=Sigmoid(YZ);
-	MatrixXd I=MatrixXd::Identity(dim+1,dim+1);
-	MatrixXd H(dim+1,dim+1);
+	MatrixXd I=MatrixXd::Identity(dim,dim);
+	/*VectorXd P=Sigmoid(YZ);
+	MatrixXd H(dim,dim);
 	MatrixXd J(rows,rows);
 	J.diagonal() << P.array()*(1-P.array()).array();
 	H=_X.transpose()*J;
 	H*=_X;
-	H+=lambda*I;
-	return H.inverse();
+	H+=lambda*I;*/
+	return I.inverse();
 }
 
 VectorXd LogisticRegression::Predict(MatrixXd &_X){
 	MatrixXd *X_test=&_X;
-	X_test->rowwise()-=featureMeans.transpose();
-	X_test->conservativeResize(NoChange, dim+1);
-	VectorXd bias_vec=VectorXd::Constant(X_test->rows(),1.0);
-	X_test->col(dim) = bias_vec;
 	VectorXd phi=VectorXd::Zero(X_test->rows());
-	VectorXd eta = (*X_test)*weights.transpose();
-	phi=Sigmoid(eta);
-	/*int n_samples=100;
+	//X_test->rowwise()-=featureMeans.transpose();
+	/*X_test->conservativeResize(NoChange, dim+1);
+	VectorXd bias_vec=VectorXd::Constant(X_test->rows(),1.0);
+	X_test->col(dim) = bias_vec;*/
+	//VectorXd eta = (*X_test)*weights.transpose();
+	//phi=Sigmoid(eta);
+	int n_samples=100;
 	MVNGaussian posterior(weights.transpose(),Hessian);
-	MatrixXd samples=posterior.sample(n_samples);
 	for(int i=0; i< n_samples;i++){
-		RowVectorXd sample_weight=samples.row(i);
-		VectorXd eta = (*X_test)*sample_weight.transpose();
-		phi+=(1.0/n_samples)*Sigmoid(eta);	
-	}*/	
+		VectorXd sample_weight=posterior.sample();
+		//VectorXd eta = (*X_test)*sample_weight.transpose();
+		//phi+=(1.0/n_samples)*Sigmoid(eta);	
+	}
 	/*phi.noalias() = phi.unaryExpr([](double elem)
 	{
 	    return (elem > 0.5) ? 1.0 : -1.0;
@@ -137,7 +136,7 @@ VectorXd LogisticRegression::Gradient(RowVectorXd& _weights){
 
 void LogisticRegression::setWeights(VectorXd& _W){
 	weights=_W.transpose();
-	//Hessian = ComputeHessian(*X_train,*Y_train,weights);
+	Hessian = ComputeHessian(*X_train,*Y_train,weights);
 }
 
 VectorXd LogisticRegression::getWeights(){
@@ -156,8 +155,8 @@ void LogisticRegression::setData(MatrixXd &_X,VectorXd &_Y){
 	dim = X_train->cols();
 	featureMeans = X_train->colwise().mean();
 	X_train->rowwise()-=featureMeans.transpose();
-	weights = RowVectorXd::Zero(dim+1);
-	X_train->conservativeResize(NoChange, dim+1);
+	weights = RowVectorXd::Zero(dim);
+	/*X_train->conservativeResize(NoChange, dim);
 	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
-	X_train->col(dim) = bias_vec;
+	X_train->col(dim) = bias_vec;*/
 }

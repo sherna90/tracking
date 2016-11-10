@@ -98,15 +98,17 @@ VectorXd LogisticRegression::Predict(MatrixXd &_X){
 	/*X_test->conservativeResize(NoChange, dim+1);
 	VectorXd bias_vec=VectorXd::Constant(X_test->rows(),1.0);
 	X_test->col(dim) = bias_vec;*/
-	//VectorXd eta = (*X_test)*weights.transpose();
-	//phi=Sigmoid(eta);
-	int n_samples=100;
+	VectorXd eta = (*X_test)*weights.transpose();
+	phi=Sigmoid(eta);
+	/*int n_samples=100;
 	MVNGaussian posterior(weights.transpose(),Hessian);
 	for(int i=0; i< n_samples;i++){
 		VectorXd sample_weight=posterior.sample();
-		//VectorXd eta = (*X_test)*sample_weight.transpose();
+		cout << sample_weight.size() << endl;
+		cout << X_test->rows() << "," << X_test->cols() << endl;
+		VectorXd eta = *X_test*sample_weight;
 		//phi+=(1.0/n_samples)*Sigmoid(eta);	
-	}
+	}*/
 	/*phi.noalias() = phi.unaryExpr([](double elem)
 	{
 	    return (elem > 0.5) ? 1.0 : -1.0;

@@ -244,7 +244,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value.transposeInPlace();
                 
                 hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
-                hamiltonian_monte_carlo.fit_map(3);
+                hamiltonian_monte_carlo.fit_map(num_steps);
             }
 
             if(LBP_FEATURE){

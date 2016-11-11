@@ -71,7 +71,7 @@ public:
     vector<VectorXd> get_observation_model();
     float getESS();
     float getMarginalLikelihood();
-    void resample();
+    float resample();
     vector<Rect> estimates;
     particle update_state(particle state, Mat& image);
     Haar haar;

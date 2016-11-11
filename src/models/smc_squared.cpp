@@ -1,9 +1,10 @@
 #include "smc_squared.hpp"
+#include "../utils/utils.hpp"
 
 const float SHAPE=1.0;
 const float SCALE=1.0;
 const float PRIOR_SD=0.01;
-const float SMC_THRESHOLD=1.0;
+const float SMC_THRESHOLD=0.5;
 
 smc_squared::smc_squared(int _n_particles,int _m_particles,int _fixed_lag,int _mcmc_steps){
     unsigned seed1= std::chrono::system_clock::now().time_since_epoch().count();
@@ -27,7 +28,7 @@ void smc_squared::initialize(Mat& current_frame, Rect ground_truth){
     //cout << "initialize!" << endl;
     theta_weights.clear();
     //cout << "smc_squared" << endl;
-    float weight=log(1.0f/m_particles);
+    float weight=1.0f/m_particles;
     for(int j=0;j<m_particles;++j){
         //delete filter;
         particle_filter* new_filter=new particle_filter(n_particles);
@@ -112,8 +113,8 @@ void smc_squared::update(Mat& current_frame){
     for(int j=0;j<m_particles;++j){
         float weight=(float)theta_weights[j];
         filter_bank[j]->update(current_frame);
-        filter_bank[j]->resample();
-        tmp_weights.push_back(weight+filter_bank[j]->getMarginalLikelihood());
+        //cout << filter_bank[j]->getMarginalLikelihood() << endl;
+        tmp_weights.push_back(log(weight)+filter_bank[j]->getMarginalLikelihood());
         Rect estimate=filter_bank[j]->estimate(current_frame,false);
         positive_examples.push_back(estimate);
     }
@@ -130,14 +131,15 @@ void smc_squared::update(Mat& current_frame){
     theta_weights.swap(tmp_weights);
     tmp_weights.clear();
     for(int j=0;j<m_particles;++j){
-        filter_bank[j]->update_model(current_frame,positive_examples,negative_examples);
+        //filter_bank[j]->update_model(current_frame,positive_examples,negative_examples);
     }
     resample();
 }
 
-Rect smc_squared::estimate(Mat& image,bool draw){
+Rect smc_squared::estimate(Mat& image,Rect ground_truth,bool draw){
     float _x=0.0f,_y=0.0f,_width=0.0f,_height=0.0f;
     float norm=0.0f;
+    Performance performance;
     for(int j=0;j<m_particles;++j){
         //float weight=(float)theta_weights[j];
         //float weight=1.0f/m_particles;
@@ -152,7 +154,8 @@ Rect smc_squared::estimate(Mat& image,bool draw){
             _height+= estimate.height;
             norm++;
         }
-        //cout << j <<  ", weight:" << (float)theta_weights[j] << ",x:" << estimate.x << ",y:" << estimate.y << ",w:" << estimate.width << ",h:" << estimate.height << endl;
+        double r1 = performance.calc(ground_truth, estimate);
+        cout << j <<  ", weight:" << (float)theta_weights[j] << ",x:" << estimate.x << ",y:" << estimate.y << ",w:" << estimate.width << ",h:" << estimate.height << ",overlap:" << r1 << endl;
     }
     Point pt1,pt2;
     pt1.x=cvRound(_x/norm);
@@ -180,15 +183,18 @@ void smc_squared::resample(){
     vector<float> new_weights(m_particles);
     vector<float> squared_normalized_weights(m_particles);
     uniform_real_distribution<float> unif_rnd(0.0,1.0); 
-    float logsumexp=0.0f;
     float max_value = *max_element(theta_weights.begin(), theta_weights.end());
-    for (unsigned int i=0; i<theta_weights.size(); i++) {
+    /*for (unsigned int i=0; i<theta_weights.size(); i++) {
         new_weights[i]=exp(theta_weights[i]-max_value);
         logsumexp+=new_weights[i];
     }
-    double norm_const=max_value+log(logsumexp);
+    double norm_const=max_value+log(logsumexp);*/
     for (unsigned int i=0; i<theta_weights.size(); i++) {
-        normalized_weights.at(i) = exp(theta_weights.at(i)-norm_const);
+        normalized_weights.at(i) = exp(theta_weights.at(i)-max_value);
+    }
+    Scalar sum_weights=sum(normalized_weights);
+    for (unsigned int i=0; i<theta_weights.size(); i++) {
+        normalized_weights.at(i) = normalized_weights.at(i)/sum_weights[0];
     }
     for (unsigned int i=0; i<theta_weights.size(); i++) {
         squared_normalized_weights.at(i)=normalized_weights.at(i)*normalized_weights.at(i);
@@ -199,8 +205,9 @@ void smc_squared::resample(){
         }
         //cout << i << ", cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
+    sum_weights=sum(normalized_weights);
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    float ESS=(1.0f/sum_squared_weights[0])/m_particles;
+    float ESS=(sum_weights[0]/sum_squared_weights[0]);
     //cout << "ESS: " << ESS  << endl;
     if(isless(ESS,(float)SMC_THRESHOLD)){
         vector<particle_filter*> new_filter_bank(m_particles);

@@ -11,11 +11,11 @@
 const float POS_STD=5.0;
 const float SCALE_STD=1.0;
 const float DT=1.0;
-const float THRESHOLD=0.7;
-const float OVERLAP_RATIO=0.1;
+const float THRESHOLD=0.5;
+const float OVERLAP_RATIO=0.8;
 
-const bool GAUSSIAN_NAIVEBAYES=false;
-const bool LOGISTIC_REGRESSION=true;
+const bool GAUSSIAN_NAIVEBAYES=true;
+const bool LOGISTIC_REGRESSION=false;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
 const bool HAAR_FEATURE=true;
@@ -299,7 +299,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         if(MULTINOMIAL_NAIVEBAYES){
             VectorXd labels(2*n_particles);
             labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
-            
+            double lambda=0.1;
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
                 cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
@@ -311,7 +311,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                                                 eigen_sample_negative_feature_value;
                 eigen_sample_feature_value.transposeInPlace();
                 multinomial_naivebayes = MultinomialNaiveBayes(eigen_sample_feature_value, labels);
-                multinomial_naivebayes.fit(1e-6);
+                multinomial_naivebayes.fit(lambda);
             }
 
             if(LBP_FEATURE){
@@ -322,7 +322,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
                                               local_binary_pattern.negativeFeatureValue;
                 multinomial_naivebayes = MultinomialNaiveBayes(eigen_sample_feature_value, labels);
-                multinomial_naivebayes.fit(1e-6);
+                multinomial_naivebayes.fit(lambda);
             }
 
             if(MB_LBP_FEATURE){
@@ -334,7 +334,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
                                               multiblock_local_binary_patterns.negativeFeatureValue;
                 multinomial_naivebayes = MultinomialNaiveBayes(eigen_sample_feature_value, labels);
-                multinomial_naivebayes.fit(1e-6);
+                multinomial_naivebayes.fit(lambda);
             }
 
             if(HOG_FEATURE){
@@ -356,7 +356,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 }
                 multinomial_naivebayes=MultinomialNaiveBayes(hog_descriptors, labels);
-                multinomial_naivebayes.fit(1e-6);
+                multinomial_naivebayes.fit(lambda);
             }
         }
         initialized=true;
@@ -593,7 +593,7 @@ void particle_filter::update(Mat& image)
         for (int i = 0; i < n_particles; ++i)
         {
             states[i] = update_state(states[i], image);
-            tmp_weights.push_back(weights[i]+log(phi(i)));
+            tmp_weights.push_back(phi(i));
         }
     }
 
@@ -634,7 +634,7 @@ void particle_filter::update(Mat& image)
         for (int i = 0; i < n_particles; ++i)
         {
             states[i] = update_state(states[i], image);
-            tmp_weights.push_back(weights[i]+Phi(i,1));
+            tmp_weights.push_back(Phi(i,1));
         }
         //cout << log(Phi.col(1)) << endl;
     }
@@ -645,21 +645,25 @@ void particle_filter::update(Mat& image)
 
 }
 
-void particle_filter::resample(){
+float particle_filter::resample(){
     vector<float> cumulative_sum(n_particles);
     vector<float> normalized_weights(n_particles);
     vector<float> new_weights(n_particles);
     vector<float> squared_normalized_weights(n_particles);
     uniform_real_distribution<float> unif_rnd(0.0,1.0); 
-    float logsumexp=0.0f;
     float max_value = *max_element(weights.begin(), weights.end());
+    /*float logsumexp=0.0f;
     for (unsigned int i=0; i<weights.size(); i++) {
         new_weights[i]=exp(weights.at(i)-max_value);
         logsumexp+=new_weights[i];
     }
-    float norm_const=max_value+log(logsumexp);
+    float norm_const=max_value+log(logsumexp);*/
     for (int i=0; i<n_particles; i++) {
-        normalized_weights.at(i) = exp(weights.at(i)-norm_const);
+        normalized_weights.at(i) = exp(weights.at(i)-max_value);
+    }
+    Scalar sum_weights=sum(normalized_weights);
+    for (int i=0; i<n_particles; i++) {
+        normalized_weights.at(i) = normalized_weights.at(i)/sum_weights[0];
     }
     for (int i=0; i<n_particles; i++) {
         squared_normalized_weights.at(i)=normalized_weights.at(i)*normalized_weights.at(i);
@@ -671,8 +675,9 @@ void particle_filter::resample(){
         //cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    marginal_likelihood=norm_const-log(n_particles); 
+    marginal_likelihood=max_value+log(sum_weights[0])-log(n_particles); 
     ESS=(1.0f/sum_squared_weights[0])/n_particles;
+    //cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood << ", norm cost:" << norm_const << "," << max_value << endl;
     //cout << "resampled particles!" << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
         vector<particle> new_states(n_particles);
@@ -691,12 +696,13 @@ void particle_filter::resample(){
         new_states = vector<particle>();
     }
     else{
-        weights.swap(new_weights);
+        //weights.swap(new_weights);
     }
     cumulative_sum.clear();
     normalized_weights.clear();
     new_weights.clear();
     squared_normalized_weights.clear();
+    return marginal_likelihood;
 }
 
 float particle_filter::getESS(){

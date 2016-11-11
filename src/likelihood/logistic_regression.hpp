@@ -42,7 +42,7 @@ class LogisticRegression
  	VectorXd featureMeans;
  	VectorXd Sigmoid(VectorXd &_eta);
  	VectorXd LogSigmoid(VectorXd &_eta);
- 	MatrixXd ComputeHessian(MatrixXd &_X,  VectorXd &_Y,RowVectorXd &_W);
+ 	MatrixXd ComputeHessian(const MatrixXd &_X,  VectorXd &_Y,RowVectorXd &_W);
  	VectorXd ComputeGradient(MatrixXd &_X, VectorXd &_Y,RowVectorXd &_W);
  	double LogPrior(RowVectorXd &_W);
  	double LogLikelihood(MatrixXd &_X,VectorXd &_Y,RowVectorXd &_W);

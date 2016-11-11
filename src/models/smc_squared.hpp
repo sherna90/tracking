@@ -52,7 +52,7 @@ public:
     void predict();
     void update(Mat& image);
     void draw_particles(Mat& image);
-    Rect estimate(Mat& image,bool draw);
+    Rect estimate(Mat& image,Rect ground_truth,bool draw);
     void resample();
     ~smc_squared();
 

@@ -87,10 +87,6 @@ VectorXd Hamiltonian_MC::simulation(VectorXd &_initial_x){
 	if (init)
 	{
 
-  		/*std::default_random_engine generator;
-  		std::normal_distribution<double> distribution(0.0,1.0);
-  		auto normal = [&] (double) {return distribution(generator);};
-		VectorXd v0 = VectorXd::NullaryExpr(dim, normal);*/
   		VectorXd v0 = VectorXd::Zero(_initial_x.rows());
   		VectorXd x(_initial_x.rows());
   		VectorXd v(_initial_x.rows());

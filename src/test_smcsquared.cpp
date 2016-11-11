@@ -57,9 +57,9 @@ void TestSMCSampler::run(){
         filter.update(current_frame);
         //filter.draw_particles(current_frame);
         rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
-        //cout << "--------------------------------------------" << endl;
-        //cout << "GT, "<< "x:" << ground_truth.x << ",y:" << ground_truth.y << ",w:" << ground_truth.width << ",h:" << ground_truth.height << endl;
-        Rect estimate = filter.estimate(current_frame,true);
+        cout << "--------------------------------------------" << endl;
+        cout << "GT, "<< "x:" << ground_truth.x << ",y:" << ground_truth.y << ",w:" << ground_truth.width << ",h:" << ground_truth.height << endl;
+        Rect estimate = filter.estimate(current_frame,ground_truth,true);
         double r1 = performance.calc(ground_truth, estimate);
         if(r1<0.1) {
           filter.reinitialize();

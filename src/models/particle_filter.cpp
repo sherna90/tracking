@@ -5,8 +5,6 @@
  */
 #include "particle_filter.hpp"
 
-
-
 #ifndef PARAMS
 const float POS_STD=5.0;
 const float SCALE_STD=1.0;
@@ -14,14 +12,15 @@ const float DT=1.0;
 const float THRESHOLD=0.5;
 const float OVERLAP_RATIO=0.8;
 
+//const bool INCREMENTAL_GAUSSIAN_NAIVEBAYES=true;
 const bool GAUSSIAN_NAIVEBAYES=true;
 const bool LOGISTIC_REGRESSION=false;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
-const bool HAAR_FEATURE=true;
+const bool HAAR_FEATURE=false;
 const bool LBP_FEATURE=false;
 const bool HOG_FEATURE=false;
-const bool MB_LBP_FEATURE=false;
+const bool MB_LBP_FEATURE=true;
 #endif
 
 particle_filter::particle_filter() {
@@ -151,76 +150,66 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         cvtColor(current_frame, grayImg, CV_RGB2GRAY);
         //equalizeHist( grayImg, grayImg );
         haar.init(grayImg,reference_roi,sampleBox);
-        
+
         if(GAUSSIAN_NAIVEBAYES){
-            gaussian_naivebayes = GaussianNaiveBayes();
+            VectorXi labels(2*n_particles);
+            labels << VectorXi::Ones(n_particles), VectorXi::Zero(n_particles);
+            
             if(HAAR_FEATURE){
-                Mat positive_sample_feature_values = haar.sampleFeatureValue.clone();
-                haar.getFeatureValue(grayImg, negativeBox);
-                //cout << positive_sample_feature_values.rows << "," << positive_sample_feature_values.cols << endl;
-                gaussian_naivebayes = GaussianNaiveBayes(positive_sample_feature_values, 
-                                                                    haar.sampleFeatureValue);
+                MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
+                cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
+                haar.getFeatureValue(grayImg,negativeBox);
+                cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
+                MatrixXd eigen_sample_feature_value( eigen_sample_positive_feature_value.rows(),
+                    eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
+                eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
+                                                eigen_sample_negative_feature_value;
+                eigen_sample_feature_value.transposeInPlace();
+                gaussian_naivebayes = GaussianNaiveBayes(eigen_sample_feature_value, labels);
                 gaussian_naivebayes.fit();
             }
-
             if(LBP_FEATURE){
                 local_binary_pattern.init(grayImg, sampleBox);
                 local_binary_pattern.getFeatureValue(grayImg, negativeBox, false);
-                Mat cv_positive_sample_feature_values, cv_negative_sample_feature_values;
-                MatrixXd auxSample = local_binary_pattern.sampleFeatureValue.transpose();
-                MatrixXd auxSampleNegative = local_binary_pattern.negativeFeatureValue.transpose();
-                eigen2cv(auxSample, cv_positive_sample_feature_values);
-                eigen2cv(auxSampleNegative, cv_negative_sample_feature_values);
-                //cout << cv_positive_sample_feature_values.rows << "," << cv_positive_sample_feature_values.cols << endl;
-                gaussian_naivebayes = GaussianNaiveBayes(cv_positive_sample_feature_values, 
-                                                        cv_negative_sample_feature_values);
+                MatrixXd eigen_sample_feature_value(local_binary_pattern.sampleFeatureValue.rows() +
+                local_binary_pattern.negativeFeatureValue.rows(), local_binary_pattern.sampleFeatureValue.cols());
+                eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
+                                              local_binary_pattern.negativeFeatureValue;
+                gaussian_naivebayes = GaussianNaiveBayes(eigen_sample_feature_value, labels);
                 gaussian_naivebayes.fit();
             }
-
             if(MB_LBP_FEATURE){
                 multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false,3,3);
                 multiblock_local_binary_patterns.init(grayImg, sampleBox);
                 multiblock_local_binary_patterns.getFeatureValue(grayImg, negativeBox, false);
-                Mat cv_positive_sample_feature_values, cv_negative_sample_feature_values;
-                MatrixXd auxSample = multiblock_local_binary_patterns.sampleFeatureValue.transpose();
-                MatrixXd auxSampleNegative = multiblock_local_binary_patterns.negativeFeatureValue.transpose();
-                eigen2cv(auxSample, cv_positive_sample_feature_values);
-                eigen2cv(auxSampleNegative, cv_negative_sample_feature_values);
-                gaussian_naivebayes = GaussianNaiveBayes(cv_positive_sample_feature_values,
-                                                        cv_negative_sample_feature_values);
+                MatrixXd eigen_sample_feature_value(multiblock_local_binary_patterns.sampleFeatureValue.rows() +
+                    multiblock_local_binary_patterns.negativeFeatureValue.rows(), multiblock_local_binary_patterns.sampleFeatureValue.cols());
+                eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
+                                              multiblock_local_binary_patterns.negativeFeatureValue;
+                gaussian_naivebayes = GaussianNaiveBayes(eigen_sample_feature_value, labels);
                 gaussian_naivebayes.fit();
             }
-
             if(HOG_FEATURE){
-                MatrixXd positive_descriptors(0, 3780);
-                MatrixXd negative_descriptors(0, 3780);
+                MatrixXd hog_descriptors(0, 3780);
                 VectorXd hist;
                 for (unsigned int i = 0; i < sampleBox.size(); ++i)
                 {
-                    //cout << sampleBox.at(i).x << "," << sampleBox.at(i).y << ","<< sampleBox.at(i).width << ","<< sampleBox.at(i).height << endl;
                     Mat subImage = grayImg(sampleBox.at(i));
                     calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
-                    positive_descriptors.conservativeResize( positive_descriptors.rows()+1, positive_descriptors.cols() );
-                    positive_descriptors.row(positive_descriptors.rows()-1) = hist;
+                    hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
+                    hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 }
 
                 for (unsigned int i = 0; i < negativeBox.size(); ++i)
                 {
-                    //cout << negativeBox.at(i).x << "," << negativeBox.at(i).y << ","<< negativeBox.at(i).width << ","<< negativeBox.at(i).height << endl;
                     Mat subImage = grayImg(negativeBox.at(i));
                     calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
-                    negative_descriptors.conservativeResize( negative_descriptors.rows()+1, negative_descriptors.cols() );
-                    negative_descriptors.row(negative_descriptors.rows()-1) = hist;
+                    hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
+                    hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 }
-                Mat cv_positive_sample_feature_values, cv_negative_sample_feature_values;
-                MatrixXd auxSample = positive_descriptors.transpose();
-                MatrixXd auxSampleNegative = negative_descriptors.transpose();
-                eigen2cv(auxSample, cv_positive_sample_feature_values);
-                eigen2cv(auxSampleNegative, cv_negative_sample_feature_values);
-                gaussian_naivebayes = GaussianNaiveBayes(cv_positive_sample_feature_values,cv_negative_sample_feature_values);
+                gaussian_naivebayes = GaussianNaiveBayes(hog_descriptors, labels);
                 gaussian_naivebayes.fit();
             }
-
         }
 
         if(LOGISTIC_REGRESSION){
@@ -360,7 +349,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             }
         }
         initialized=true;
-        //cout << "init!" << endl;
+        cout << "init!" << endl;
     }
 }
 
@@ -496,41 +485,33 @@ void particle_filter::update(Mat& image)
     //equalizeHist( grayImg, grayImg );
 
     if(GAUSSIAN_NAIVEBAYES){
+        MatrixXd Phi;
         if(HAAR_FEATURE){
             haar.getFeatureValue(grayImg,sampleBox);
-            gaussian_naivebayes.setSampleFeatureValue(haar.sampleFeatureValue);
-            for (int i = 0; i < n_particles; ++i)
-            {
-                states[i] = update_state(states[i], image);
-                tmp_weights.push_back(gaussian_naivebayes.test(i));
-            }
+            MatrixXd eigen_sample_feature_value;
+            cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
+            eigen_sample_feature_value.transposeInPlace();
+            Phi = gaussian_naivebayes.get_proba(eigen_sample_feature_value);
+            //cout << "in loop" << endl;
         }
+        //cout << "update" << endl;
+        /*for (int i = 0; i < n_particles; ++i)
+        {
+            states[i] = update_state(states[i], image);
+            tmp_weights.push_back(Phi(i,1)-Phi(i,0));
+        }*/
+        //cout << log(Phi.col(1)) << endl;
         if(LBP_FEATURE){
-            local_binary_pattern.getFeatureValue(grayImg,sampleBox);
-            Mat cv_sample_feature_value;
-            MatrixXd auxSample = local_binary_pattern.sampleFeatureValue.transpose();
-            eigen2cv(auxSample, cv_sample_feature_value);
-            gaussian_naivebayes.setSampleFeatureValue(cv_sample_feature_value);
-            for (int i = 0; i < n_particles; ++i)
-            {
-                states[i] = update_state(states[i], image);
-                tmp_weights.push_back(gaussian_naivebayes.test(i));
-            }
+            local_binary_pattern.getFeatureValue(grayImg, sampleBox);
+            Phi = gaussian_naivebayes.get_proba(local_binary_pattern.sampleFeatureValue);
         }
+
         if(MB_LBP_FEATURE){
-            multiblock_local_binary_patterns.getFeatureValue(grayImg, sampleBox,true);
-            Mat cv_sample_feature_value;
-            MatrixXd auxSample = multiblock_local_binary_patterns.sampleFeatureValue.transpose();
-            eigen2cv(auxSample, cv_sample_feature_value);
-            gaussian_naivebayes.setSampleFeatureValue(cv_sample_feature_value);
-            for (int i = 0; i < n_particles; ++i)
-            {
-                states[i] = update_state(states[i], image);
-                tmp_weights.push_back(gaussian_naivebayes.test(i));
-            }
+            multiblock_local_binary_patterns.getFeatureValue(grayImg, sampleBox, true);
+            Phi = gaussian_naivebayes.get_proba(multiblock_local_binary_patterns.sampleFeatureValue);
         }
+
         if(HOG_FEATURE){
-            //MatrixXd hog_descriptors(sampleBox.size(),7040);
             MatrixXd hog_descriptors(0,3780);
             VectorXd hist;
             for (unsigned int i = 0; i < sampleBox.size(); ++i)
@@ -539,17 +520,14 @@ void particle_filter::update(Mat& image)
                 calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
                 hog_descriptors.conservativeResize(hog_descriptors.rows()+1, hog_descriptors.cols());
                 hog_descriptors.row(hog_descriptors.rows()-1) = hist;
-                //hog_descriptors.row(i) = hist;
             }
-            MatrixXd auxSample = hog_descriptors.transpose();
-            Mat cv_sample_feature_value;
-            eigen2cv(auxSample, cv_sample_feature_value);
-            gaussian_naivebayes.setSampleFeatureValue(cv_sample_feature_value);
-            for (int i = 0; i < n_particles; ++i)
-            {
-                states[i] = update_state(states[i], image);
-                tmp_weights.push_back(gaussian_naivebayes.test(i));
-            }
+            Phi = gaussian_naivebayes.get_proba(hog_descriptors);
+        }
+        //cout << "update" << endl;
+        for (int i = 0; i < n_particles; ++i)
+        {
+            states[i] = update_state(states[i], image);
+            tmp_weights.push_back(Phi(i,1)-Phi(i,0));
         }
     }
 
@@ -634,7 +612,7 @@ void particle_filter::update(Mat& image)
         for (int i = 0; i < n_particles; ++i)
         {
             states[i] = update_state(states[i], image);
-            tmp_weights.push_back(Phi(i,1));
+            tmp_weights.push_back(Phi(i,1)-Phi(i,0));
         }
         //cout << log(Phi.col(1)) << endl;
     }

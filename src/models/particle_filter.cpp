@@ -227,9 +227,10 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             VectorXd labels(2*n_particles);
             labels << VectorXd::Ones(n_particles), VectorXd::Constant(n_particles,-1.0);
             hamiltonian_monte_carlo=Hamiltonian_MC();
-            /*int num_iter=1e3;
+            logistic_regression=LogisticRegression();
+            int num_iter=1e2;
             double step_size=1e-3;
-            int leapgrog=10;*/
+            int leapgrog=10;
             double lambda=0.1; 
             int num_steps=3;
             if(HAAR_FEATURE){
@@ -244,7 +245,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value.transposeInPlace();
                 
                 hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
-                hamiltonian_monte_carlo.fit_map(num_steps);
+                //hamiltonian_monte_carlo.fit_map(num_steps);
+                hamiltonian_monte_carlo.run(num_iter,step_size,leapgrog);
             }
 
             if(LBP_FEATURE){
@@ -292,6 +294,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 }
                 hamiltonian_monte_carlo = Hamiltonian_MC(hog_descriptors, labels,lambda);
                 hamiltonian_monte_carlo.fit_map(num_steps);
+                //logistic_regression = LogisticRegression(eigen_sample_feature_value, labels,lambda);
+                //logistic_regression.Train(num_iter,step_size);
             }
             
         }
@@ -562,6 +566,7 @@ void particle_filter::update(Mat& image)
             cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
             eigen_sample_feature_value.transposeInPlace();
             phi = hamiltonian_monte_carlo.predict(eigen_sample_feature_value);
+            //phi = logistic_regression.Predict(eigen_sample_feature_value);
             //cout << "phi: " << phi.transpose() << endl;
         }
 

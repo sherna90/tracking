@@ -14,12 +14,12 @@ LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda)
   	Y_train->noalias() = indices.asPermutation() * *Y_train; 
  	rows = X_train->rows();
 	dim = X_train->cols();
-	featureMeans = X_train->colwise().mean();
-	//X_train->rowwise()-=featureMeans.transpose();
+	//featureMeans = X_train->colwise().mean();
+	X_train->rowwise()-=featureMeans.transpose();
 	weights = RowVectorXd::Random(dim);
-	/*X_train->conservativeResize(NoChange, dim+1);
+	X_train->conservativeResize(NoChange, dim+1);
 	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
-	X_train->col(dim) = bias_vec;*/
+	X_train->col(dim) = bias_vec;
  }
 
 VectorXd LogisticRegression::Sigmoid(VectorXd &eta){
@@ -85,6 +85,7 @@ MatrixXd LogisticRegression::ComputeHessian(const MatrixXd &_X,  VectorXd &_Y,Ro
 	MatrixXd H=MatrixXd::Zero(dim,dim);
 	MatrixXd J=MatrixXd::Zero(rows,rows);
 	J.diagonal() << P.array()*(1-P.array()).array();
+	cout << "data " << _Y.rows() << "," << _Y.cols() << "," << _X.rows() << "," << _X.cols() << endl;
 	MatrixXd H_temp=_X.transpose();
 	//H_temp *= J;
 	//H.noalias()=H_temp*_X;
@@ -96,6 +97,7 @@ VectorXd LogisticRegression::Predict(MatrixXd &_X){
 	//Hessian = ComputeHessian(*X_train,*Y_train,weights);
 	//cout << "data " << Y_train->rows() << "," << Y_train->cols() << "," << X_train->rows() << "," << X_train->cols() << endl;
 	MatrixXd *X_test=&_X;
+	//X_test->rowwise()-=featureMeans.transpose();
 	VectorXd phi=VectorXd::Zero(X_test->rows());
 	VectorXd eta = (*X_test)*weights.transpose();
 	phi=Sigmoid(eta);

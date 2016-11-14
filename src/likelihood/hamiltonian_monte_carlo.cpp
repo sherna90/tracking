@@ -49,12 +49,12 @@ VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test){
 	if (init)
 	{	
 		VectorXd mean_weights;
-		if(weights.rows()>0) {
+		//if(weights.rows()>0) {
 			mean_weights = weights.colwise().mean();
-		}
-		else {
-			mean_weights = VectorXd::Random(dim);
-		}
+		//}
+		//else {
+		//	mean_weights = VectorXd::Random(dim);
+		//}
 		logistic_regression.setWeights(mean_weights);
 		predict = logistic_regression.Predict(_X_test);
 		return predict;

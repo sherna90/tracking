@@ -4,7 +4,7 @@
 const float SHAPE=1.0;
 const float SCALE=1.0;
 const float PRIOR_SD=0.01;
-const float SMC_THRESHOLD=0.5;
+const float SMC_THRESHOLD=0.1;
 
 smc_squared::smc_squared(int _n_particles,int _m_particles,int _fixed_lag,int _mcmc_steps){
     unsigned seed1= std::chrono::system_clock::now().time_since_epoch().count();
@@ -114,7 +114,7 @@ void smc_squared::update(Mat& current_frame){
         float weight=(float)theta_weights[j];
         filter_bank[j]->update(current_frame);
         //cout << filter_bank[j]->getMarginalLikelihood() << endl;
-        tmp_weights.push_back(log(weight)+filter_bank[j]->getMarginalLikelihood());
+        tmp_weights.push_back(weight+filter_bank[j]->getMarginalLikelihood());
         Rect estimate=filter_bank[j]->estimate(current_frame,false);
         positive_examples.push_back(estimate);
     }
@@ -207,8 +207,8 @@ void smc_squared::resample(){
     }
     sum_weights=sum(normalized_weights);
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    float ESS=(sum_weights[0]/sum_squared_weights[0]);
-    //cout << "ESS: " << ESS  << endl;
+    float ESS=(1.0/sum_squared_weights[0])/m_particles;
+    cout << "ESS: " << ESS  << endl;
     if(isless(ESS,(float)SMC_THRESHOLD)){
         vector<particle_filter*> new_filter_bank(m_particles);
         for (int i=0; i<m_particles; i++) {
@@ -216,13 +216,21 @@ void smc_squared::resample(){
             vector<float>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
             unsigned int ipos = distance(cumulative_sum.begin(), pos);
             //particle_filter* filter=filter_bank[ipos];
+            theta_x=filter_bank[ipos]->get_dynamic_model();
+            VectorXd prop_pos=proposal(theta_x[0],SHAPE);
+            prop_pos=prop_pos.array().abs().matrix();
+            theta_x_prop.push_back(prop_pos);
+            VectorXd prop_std=proposal(theta_x[1],SCALE);
+            prop_std=prop_std.array().abs().matrix();
+            theta_x_prop.push_back(prop_std);
             new_filter_bank[i]=filter_bank[ipos];
+            new_filter_bank[i]->update_model(theta_x_prop);
             theta_weights.at(i)=log(1.0f/m_particles);
         }
         filter_bank.swap(new_filter_bank);
     }
     else{
-        theta_weights.swap(normalized_weights);
+        //theta_weights.swap(normalized_weights);
     }
     cumulative_sum.clear();
     normalized_weights.clear();

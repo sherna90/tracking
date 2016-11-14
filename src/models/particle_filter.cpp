@@ -17,10 +17,10 @@ const bool GAUSSIAN_NAIVEBAYES=true;
 const bool LOGISTIC_REGRESSION=false;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
-const bool HAAR_FEATURE=false;
+const bool HAAR_FEATURE=true;
 const bool LBP_FEATURE=false;
 const bool HOG_FEATURE=false;
-const bool MB_LBP_FEATURE=true;
+const bool MB_LBP_FEATURE=false;
 #endif
 
 particle_filter::particle_filter() {
@@ -216,12 +216,11 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             VectorXd labels(2*n_particles);
             labels << VectorXd::Ones(n_particles), VectorXd::Constant(n_particles,-1.0);
             hamiltonian_monte_carlo=Hamiltonian_MC();
-            logistic_regression=LogisticRegression();
-            int num_iter=1e2;
+            /*int num_iter=1e2;
             double step_size=1e-3;
-            int leapgrog=10;
-            double lambda=0.1; 
-            int num_steps=3;
+            int leapgrog=10;*/ 
+            double lambda=0.1;
+            int num_steps=10;
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
                 cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
@@ -232,10 +231,9 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
                                                 eigen_sample_negative_feature_value;
                 eigen_sample_feature_value.transposeInPlace();
-                
                 hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
-                //hamiltonian_monte_carlo.fit_map(num_steps);
-                hamiltonian_monte_carlo.run(num_iter,step_size,leapgrog);
+                hamiltonian_monte_carlo.fit_map(num_steps);
+                //hamiltonian_monte_carlo.run(num_iter,step_size,leapgrog);
             }
 
             if(LBP_FEATURE){
@@ -631,7 +629,7 @@ void particle_filter::update(Mat& image)
 float particle_filter::resample(){
     vector<float> cumulative_sum(n_particles);
     vector<float> normalized_weights(n_particles);
-    vector<float> new_weights(n_particles);
+    vector<float> log_normalized_weights(n_particles);
     vector<float> squared_normalized_weights(n_particles);
     uniform_real_distribution<float> unif_rnd(0.0,1.0); 
     float max_value = *max_element(weights.begin(), weights.end());
@@ -642,11 +640,14 @@ float particle_filter::resample(){
     }
     float norm_const=max_value+log(logsumexp);*/
     for (int i=0; i<n_particles; i++) {
-        normalized_weights.at(i) = exp(weights.at(i)-max_value);
+        log_normalized_weights.at(i) = weights.at(i)-max_value;
+        normalized_weights.at(i) = exp(log_normalized_weights.at(i));
     }
     Scalar sum_weights=sum(normalized_weights);
+    Scalar sum_log_weights=sum(log_normalized_weights);
     for (int i=0; i<n_particles; i++) {
         normalized_weights.at(i) = normalized_weights.at(i)/sum_weights[0];
+        log_normalized_weights.at(i) = log_normalized_weights.at(i)/sum_log_weights[0];
     }
     for (int i=0; i<n_particles; i++) {
         squared_normalized_weights.at(i)=normalized_weights.at(i)*normalized_weights.at(i);
@@ -679,11 +680,11 @@ float particle_filter::resample(){
         new_states = vector<particle>();
     }
     else{
-        //weights.swap(new_weights);
+        weights.swap(log_normalized_weights);
     }
     cumulative_sum.clear();
     normalized_weights.clear();
-    new_weights.clear();
+    log_normalized_weights.clear();
     squared_normalized_weights.clear();
     return marginal_likelihood;
 }

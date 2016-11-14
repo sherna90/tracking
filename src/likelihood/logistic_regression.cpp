@@ -14,12 +14,12 @@ LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda)
   	Y_train->noalias() = indices.asPermutation() * *Y_train; 
  	rows = X_train->rows();
 	dim = X_train->cols();
-	//featureMeans = X_train->colwise().mean();
-	X_train->rowwise()-=featureMeans.transpose();
 	weights = RowVectorXd::Random(dim);
+	//featureMeans = X_train->colwise().mean();
+	/*X_train->rowwise()-=featureMeans.transpose();
 	X_train->conservativeResize(NoChange, dim+1);
 	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
-	X_train->col(dim) = bias_vec;
+	X_train->col(dim) = bias_vec;*/
  }
 
 VectorXd LogisticRegression::Sigmoid(VectorXd &eta){

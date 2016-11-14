@@ -114,7 +114,7 @@ void smc_squared::update(Mat& current_frame){
         float weight=(float)theta_weights[j];
         filter_bank[j]->update(current_frame);
         //cout << filter_bank[j]->getMarginalLikelihood() << endl;
-        tmp_weights.push_back(weight+filter_bank[j]->getMarginalLikelihood());
+        tmp_weights.push_back(filter_bank[j]->getMarginalLikelihood());
         Rect estimate=filter_bank[j]->estimate(current_frame,false);
         positive_examples.push_back(estimate);
     }

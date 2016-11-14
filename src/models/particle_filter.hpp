@@ -19,8 +19,9 @@
 #include "../features/mb_lbp.hpp"
 #include "../likelihood/logistic_regression.hpp"
 #include "../likelihood/hamiltonian_monte_carlo.hpp"
-#include "../likelihood/gaussian_naivebayes.hpp"
+//#include "../likelihood/gaussian_naivebayes.hpp"
 #include "../likelihood/multinomialnaivebayes.hpp"
+#include "../likelihood/incremental_gaussiannaivebayes.hpp"
 //#include "../likelihood/weighted_gaussiannaivebayes.hpp"
 #include "../features/local_binary_pattern.hpp"
 #include "../features/hog.hpp"
@@ -96,6 +97,7 @@ protected:
     MultinomialNaiveBayes multinomial_naivebayes;
     GaussianNaiveBayes gaussian_naivebayes;
     Hamiltonian_MC hamiltonian_monte_carlo;
+    //IncrementalGaussianNaiveBayes incremental_gaussian_naivebayes;
 };
 
 #endif

@@ -45,6 +45,7 @@ VectorXd MVNGaussian::sample(){
     VectorXd mvn_sample=VectorXd::Zero(dim);
     VectorXd mvn_random=VectorXd::Random(dim);
     normal_distribution<double> normal(0.0,1.0);
+    LLT<MatrixXd> cholSolver(cov);
     for (int i=0;i<dim;i++) mvn_random(i)=normal(generator);
     LLT<MatrixXd> cholSolver(cov);       
     MatrixXd upperL = cholSolver.matrixL();

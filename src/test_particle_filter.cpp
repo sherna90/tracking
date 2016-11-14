@@ -53,6 +53,8 @@ void TestParticleFilter::run(){
         filter.draw_particles(current_frame,Scalar(0,255,255));
         rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
         Rect estimate = filter.estimate(current_frame,true);
+        //cout << "--------------------------------------------" << endl;
+        //cout << "GT, "<< "x:" << ground_truth.x << ",y:" << ground_truth.y << ",w:" << ground_truth.width << ",h:" << ground_truth.height << endl;
         double r1 = performance.calc(ground_truth, estimate);
         //cout  << "ESS : " << filter.getESS() << "ratio : " << r1 << endl;
         if(r1<0.1) {

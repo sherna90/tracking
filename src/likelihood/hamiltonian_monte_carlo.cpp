@@ -56,7 +56,7 @@ VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test){
 		//	mean_weights = VectorXd::Random(dim);
 		//}
 		logistic_regression.setWeights(mean_weights);
-		predict = logistic_regression.Predict(_X_test);
+		predict = logistic_regression.predict(_X_test);
 		return predict;
 		
 	}
@@ -117,7 +117,7 @@ void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, Vector
 	// v(dim);
 	RowVectorXd rowX(dim);
 	rowX << _x0.transpose();
-	v = _v0 - 0.5 * step_size * logistic_regression.Gradient(rowX);
+	v = _v0 - 0.5 * step_size * logistic_regression.gradient(rowX);
 	//Initalize x to be the first step
 	//RowVectorXd x= Map<RowVectorXd>(_x,dim);
 	x = _x0 + step_size * v;
@@ -125,7 +125,7 @@ void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, Vector
 	for (int i = 0; i < num_step; ++i)
 	{
 		//Compute gradient of the log-posterior with respect to x
-		VectorXd gradient = logistic_regression.Gradient(rowX);
+		VectorXd gradient = logistic_regression.gradient(rowX);
 		//Update velocity
 		v = v - step_size * gradient;
 		//Update x
@@ -134,7 +134,7 @@ void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, Vector
 	}
 	//Do a final update of the velocity for a half step
 	//return new proposal state
-	v = v -0.5 * step_size * logistic_regression.Gradient(rowX);
+	v = v -0.5 * step_size * logistic_regression.gradient(rowX);
 
 }
 
@@ -158,7 +158,7 @@ double Hamiltonian_MC::hamiltonian(VectorXd &_position, VectorXd &_velocity){
 
 	RowVectorXd rowPosition(dim);
 	rowPosition << _position.transpose();
-	double energy_function = - logistic_regression.LogPosterior(rowPosition);
+	double energy_function = - logistic_regression.logPosterior(rowPosition);
 	return energy_function + kinetic_energy(_velocity);
 }
 

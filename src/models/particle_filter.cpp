@@ -6,15 +6,15 @@
 #include "particle_filter.hpp"
 
 #ifndef PARAMS
-const float POS_STD=5.0;
+const float POS_STD=1.0;
 const float SCALE_STD=1.0;
 const float DT=1.0;
-const float THRESHOLD=0.5;
+const float THRESHOLD=0.7;
 const float OVERLAP_RATIO=0.8;
 
 //const bool INCREMENTAL_GAUSSIAN_NAIVEBAYES=true;
-const bool GAUSSIAN_NAIVEBAYES=true;
-const bool LOGISTIC_REGRESSION=false;
+const bool GAUSSIAN_NAIVEBAYES=false;
+const bool LOGISTIC_REGRESSION=true;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
 const bool HAAR_FEATURE=true;
@@ -232,7 +232,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                                                 eigen_sample_negative_feature_value;
                 eigen_sample_feature_value.transposeInPlace();
                 hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
-                hamiltonian_monte_carlo.fit_map(num_steps);
+                hamiltonian_monte_carlo.run(1e3,1e-2,10);
                 //hamiltonian_monte_carlo.run(num_iter,step_size,leapgrog);
             }
 
@@ -351,7 +351,6 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             }
         }
         initialized=true;
-        cout << "init!" << endl;
     }
 }
 
@@ -391,8 +390,8 @@ void particle_filter::predict(){
                 state.y=cvRound(2*_y-state.y_p+_dy);
                 state.width_p=state.width;
                 state.height_p=state.height;       
-                state.width=cvRound(2*_width-state.width_p+_dw);
-                state.height=cvRound(2*_height-state.height_p+_dw);
+                state.width=cvRound(2*_width-state.width_p);
+                state.height=cvRound(2*_height-state.height_p);
                 state.scale=((float)state.width/(float)reference_roi.width)/2.0f+((float)state.height/(float)reference_roi.height)/2.0f;
             }
             else{
@@ -416,7 +415,7 @@ void particle_filter::predict(){
             //cout << "box " << box.height << " " << box.width << endl;
 
             //cout << "reference " << reference_roi << endl;
-            //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height <<",scale:" << state.scale << endl;
+            //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height <<",weight:" << weights[i] << endl;
             tmp_new_states[i]=state;
         }
         states.swap(tmp_new_states);
@@ -629,25 +628,17 @@ void particle_filter::update(Mat& image)
 float particle_filter::resample(){
     vector<float> cumulative_sum(n_particles);
     vector<float> normalized_weights(n_particles);
-    vector<float> log_normalized_weights(n_particles);
     vector<float> squared_normalized_weights(n_particles);
     uniform_real_distribution<float> unif_rnd(0.0,1.0); 
     float max_value = *max_element(weights.begin(), weights.end());
-    /*float logsumexp=0.0f;
-    for (unsigned int i=0; i<weights.size(); i++) {
-        new_weights[i]=exp(weights.at(i)-max_value);
-        logsumexp+=new_weights[i];
-    }
-    float norm_const=max_value+log(logsumexp);*/
+    float logsumexp=0.0f;
     for (int i=0; i<n_particles; i++) {
-        log_normalized_weights.at(i) = weights.at(i)-max_value;
-        normalized_weights.at(i) = exp(log_normalized_weights.at(i));
+        normalized_weights.at(i) = exp(weights.at(i)-max_value);
+        logsumexp+=normalized_weights.at(i);
     }
     Scalar sum_weights=sum(normalized_weights);
-    Scalar sum_log_weights=sum(log_normalized_weights);
     for (int i=0; i<n_particles; i++) {
         normalized_weights.at(i) = normalized_weights.at(i)/sum_weights[0];
-        log_normalized_weights.at(i) = log_normalized_weights.at(i)/sum_log_weights[0];
     }
     for (int i=0; i<n_particles; i++) {
         squared_normalized_weights.at(i)=normalized_weights.at(i)*normalized_weights.at(i);
@@ -659,9 +650,9 @@ float particle_filter::resample(){
         //cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    marginal_likelihood=max_value+log(sum_weights[0])-log(n_particles); 
-    ESS=(1.0f/sum_squared_weights[0])/n_particles;
-    //cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood << ", norm cost:" << norm_const << "," << max_value << endl;
+    marginal_likelihood=max_value+sum_weights[0]-log(n_particles); 
+    ESS=1/sum_squared_weights[0]/n_particles;
+    //cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood <<  endl;
     //cout << "resampled particles!" << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
         vector<particle> new_states(n_particles);
@@ -680,11 +671,10 @@ float particle_filter::resample(){
         new_states = vector<particle>();
     }
     else{
-        weights.swap(log_normalized_weights);
+        //weights.swap(log_normalized_weights);
     }
     cumulative_sum.clear();
     normalized_weights.clear();
-    log_normalized_weights.clear();
     squared_normalized_weights.clear();
     return marginal_likelihood;
 }

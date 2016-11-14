@@ -24,10 +24,10 @@ class LogisticRegression
  public:
 	LogisticRegression();
 	LogisticRegression(MatrixXd &_X,VectorXd &_Y,double lambda=1.0);
- 	VectorXd Train(int n_iter,double alpha=0.01,double tol=0.001);
- 	VectorXd Predict(MatrixXd &_X);
- 	double LogPosterior(RowVectorXd& _weights);
- 	VectorXd Gradient(RowVectorXd& _weights);
+ 	VectorXd train(int n_iter,double alpha=0.01,double tol=0.001);
+ 	VectorXd predict(MatrixXd &_X,bool prob=true);
+ 	double logPosterior(RowVectorXd& _weights);
+ 	VectorXd gradient(RowVectorXd& _weights);
  	void setWeights(VectorXd &_W);
     void setData(MatrixXd &_X,VectorXd &_Y);
  	VectorXd getWeights();
@@ -40,12 +40,12 @@ class LogisticRegression
  	int rows,dim;
  	double lambda;
  	VectorXd featureMeans;
- 	VectorXd Sigmoid(VectorXd &_eta);
- 	VectorXd LogSigmoid(VectorXd &_eta);
- 	MatrixXd ComputeHessian(const MatrixXd &_X,  VectorXd &_Y,RowVectorXd &_W);
- 	VectorXd ComputeGradient(MatrixXd &_X, VectorXd &_Y,RowVectorXd &_W);
- 	double LogPrior(RowVectorXd &_W);
- 	double LogLikelihood(MatrixXd &_X,VectorXd &_Y,RowVectorXd &_W);
+ 	VectorXd sigmoid(VectorXd &_eta);
+ 	VectorXd logSigmoid(VectorXd &_eta);
+ 	MatrixXd computeHessian(const MatrixXd &_X,  VectorXd &_Y,RowVectorXd &_W);
+ 	VectorXd computeGradient(MatrixXd &_X, VectorXd &_Y,RowVectorXd &_W);
+ 	double logPrior(RowVectorXd &_W);
+ 	double logLikelihood(MatrixXd &_X,VectorXd &_Y,RowVectorXd &_W);
  	MatrixXd Hessian;
 };
 
@@ -62,12 +62,12 @@ class LogisticRegressionWrapper : public cppoptlib::Problem<T> {
 
     T value(const TVector &beta) {
         Eigen::RowVectorXd w=beta.transpose();
-        return logistic->LogPosterior(w);
+        return logistic->logPosterior(w);
     }
 
     void gradient(const TVector &beta, TVector &grad) {
         Eigen::RowVectorXd w=beta.transpose();
-        grad = logistic->Gradient(w);
+        grad = logistic->gradient(w);
     }
 
     int getDim(){

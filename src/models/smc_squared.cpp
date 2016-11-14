@@ -207,7 +207,7 @@ void smc_squared::resample(){
     }
     sum_weights=sum(normalized_weights);
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    float ESS=(1.0/sum_squared_weights[0])/m_particles;
+    float ESS=sum_squared_weights[0];
     cout << "ESS: " << ESS  << endl;
     if(isless(ESS,(float)SMC_THRESHOLD)){
         vector<particle_filter*> new_filter_bank(m_particles);

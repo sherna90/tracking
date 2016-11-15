@@ -9,7 +9,7 @@
 const float POS_STD=1.0;
 const float SCALE_STD=1.0;
 const float DT=1.0;
-const float THRESHOLD=0.7;
+const float THRESHOLD=1.0;
 const float OVERLAP_RATIO=0.8;
 
 //const bool INCREMENTAL_GAUSSIAN_NAIVEBAYES=true;
@@ -232,8 +232,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                                                 eigen_sample_negative_feature_value;
                 eigen_sample_feature_value.transposeInPlace();
                 hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
-                hamiltonian_monte_carlo.run(1e3,1e-2,10);
-                //hamiltonian_monte_carlo.run(num_iter,step_size,leapgrog);
+                //hamiltonian_monte_carlo.run(1e3,1e-2,10);
+                hamiltonian_monte_carlo.fit_map(3);
             }
 
             if(LBP_FEATURE){
@@ -369,7 +369,7 @@ void particle_filter::predict(){
             float _x,_y,_width,_height;
             float _dx=position_random_x(generator);
             float _dy=position_random_y(generator);
-            float _dw=scale_random_width(generator);
+            //float _dw=scale_random_width(generator);
             //float _dh=scale_random_height(generator);
             _x=MIN(MAX(cvRound(state.x),0),im_size.width);
             _y=MIN(MAX(cvRound(state.y),0),im_size.height);
@@ -528,7 +528,7 @@ void particle_filter::update(Mat& image)
         for (int i = 0; i < n_particles; ++i)
         {
             states[i] = update_state(states[i], image);
-            tmp_weights.push_back(Phi(i,1)-Phi(i,0));
+            weights[i]=Phi(i,1)-Phi(i,0);
         }
     }
 
@@ -569,11 +569,12 @@ void particle_filter::update(Mat& image)
             }
             phi = hamiltonian_monte_carlo.predict(hog_descriptors);
         }
-
+        //double max_value=phi.maxCoeff(); 
+        //cout << phi.transpose() << ", max value: "<< max_value << ", prob: "<< max_value+log((phi.array()-max_value).exp().sum())-log(n_particles) << endl;
         for (int i = 0; i < n_particles; ++i)
         {
             states[i] = update_state(states[i], image);
-            tmp_weights.push_back(phi(i));
+            weights[i]=phi(i);
         }
     }
 
@@ -614,12 +615,12 @@ void particle_filter::update(Mat& image)
         for (int i = 0; i < n_particles; ++i)
         {
             states[i] = update_state(states[i], image);
-            tmp_weights.push_back(Phi(i,1)-Phi(i,0));
+            weights[i]=(Phi(i,1)-Phi(i,0));
         }
         //cout << log(Phi.col(1)) << endl;
     }
 
-    weights.swap(tmp_weights);
+    //weights.swap(tmp_weights);
     tmp_weights.clear();
     resample();
 
@@ -650,9 +651,9 @@ float particle_filter::resample(){
         //cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    marginal_likelihood+=max_value+sum_weights[0]-log(n_particles); 
+    marginal_likelihood+=max_value+log(sum_weights[0])-log(n_particles); 
     ESS=1/sum_squared_weights[0]/n_particles;
-    //cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood <<  endl;
+    cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood <<  endl;
     //cout << "resampled particles!" << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
         vector<particle> new_states(n_particles);

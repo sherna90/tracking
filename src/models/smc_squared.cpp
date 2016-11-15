@@ -1,7 +1,7 @@
 #include "smc_squared.hpp"
 #include "../utils/utils.hpp"
 
-const float SHAPE=1.0;
+const float SHAPE=0.1;
 const float SCALE=1.0;
 const float PRIOR_SD=0.01;
 const float SMC_THRESHOLD=0.1;
@@ -111,10 +111,10 @@ void smc_squared::update(Mat& current_frame){
     vector<float> tmp_weights;
     vector<Rect> positive_examples,negative_examples;
     for(int j=0;j<m_particles;++j){
-        float weight=(float)theta_weights[j];
+        //float weight=(float)theta_weights[j];
         filter_bank[j]->update(current_frame);
         //cout << filter_bank[j]->getMarginalLikelihood() << endl;
-        tmp_weights.push_back(filter_bank[j]->getMarginalLikelihood());
+        theta_weights[j]=filter_bank[j]->getMarginalLikelihood();
         Rect estimate=filter_bank[j]->estimate(current_frame,false);
         positive_examples.push_back(estimate);
     }
@@ -128,7 +128,7 @@ void smc_squared::update(Mat& current_frame){
         box.height=MIN(MAX(cvRound(positive_examples[i].height),0),im_size.height-box.y);
         negative_examples.push_back(box); 
     }
-    theta_weights.swap(tmp_weights);
+    //theta_weights.swap(tmp_weights);
     tmp_weights.clear();
     for(int j=0;j<m_particles;++j){
         //filter_bank[j]->update_model(current_frame,positive_examples,negative_examples);
@@ -184,11 +184,6 @@ void smc_squared::resample(){
     vector<float> squared_normalized_weights(m_particles);
     uniform_real_distribution<float> unif_rnd(0.0,1.0); 
     float max_value = *max_element(theta_weights.begin(), theta_weights.end());
-    /*for (unsigned int i=0; i<theta_weights.size(); i++) {
-        new_weights[i]=exp(theta_weights[i]-max_value);
-        logsumexp+=new_weights[i];
-    }
-    double norm_const=max_value+log(logsumexp);*/
     for (unsigned int i=0; i<theta_weights.size(); i++) {
         normalized_weights.at(i) = exp(theta_weights.at(i)-max_value);
     }

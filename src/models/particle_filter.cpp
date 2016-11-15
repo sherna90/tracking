@@ -650,7 +650,7 @@ float particle_filter::resample(){
         //cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    marginal_likelihood=max_value+sum_weights[0]-log(n_particles); 
+    marginal_likelihood+=max_value+sum_weights[0]-log(n_particles); 
     ESS=1/sum_squared_weights[0]/n_particles;
     //cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood <<  endl;
     //cout << "resampled particles!" << ESS << endl;

@@ -653,7 +653,7 @@ float particle_filter::resample(){
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     marginal_likelihood+=max_value+log(sum_weights[0])-log(n_particles); 
     ESS=1/sum_squared_weights[0]/n_particles;
-    cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood <<  endl;
+    //cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood <<  endl;
     //cout << "resampled particles!" << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
         vector<particle> new_states(n_particles);

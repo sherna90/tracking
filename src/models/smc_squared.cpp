@@ -133,7 +133,7 @@ void smc_squared::update(Mat& current_frame){
     for(int j=0;j<m_particles;++j){
         //filter_bank[j]->update_model(current_frame,positive_examples,negative_examples);
     }
-    resample();
+    //resample();
 }
 
 Rect smc_squared::estimate(Mat& image,Rect ground_truth,bool draw){
@@ -155,7 +155,7 @@ Rect smc_squared::estimate(Mat& image,Rect ground_truth,bool draw){
             norm++;
         }
         double r1 = performance.calc(ground_truth, estimate);
-        cout << j <<  ", weight:" << (float)theta_weights[j] << ",x:" << estimate.x << ",y:" << estimate.y << ",w:" << estimate.width << ",h:" << estimate.height << ",overlap:" << r1 << endl;
+        cout << (float)theta_weights[j] << " " << r1 << endl;
     }
     Point pt1,pt2;
     pt1.x=cvRound(_x/norm);

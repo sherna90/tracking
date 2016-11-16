@@ -19,7 +19,7 @@ GaussianNaiveBayes::GaussianNaiveBayes(MatrixXd &datos,VectorXi &clases)
 void GaussianNaiveBayes::fit()
 {
     if (initialized and !one_fit){
-        partial_fit((*getX()),(*getY()));
+        partial_fit((*getX()),(*getY()), 0.0);
         //one_fit = true; 
     }
     else{
@@ -29,7 +29,7 @@ void GaussianNaiveBayes::fit()
 }
 
 
-void GaussianNaiveBayes::partial_fit(MatrixXd &datos,VectorXi &clases)
+void GaussianNaiveBayes::partial_fit(MatrixXd &datos,VectorXi &clases, double learning_rate)
 {   
     X=&datos;
     Y=&clases;
@@ -88,9 +88,9 @@ void GaussianNaiveBayes::partial_fit(MatrixXd &datos,VectorXi &clases)
                             Sigmas[iter->first] = VectorXd::Zero(new_cols);
                             Prior[iter->first] = 0.0;
                     }
-                    Means[iter->first] =  (Means[iter->first]*Prior[iter->first]*Rows + new_means[iter->first]*iter->second*new_rows) 
+                    Means[iter->first] =  ((1-learning_rate)*Means[iter->first]*Prior[iter->first]*Rows + (learning_rate)*new_means[iter->first]*iter->second*new_rows) 
                                             / (Prior[iter->first]*Rows + iter->second*new_rows);
-                    Sigmas[iter->first] = ((Sigmas[iter->first]*Prior[iter->first]*Rows + new_sigmas[iter->first]*iter->second*new_rows).array() 
+                    Sigmas[iter->first] = ((1-learning_rate)*(Sigmas[iter->first]*Prior[iter->first]*Rows + (learning_rate)*new_sigmas[iter->first]*iter->second*new_rows).array() 
                                             + ((Prior[iter->first]*Rows)/ ((Prior[iter->first]*Rows + iter->second*new_rows)*iter->second*new_rows))
                                             * (Means[iter->first]*iter->second*new_rows - new_means[iter->first]*iter->second*new_rows).array().square())
                                             / (Prior[iter->first]*Rows + iter->second*new_rows);

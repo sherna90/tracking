@@ -20,7 +20,7 @@ public:
     GaussianNaiveBayes();
     GaussianNaiveBayes(MatrixXd &X, VectorXi &Y);
     void fit();
-    void partial_fit(MatrixXd &X, VectorXi &Y);
+    void partial_fit(MatrixXd &X, VectorXi &Y, double learning_rate);
     VectorXi predict(MatrixXd &Xtest);
     MatrixXd get_proba(MatrixXd &Xtest);
     VectorXd predict_proba(MatrixXd &Xtest, int target);

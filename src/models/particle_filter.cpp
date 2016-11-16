@@ -717,12 +717,30 @@ void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_exam
                                             eigen_sample_negative_feature_value;
             eigen_sample_feature_value.transposeInPlace();
             hamiltonian_monte_carlo.setData(eigen_sample_feature_value, labels);
-
-            //logistic_regression.setData(eigen_sample_feature_value, labels);
-            //logistic_regression.Train(1e2,1e-3,1);
         }
+
+        if(LBP_FEATURE){
+            local_binary_pattern.init(grayImg, positive_examples);
+            local_binary_pattern.getFeatureValue(grayImg, negative_examples, false);
+            MatrixXd eigen_sample_feature_value(local_binary_pattern.sampleFeatureValue.rows() +
+            local_binary_pattern.negativeFeatureValue.rows(), local_binary_pattern.sampleFeatureValue.cols());
+            eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
+                                          local_binary_pattern.negativeFeatureValue;
+            hamiltonian_monte_carlo.setData(eigen_sample_feature_value, labels);
+        }
+
+        if(MB_LBP_FEATURE){
+            multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false,3,3);
+            multiblock_local_binary_patterns.init(grayImg, positive_examples);
+            multiblock_local_binary_patterns.getFeatureValue(grayImg, negative_examples, false);
+            MatrixXd eigen_sample_feature_value(multiblock_local_binary_patterns.sampleFeatureValue.rows() +
+                multiblock_local_binary_patterns.negativeFeatureValue.rows(), multiblock_local_binary_patterns.sampleFeatureValue.cols());
+            eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
+                                          multiblock_local_binary_patterns.negativeFeatureValue;
+            hamiltonian_monte_carlo.setData(eigen_sample_feature_value, labels);
+        }
+
         if(HOG_FEATURE){
-            //MatrixXd hog_descriptors(sampleBox.size() + negativeBox.size(), 7040);
             MatrixXd hog_descriptors(0, 3780);
             VectorXd hist;
             for (unsigned int i = 0; i < positive_examples.size(); ++i)
@@ -740,13 +758,13 @@ void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_exam
                 hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
                 hog_descriptors.row(hog_descriptors.rows()-1) = hist;
             }
-            //logistic_regression.Train(1e3,1e-3,1);
+            hamiltonian_monte_carlo.setData(hog_descriptors, labels);
         }
-        hamiltonian_monte_carlo.run(1e2,1e-2,10);
-     }   
+    }
     if(GAUSSIAN_NAIVEBAYES){
         VectorXi labels(positive_examples.size()+negative_examples.size());
         labels << VectorXi::Ones(positive_examples.size()), VectorXi::Zero(negative_examples.size());
+        double learning_rate = 0.2;
         if(HAAR_FEATURE){
             haar.init(grayImg,reference_roi,positive_examples);
             MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
@@ -758,7 +776,46 @@ void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_exam
             eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
                                             eigen_sample_negative_feature_value;
             eigen_sample_feature_value.transposeInPlace();
-            gaussian_naivebayes.partial_fit(eigen_sample_feature_value, labels);
+            gaussian_naivebayes.partial_fit(eigen_sample_feature_value, labels, learning_rate);
+        }
+        if(LBP_FEATURE){
+            local_binary_pattern.init(grayImg, positive_examples);
+            local_binary_pattern.getFeatureValue(grayImg, negative_examples, false);
+            MatrixXd eigen_sample_feature_value(local_binary_pattern.sampleFeatureValue.rows() +
+            local_binary_pattern.negativeFeatureValue.rows(), local_binary_pattern.sampleFeatureValue.cols());
+            eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
+                                          local_binary_pattern.negativeFeatureValue;
+            gaussian_naivebayes.partial_fit(eigen_sample_feature_value, labels, learning_rate);
+        }
+        if(MB_LBP_FEATURE){
+            multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false,3,3);
+            multiblock_local_binary_patterns.init(grayImg, positive_examples);
+            multiblock_local_binary_patterns.getFeatureValue(grayImg, negative_examples, false);
+            MatrixXd eigen_sample_feature_value(multiblock_local_binary_patterns.sampleFeatureValue.rows() +
+                multiblock_local_binary_patterns.negativeFeatureValue.rows(), multiblock_local_binary_patterns.sampleFeatureValue.cols());
+            eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
+                                          multiblock_local_binary_patterns.negativeFeatureValue;
+            gaussian_naivebayes.partial_fit(eigen_sample_feature_value, labels, learning_rate);
+        }
+        if(HOG_FEATURE){
+            MatrixXd hog_descriptors(0, 3780);
+            VectorXd hist;
+            for (unsigned int i = 0; i < positive_examples.size(); ++i)
+            {
+                Mat subImage = grayImg(positive_examples.at(i));
+                calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
+                hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
+                hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+            }
+
+            for (unsigned int i = 0; i < negative_examples.size(); ++i)
+            {
+                Mat subImage = grayImg(negative_examples.at(i));
+                calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
+                hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
+                hog_descriptors.row(hog_descriptors.rows()-1) = hist;
+            }
+            gaussian_naivebayes.partial_fit(hog_descriptors, labels, learning_rate);
         }
 
     }

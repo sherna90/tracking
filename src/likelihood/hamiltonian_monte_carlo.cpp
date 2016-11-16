@@ -1,3 +1,4 @@
+//Author: Diego Vergara
 #include "hamiltonian_monte_carlo.hpp"
 
 

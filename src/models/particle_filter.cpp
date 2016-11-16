@@ -13,8 +13,8 @@ const float THRESHOLD=1.0;
 const float OVERLAP_RATIO=0.8;
 
 //const bool INCREMENTAL_GAUSSIAN_NAIVEBAYES=true;
-const bool GAUSSIAN_NAIVEBAYES=false;
-const bool LOGISTIC_REGRESSION=true;
+const bool GAUSSIAN_NAIVEBAYES=true;
+const bool LOGISTIC_REGRESSION=false;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
 const bool HAAR_FEATURE=true;
@@ -486,13 +486,16 @@ void particle_filter::update(Mat& image)
     //equalizeHist( grayImg, grayImg );
 
     if(GAUSSIAN_NAIVEBAYES){
-        MatrixXd Phi;
+        //MatrixXd Phi;
+        VectorXd Phi;
+        int positive = 1;
         if(HAAR_FEATURE){
             haar.getFeatureValue(grayImg,sampleBox);
             MatrixXd eigen_sample_feature_value;
             cv2eigen(haar.sampleFeatureValue, eigen_sample_feature_value);
             eigen_sample_feature_value.transposeInPlace();
-            Phi = gaussian_naivebayes.get_proba(eigen_sample_feature_value);
+            //Phi = gaussian_naivebayes.get_proba(eigen_sample_feature_value);
+            Phi = gaussian_naivebayes.predict_proba(eigen_sample_feature_value, positive);
             //cout << "in loop" << endl;
         }
         //cout << "update" << endl;
@@ -504,12 +507,14 @@ void particle_filter::update(Mat& image)
         //cout << log(Phi.col(1)) << endl;
         if(LBP_FEATURE){
             local_binary_pattern.getFeatureValue(grayImg, sampleBox);
-            Phi = gaussian_naivebayes.get_proba(local_binary_pattern.sampleFeatureValue);
+            //Phi = gaussian_naivebayes.get_proba(local_binary_pattern.sampleFeatureValue);
+            Phi = gaussian_naivebayes.predict_proba(local_binary_pattern.sampleFeatureValue, positive);
         }
 
         if(MB_LBP_FEATURE){
             multiblock_local_binary_patterns.getFeatureValue(grayImg, sampleBox, true);
-            Phi = gaussian_naivebayes.get_proba(multiblock_local_binary_patterns.sampleFeatureValue);
+            //Phi = gaussian_naivebayes.get_proba(multiblock_local_binary_patterns.sampleFeatureValue);
+            Phi = gaussian_naivebayes.predict_proba(local_binary_pattern.sampleFeatureValue, positive);
         }
 
         if(HOG_FEATURE){
@@ -522,13 +527,15 @@ void particle_filter::update(Mat& image)
                 hog_descriptors.conservativeResize(hog_descriptors.rows()+1, hog_descriptors.cols());
                 hog_descriptors.row(hog_descriptors.rows()-1) = hist;
             }
-            Phi = gaussian_naivebayes.get_proba(hog_descriptors);
+            //Phi = gaussian_naivebayes.get_proba(hog_descriptors);
+            Phi = gaussian_naivebayes.predict_proba(hog_descriptors, positive);
         }
         //cout << "update" << endl;
         for (int i = 0; i < n_particles; ++i)
         {
             states[i] = update_state(states[i], image);
-            weights[i]=Phi(i,1)-Phi(i,0);
+            //weights[i]=Phi(i,1)-Phi(i,0);
+            weights[i]=Phi(i);
         }
     }
 

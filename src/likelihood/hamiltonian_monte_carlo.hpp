@@ -1,3 +1,4 @@
+//Author: Diego Vergara
 #ifndef HAMILTONIAN_MC_H
 #define HAMILTONIAN_MC_H
 #include <iostream>

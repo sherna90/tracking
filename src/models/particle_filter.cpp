@@ -702,7 +702,7 @@ void particle_filter::update_model(vector<VectorXd> theta_x_new){
 void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_examples,vector<Rect> negative_examples){
     Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-    if(LOGISTIC_REGRESSION){
+    /*if(LOGISTIC_REGRESSION){
         VectorXd labels(positive_examples.size()+negative_examples.size());
         labels << VectorXd::Ones(positive_examples.size()), VectorXd::Constant(negative_examples.size(),-1.0);
         if(HAAR_FEATURE){
@@ -742,8 +742,33 @@ void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_exam
             }
             //logistic_regression.Train(1e3,1e-3,1);
         }
+<<<<<<< HEAD
         hamiltonian_monte_carlo.run(1e2,1e-2,10);
      }   
+=======
+    }*/
+    if(GAUSSIAN_NAIVEBAYES){
+        VectorXi labels(positive_examples.size()+negative_examples.size());
+        labels << VectorXi::Ones(positive_examples.size()), VectorXi::Zero(negative_examples.size());
+        if(HAAR_FEATURE){
+            haar.init(grayImg,reference_roi,positive_examples);
+            MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
+            cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
+            haar.getFeatureValue(grayImg,negative_examples);
+            cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
+            MatrixXd eigen_sample_feature_value( eigen_sample_positive_feature_value.rows(),
+                eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
+            eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
+                                            eigen_sample_negative_feature_value;
+            eigen_sample_feature_value.transposeInPlace();
+            gaussian_naivebayes.partial_fit(eigen_sample_feature_value, labels);
+        }
+
+    }
+
+
+    
+>>>>>>> c5ec83f88bf11e1b8981160f58368dbf9f1b775f
 }
 
 vector<VectorXd> particle_filter::get_dynamic_model(){

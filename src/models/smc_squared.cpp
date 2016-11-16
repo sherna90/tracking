@@ -128,7 +128,7 @@ void smc_squared::update(Mat& current_frame){
         negative_examples.push_back(box); 
     }
     for(int j=0;j<m_particles;++j){
-        //filter_bank[j]->update_model(current_frame,positive_examples,negative_examples);
+        filter_bank[j]->update_model(current_frame,positive_examples,negative_examples);
     }
     //resample();
 }

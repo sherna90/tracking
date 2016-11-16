@@ -61,10 +61,10 @@ void TestSMCSampler::run(){
         //cout << "GT, "<< "x:" << ground_truth.x << ",y:" << ground_truth.y << ",w:" << ground_truth.width << ",h:" << ground_truth.height << endl;
         Rect estimate = filter.estimate(current_frame,ground_truth,true);
         double r1 = performance.calc(ground_truth, estimate);
-        //if(r1<0.1) {
-        //  filter.reinitialize();
-        //  reinit_rate+=1.0;
-       // }
+        if(r1<0.1) {
+          filter.reinitialize();
+          reinit_rate+=1.0;
+        }
     }
     imshow("Tracker",current_frame);
     waitKey(1);

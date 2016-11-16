@@ -220,7 +220,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             double step_size=1e-3;
             int leapgrog=10;*/ 
             double lambda=0.1;
-            int num_steps=10;
+            //int num_steps=10;
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
                 cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
@@ -232,8 +232,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                                                 eigen_sample_negative_feature_value;
                 eigen_sample_feature_value.transposeInPlace();
                 hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
-                //hamiltonian_monte_carlo.run(1e3,1e-2,10);
-                hamiltonian_monte_carlo.fit_map(3);
+                hamiltonian_monte_carlo.run(1e3,1e-2,10);
+                //hamiltonian_monte_carlo.fit_map(3);
             }
 
             if(LBP_FEATURE){
@@ -245,7 +245,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
                                               local_binary_pattern.negativeFeatureValue;
                 hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
-                hamiltonian_monte_carlo.fit_map(num_steps);
+                hamiltonian_monte_carlo.run(1e3,1e-2,10);
             }
 
             if(MB_LBP_FEATURE){
@@ -257,7 +257,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
                                               multiblock_local_binary_patterns.negativeFeatureValue;
                 hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
-                hamiltonian_monte_carlo.fit_map(num_steps);
+                hamiltonian_monte_carlo.run(1e3,1e-2,10);
             }
 
             if(HOG_FEATURE){
@@ -280,7 +280,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                     hog_descriptors.row(hog_descriptors.rows()-1) = hist;
                 }
                 hamiltonian_monte_carlo = Hamiltonian_MC(hog_descriptors, labels,lambda);
-                hamiltonian_monte_carlo.fit_map(num_steps);
+                hamiltonian_monte_carlo.run(1e3,1e-2,10);
                 //logistic_regression = LogisticRegression(eigen_sample_feature_value, labels,lambda);
                 //logistic_regression.Train(num_iter,step_size);
             }
@@ -693,14 +693,14 @@ void particle_filter::update_model(vector<VectorXd> theta_x_new){
 }
 
 void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_examples,vector<Rect> negative_examples){
-    /*Mat grayImg;
+    Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
     if(LOGISTIC_REGRESSION){
         VectorXd labels(positive_examples.size()+negative_examples.size());
         labels << VectorXd::Ones(positive_examples.size()), VectorXd::Constant(negative_examples.size(),-1.0);
         if(HAAR_FEATURE){
-            haar.init(grayImg,reference_roi,positive_examples);
             MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
+            haar.getFeatureValue(grayImg,positive_examples);
             cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
             haar.getFeatureValue(grayImg,negative_examples);
             cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
@@ -709,6 +709,8 @@ void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_exam
             eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
                                             eigen_sample_negative_feature_value;
             eigen_sample_feature_value.transposeInPlace();
+            hamiltonian_monte_carlo.setData(eigen_sample_feature_value, labels);
+
             //logistic_regression.setData(eigen_sample_feature_value, labels);
             //logistic_regression.Train(1e2,1e-3,1);
         }
@@ -733,7 +735,8 @@ void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_exam
             }
             //logistic_regression.Train(1e3,1e-3,1);
         }
-     }*/   
+        hamiltonian_monte_carlo.run(1e2,1e-2,10);
+     }   
 }
 
 vector<VectorXd> particle_filter::get_dynamic_model(){

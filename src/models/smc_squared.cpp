@@ -106,9 +106,8 @@ double smc_squared::gamma_prior(VectorXd x, double a, double b)
 
 void smc_squared::update(Mat& current_frame){
     images.push_back(current_frame);
-    normal_distribution<double> negative_random_pos(0.0,20.0);
+    normal_distribution<double> negative_random_pos(0.0,40.0);
     Size im_size=current_frame.size();
-    vector<float> tmp_weights;
     vector<Rect> positive_examples,negative_examples;
     for(int j=0;j<m_particles;++j){
         //float weight=(float)theta_weights[j];
@@ -128,8 +127,6 @@ void smc_squared::update(Mat& current_frame){
         box.height=MIN(MAX(cvRound(positive_examples[i].height),0),im_size.height-box.y);
         negative_examples.push_back(box); 
     }
-    //theta_weights.swap(tmp_weights);
-    tmp_weights.clear();
     for(int j=0;j<m_particles;++j){
         //filter_bank[j]->update_model(current_frame,positive_examples,negative_examples);
     }
@@ -203,7 +200,7 @@ void smc_squared::resample(){
     sum_weights=sum(normalized_weights);
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     float ESS=sum_squared_weights[0];
-    cout << "ESS: " << ESS  << endl;
+    //cout << "ESS: " << ESS  << endl;
     if(isless(ESS,(float)SMC_THRESHOLD)){
         vector<particle_filter*> new_filter_bank(m_particles);
         for (int i=0; i<m_particles; i++) {

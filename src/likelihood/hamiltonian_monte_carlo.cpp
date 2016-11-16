@@ -203,6 +203,15 @@ void Hamiltonian_MC::fit_map(int _numstart){
        
 }
 
-
+void Hamiltonian_MC::setData(MatrixXd &_X,VectorXd &_Y){
+	if (init)
+	{	
+		logistic_regression.setData(_X,_Y);
+	}
+	else{
+		cout << "Error: No initialized function"<< endl;
+	}
+       
+}
 	
 	

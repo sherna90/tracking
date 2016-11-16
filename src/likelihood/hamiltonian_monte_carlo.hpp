@@ -27,6 +27,7 @@ public:
 	VectorXd simulation(VectorXd &_initial_x);
 	VectorXd predict(MatrixXd &_X_test);
 	void fit_map(int _numstart);
+	void setData(MatrixXd &_X,VectorXd &_Y);
 private:
 	void leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v);
 	double hamiltonian(VectorXd &_position, VectorXd &_velocity);

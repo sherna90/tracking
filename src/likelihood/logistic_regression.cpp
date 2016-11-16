@@ -25,11 +25,10 @@ LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda)
 VectorXd LogisticRegression::sigmoid(VectorXd &eta){
 	VectorXd phi =eta.unaryExpr([](double elem) // changed type of parameter
 	{
-		//double realmin=numeric_limits<double>::min();
-		//double maxcut=15;
-		//double mincut=-15;
-	    //elem=max(elem,mincut);
-	    //elem=min(elem,maxcut);
+		double maxcut=log(std::numeric_limits<float>::max_exponent);
+		double mincut=log(std::numeric_limits<float>::min_exponent);
+	    elem=max(elem,mincut);
+	    elem=min(elem,maxcut);
 	    double p= (elem>0) ? 1.0/(1.0+exp(-elem)) : exp(elem)/(1.0+exp(elem));
 	    return p;
 	});
@@ -40,10 +39,10 @@ VectorXd LogisticRegression::logSigmoid(VectorXd &eta){
 	VectorXd phi = eta.unaryExpr([](double elem) // changed type of parameter
 	{
 		//double realmin=numeric_limits<double>::min();
-		//double maxcut=15;
-		//double mincut=-15;
-	    //elem=max(elem,mincut);
-	    //elem=min(elem,maxcut);
+		double maxcut=log(std::numeric_limits<float>::max_exponent);
+		double mincut=log(std::numeric_limits<float>::min_exponent);
+	    elem=max(elem,mincut);
+	    elem=min(elem,maxcut);
 	    double p= (elem>0) ? -log(1.0+exp(-elem)) : elem-log(1.0+exp(elem));
 	    return p;
 	});

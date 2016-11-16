@@ -1,3 +1,4 @@
+//Author: Diego Vergara
 #ifndef GAUSSIANNAIVEBAYES_H
 #define GAUSSIANNAIVEBAYES_H
 
@@ -20,9 +21,11 @@ public:
     GaussianNaiveBayes(MatrixXd &X, VectorXi &Y);
     void fit();
     void partial_fit(MatrixXd &X, VectorXi &Y);
-    VectorXi test(MatrixXd &Xtest);
+    VectorXi predict(MatrixXd &Xtest);
     MatrixXd get_proba(MatrixXd &Xtest);
+    VectorXd predict_proba(MatrixXd &Xtest, int target);
     double log_likelihood(VectorXd data, VectorXd mean, VectorXd sigma);
+    double likelihood(VectorXd data, VectorXd mean, VectorXd sigma);
     std::map<unsigned int, double> getPrior() const;
     void setPrior(const std::map<unsigned int, double> &value);
     MatrixXd *getX();

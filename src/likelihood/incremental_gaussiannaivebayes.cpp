@@ -1,3 +1,4 @@
+//Author: Diego Vergara
 #include "incremental_gaussiannaivebayes.hpp"
 
 GaussianNaiveBayes::GaussianNaiveBayes()
@@ -19,7 +20,7 @@ void GaussianNaiveBayes::fit()
 {
     if (initialized and !one_fit){
         partial_fit((*getX()),(*getY()));
-        one_fit = true; 
+        //one_fit = true; 
     }
     else{
         cout << "Error: Model not initialized or previously fitted" << endl;
@@ -74,24 +75,12 @@ void GaussianNaiveBayes::partial_fit(MatrixXd &datos,VectorXi &clases)
             Prior = new_Prior;
             Cols = new_cols;
             Rows = new_rows;
-
-            //std::map<unsigned int,double>::iterator iter;
-            //for (iter = Prior.begin(); iter != Prior.end(); ++iter) {  
-            //    cout << iter->second << endl;
-            //  cout << Means[0] << endl;
-            //  cout << " ------------------------------ "<< endl;
-            //  cout << Sigmas[0] << endl;
-            //  cout << " ------------------------------------------------------------------ "<< endl;
-            //  cout << Means[1] << endl;
-            //  cout << " ------------------------------ "<< endl;
-            //  cout << Sigmas[1] << endl;
-            //}
+            one_fit = true;
             //throw std::exception();
         }
         else{
             // Update model
             if (Cols == new_cols){
-                //cout << "update" << endl;
                 std::map<unsigned int,double>::iterator iter;
                 for (iter = new_Prior.begin(); iter != new_Prior.end(); ++iter) {  
                     if(Means[iter->first].size()==0){
@@ -128,12 +117,19 @@ double GaussianNaiveBayes::log_likelihood(VectorXd data, VectorXd mean, VectorXd
     return loglike;
 }
 
-VectorXi GaussianNaiveBayes::test(MatrixXd &Xtest)
+double GaussianNaiveBayes::likelihood(VectorXd data, VectorXd mean, VectorXd sigma){
+    double likelihood =0.0;
+    double eps = std::numeric_limits<double>::epsilon();
+    likelihood = ((-((data - mean).array().square())/(2*sigma.array()+eps)).exp() / (2*M_PI*sigma).array().square()).prod();
+    return likelihood;
+}
+
+VectorXi GaussianNaiveBayes::predict(MatrixXd &Xtest)
 {
     VectorXi c=VectorXi::Zero(Xtest.rows());
     if (initialized){
         int max_class=0;
-        double max_score=-100000000.0;;
+        double max_score=-100000000.0;
         double score=0;
         std::map<unsigned int,double>::iterator iter;
         #pragma omp parallel for private(max_class,max_score,score,iter)
@@ -153,7 +149,7 @@ VectorXi GaussianNaiveBayes::test(MatrixXd &Xtest)
         return c;
     }
     else{
-        cout << "Error: Model not initialized or not previously fited" << endl;
+        cout << "Error: Model not initialized or not previously fitted" << endl;
         return c;
     }
 
@@ -167,21 +163,44 @@ MatrixXd GaussianNaiveBayes::get_proba(MatrixXd &Xtest)
         #pragma omp parallel for private(iter)
         for (int i = 0; i < Xtest.rows(); ++i) {
             for (iter = Prior.begin(); iter != Prior.end(); ++iter) {  
-                proba(i, iter->first)=log(iter->second) + log_likelihood(Xtest.row(i), Means[iter->first], Sigmas[iter->first]);
-                //proba(i, iter->first)=log_likelihood(Xtest.row(i), Means[iter->first], Sigmas[iter->first]);
-
+                //proba(i, iter->first)=log(iter->second) + log_likelihood(Xtest.row(i), Means[iter->first], Sigmas[iter->first]);
+                proba(i, iter->first)=log_likelihood(Xtest.row(i), Means[iter->first], Sigmas[iter->first]);
             }
         }
-        //double log_prob_x = (proba.array().exp()).colwise().sum().log();
-        //for (int i = 0; i < proba.cols(); ++i) proba.row(i).array() -= (proba.array().exp()).colwise().sum().log();
         //double max = proba.maxCoeff();
         //double min = proba.minCoeff();
         //proba = (proba.array() - min)/(max-min);
         return proba;
     }
     else{
-        cout << "Error: Model not initialized or not previously fited" << endl;
+        cout << "Error: Model not initialized or not previously fitted" << endl;
         return proba;
+    }
+
+}
+
+VectorXd GaussianNaiveBayes::predict_proba(MatrixXd &Xtest, int target)
+{   
+    MatrixXd proba = MatrixXd::Zero(Xtest.rows(), Prior.size());
+    MatrixXd normalization_const = MatrixXd::Zero(Xtest.rows(), Prior.size());
+    VectorXd log_sum_exp = VectorXd::Zero(Xtest.rows());
+    if (initialized){
+        std::map<unsigned int,double>::iterator iter;
+        #pragma omp parallel for private(iter)
+        for (int i = 0; i < Xtest.rows(); ++i) {
+            for (iter = Prior.begin(); iter != Prior.end(); ++iter) {  
+                proba(i, iter->first)=log_likelihood(Xtest.row(i), Means[iter->first], Sigmas[iter->first]);
+
+            }
+        }
+        VectorXd max_val=proba.rowwise().maxCoeff();
+        normalization_const = proba.colwise()-max_val;
+        log_sum_exp= proba.col(target).array() - normalization_const.array().exp().rowwise().sum();
+        return log_sum_exp;
+    }
+    else{
+        cout << "Error: Model not initialized or not previously fitted" << endl;
+        return log_sum_exp;
     }
 
 }

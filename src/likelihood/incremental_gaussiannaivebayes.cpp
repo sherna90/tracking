@@ -90,10 +90,20 @@ void GaussianNaiveBayes::partial_fit(MatrixXd &datos,VectorXi &clases, double le
                     }
                     Means[iter->first] =  ((1-learning_rate)*Means[iter->first]*Prior[iter->first]*Rows + (learning_rate)*new_means[iter->first]*iter->second*new_rows) 
                                             / (Prior[iter->first]*Rows + iter->second*new_rows);
+                    /*Means[iter->first] =  (Means[iter->first]*Prior[iter->first]*Rows + new_means[iter->first]*iter->second*new_rows) 
+                                            / (Prior[iter->first]*Rows + iter->second*new_rows);*/
+
                     Sigmas[iter->first] = ((1-learning_rate)*(Sigmas[iter->first]*Prior[iter->first]*Rows + (learning_rate)*new_sigmas[iter->first]*iter->second*new_rows).array() 
                                             + ((Prior[iter->first]*Rows)/ ((Prior[iter->first]*Rows + iter->second*new_rows)*iter->second*new_rows))
-                                            * (Means[iter->first]*iter->second*new_rows - new_means[iter->first]*iter->second*new_rows).array().square())
+                                            * (learning_rate*(1-learning_rate))*(Means[iter->first]*iter->second*new_rows - (learning_rate)*new_means[iter->first]*iter->second*new_rows).array().square())
                                             / (Prior[iter->first]*Rows + iter->second*new_rows);
+
+                    /*Sigmas[iter->first] = ((Sigmas[iter->first]*Prior[iter->first]*Rows + new_sigmas[iter->first]*iter->second*new_rows).array() 
+                                            + ((Prior[iter->first]*Rows)/ ((Prior[iter->first]*Rows + iter->second*new_rows)*iter->second*new_rows))
+                                            * (Means[iter->first]*iter->second*new_rows - new_means[iter->first]*iter->second*new_rows).array().square())
+                                            / (Prior[iter->first]*Rows + iter->second*new_rows);*/
+
+
                     Prior[iter->first] = (Prior[iter->first]*Rows + iter->second*new_rows)/(Rows+new_rows);
                 }
                 Rows+=new_rows;

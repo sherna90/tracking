@@ -9,9 +9,19 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <map>
+#include <set>
 
 using namespace std;
 using namespace Eigen;
+
+typedef struct{
+  double precision;
+  double accuracy;
+  double recall;
+  double f1score;
+  double support;
+}Metrics;
 
 class C_utils
 {
@@ -25,6 +35,34 @@ public:
 	int get_Rows(const string& filename);
 	int get_Cols(const string& filename, char separator);
 	vector<int> get_Classes(VectorXi labels);
+	vector<int> get_Classes_d(VectorXd labels);
+	
+	map<pair<int,int>, int> confusion_matrix(VectorXi &test, VectorXi &predicted, bool print=true);
+	map<pair<int,int>, int> confusion_matrix(VectorXi &test, VectorXd &predicted, bool print=true);
+	
+	map<int, double> precision_score(VectorXi &test, VectorXi &predicted, bool print=true);
+	map<int, double> precision_score(VectorXi &test, VectorXd &predicted, bool print=true);
+	map<int, double> precision_score(map<pair<int,int>, int> confusion_matrix, bool print=false);
+
+	map<int, double> accuracy_score(VectorXi &test, VectorXi &predicted, bool print=true);
+	map<int, double> accuracy_score(VectorXi &test, VectorXd &predicted, bool print=true);
+	map<int, double> accuracy_score(map<pair<int,int>, int> confusionMatrix, bool print=false);
+
+	map<int, double> recall_score(VectorXi &test, VectorXi &predicted, bool print=true);
+	map<int, double> recall_score(VectorXi &test, VectorXd &predicted, bool print=true);
+	map<int, double> recall_score(map<pair<int,int>, int> confusionMatrix, bool print=false);
+
+	map<int, double> f1_score(VectorXi &test, VectorXi &predicted, bool print=true);
+	map<int, double> f1_score(VectorXi &test, VectorXd &predicted, bool print=true);
+	map<int, double> f1_score(map<pair<int, int>, int> confusionMatrix, bool print=false);
+
+	map<int, double> support_score(VectorXi &test);
+	map<int, double> support_score(VectorXd &test);
+	map<int, double> support_score(map<pair<int, int>, int> confusionMatrix);
+
+	map<int, Metrics> report(VectorXi &test, VectorXi &predicted, bool print=true);
+	map<int, Metrics> report(VectorXi &test, VectorXd &predicted, bool print=true);
+	map<int, Metrics> report(map<pair<int, int>, int> confusionMatrix, bool print=true);
 private:
 	bool initialized;
 };

@@ -24,13 +24,13 @@ class Hamiltonian_MC
 public:
 	Hamiltonian_MC();
 	Hamiltonian_MC(MatrixXd &_X,VectorXd &_Y, double _lamda);
-	Hamiltonian_MC(MatrixXd &_X, MatrixXd &_Cov);
+	Hamiltonian_MC(MatrixXd &_X, MatrixXd &_data);
 	void run(int _iterations, double _step_size, int _num_step);
 	VectorXd simulation(VectorXd &_initial_x);
 	VectorXd predict(MatrixXd &_X_test);
 	MatrixXd predict();
-	virtual VectorXd gradient(VectorXd &weights, MatrixXd &_Cov);
-	virtual double logPosterior(VectorXd &weights, MatrixXd &_Cov);
+	virtual VectorXd gradient(VectorXd &weights, MatrixXd &);
+	virtual double logPosterior(VectorXd &weights, MatrixXd &_data);
 	virtual VectorXd gradient(VectorXd &weights);
 	virtual double logPosterior(VectorXd &weights);
 
@@ -45,7 +45,7 @@ private:
  	mt19937 generator;
  	double lambda;
  	MatrixXd *X_train;
- 	MatrixXd Cov;
+ 	MatrixXd data;
  	VectorXd *Y_train;
  	VectorXd mean_weights;
  	LogisticRegression logistic_regression;

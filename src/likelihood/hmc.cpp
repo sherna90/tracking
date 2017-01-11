@@ -21,9 +21,9 @@ Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, VectorXd &_Y, double _lambda){
 
 }
 
-Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, MatrixXd &_Cov){
+Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, MatrixXd &_data){
 	X_train = &_X;
-	Cov = _Cov;
+	data = _data;
 	dim = _X.cols();
 
     init_2 = true;
@@ -32,7 +32,7 @@ Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, MatrixXd &_Cov){
 
 }
 
-VectorXd Hamiltonian_MC::gradient(VectorXd &weights, MatrixXd &_Cov){
+VectorXd Hamiltonian_MC::gradient(VectorXd &weights, MatrixXd &_data){
 	VectorXd grad;
 	if (init_2)
 	{	
@@ -46,7 +46,7 @@ VectorXd Hamiltonian_MC::gradient(VectorXd &weights, MatrixXd &_Cov){
 	}
 
 }
-double Hamiltonian_MC::logPosterior(VectorXd &weights, MatrixXd &_Cov){
+double Hamiltonian_MC::logPosterior(VectorXd &weights, MatrixXd &_data){
 	double logPost = 0.0;
 	if (init_2)
 	{
@@ -97,7 +97,7 @@ void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
 		num_step = _num_step;
 		MatrixXd _weights(_iterations, dim);
 
-		VectorXd initial_x = VectorXd::Zero(dim);
+		VectorXd initial_x = VectorXd::Random(dim);
 
 		for (int i = 0; i < _iterations; ++i)
 		{	
@@ -191,12 +191,12 @@ VectorXd Hamiltonian_MC::simulation(VectorXd &_initial_x){
 	}
 }
 
-void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v){
+/*void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v){
 	//Start by updating the velocity a half-step
 
 	VectorXd gradient;
 	if(init_2){
-		gradient = this->gradient(_x0, Cov);
+		gradient = this->gradient(_x0, data);
 	}
 	else{
 		gradient = this->gradient(x);	
@@ -212,7 +212,7 @@ void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, Vector
 
 		//Compute gradient of the log-posterior with respect to x
 		if(init_2){
-			gradient = this->gradient(x, Cov);
+			gradient = this->gradient(x, data);
 		}
 		else{
 			gradient = this->gradient(x);	
@@ -221,6 +221,45 @@ void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, Vector
 		//Update x
 		v = v - 0.5 * step_size * gradient;
 	}
+
+	v = -v;
+}*/
+
+void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v){
+	//Start by updating the velocity a half-step
+
+	VectorXd gradient;
+	if(init_2){
+		gradient = this->gradient(_x0, data);
+	}
+	else{
+		gradient = this->gradient(x);	
+	}
+	
+	//Initalize x to be the first step
+	v= _v0;
+	x= _x0;
+	
+	v = v - 0.5 * step_size * gradient;
+
+	for (int i = 0; i < num_step; ++i)
+	{
+		
+		x = x + step_size * v;
+
+		//Compute gradient of the log-posterior with respect to x
+		if(init_2){
+			gradient = this->gradient(x, data);
+		}
+		else{
+			gradient = this->gradient(x);	
+		}
+		//Update velocity
+		//Update x
+		if (i != (num_step-1)) v = v - step_size * gradient;
+	}
+
+	v = v - 0.5 * step_size * gradient;
 
 	v = -v;
 }
@@ -246,7 +285,7 @@ double Hamiltonian_MC::hamiltonian(VectorXd &_position, VectorXd &_velocity){
 	
 	double energy_function = 0.0;
 	if(init_2){
-	 	energy_function = this->logPosterior(_position, Cov);
+	 	energy_function = this->logPosterior(_position, data);
 	}
 	else{
 		energy_function = -this->logPosterior(_position);

@@ -16,6 +16,7 @@ smc_squared::smc_squared(int _n_particles,int _m_particles,int _fixed_lag,int _m
     initialized=false;
     theta_x_pos=MatrixXd::Zero(m_particles, 2);
     theta_x_scale=MatrixXd::Zero(m_particles, 2);
+    time_step=0;
     
 }
 
@@ -105,6 +106,7 @@ double smc_squared::gamma_prior(VectorXd x, double a, double b)
 
 
 void smc_squared::update(Mat& current_frame){
+    time_step++;
     images.push_back(current_frame);
     normal_distribution<double> negative_random_pos(0.0,40.0);
     Size im_size=current_frame.size();
@@ -152,7 +154,7 @@ Rect smc_squared::estimate(Mat& image,Rect ground_truth,bool draw){
             norm++;
         }
         double r1 = performance.calc(ground_truth, estimate);
-        cout << (float)theta_weights[j] << " " << r1 << endl;
+        cout << time_step << " " << r1 << endl;
     }
     Point pt1,pt2;
     pt1.x=cvRound(_x/norm);

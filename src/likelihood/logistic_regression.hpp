@@ -10,11 +10,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
 #include "multivariate_gaussian.hpp"
-#include "../libs/cppoptlib/meta.h"
-#include "../libs/cppoptlib/problem.h"
-#include "../libs/cppoptlib/solver/bfgssolver.h"
-#include "../libs/cppoptlib/solver/lbfgssolver.h"
-#include "../libs/cppoptlib/solver/gradientdescentsolver.h"
+
 
 using namespace Eigen;
 using namespace std;
@@ -49,29 +45,4 @@ class LogisticRegression
  	MatrixXd Hessian;
 };
 
-
-template<typename T>
-class LogisticRegressionWrapper : public cppoptlib::Problem<T> {
-  public:
-    using typename cppoptlib::Problem<T>::TVector;
-    LogisticRegression *logistic;
-
-    LogisticRegressionWrapper(MatrixXd &X_, VectorXd &y_,double _lambda) {
-      logistic=new LogisticRegression(X_,y_,_lambda);
-    }
-
-    T value(const TVector &beta) {
-        Eigen::RowVectorXd w=beta.transpose();
-        return logistic->logPosterior(w);
-    }
-
-    void gradient(const TVector &beta, TVector &grad) {
-        Eigen::RowVectorXd w=beta.transpose();
-        grad = logistic->gradient(w);
-    }
-
-    int getDim(){
-    	return logistic->getWeights().size();
-    }
-};
-#endif
+#endif // #define LOGISTIC_H

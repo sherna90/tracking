@@ -18,10 +18,10 @@ using namespace std;
 class GaussianNaiveBayes{
 public:
     GaussianNaiveBayes();
-    GaussianNaiveBayes(MatrixXd &X, VectorXi &Y);
+    GaussianNaiveBayes(MatrixXd &X, VectorXd &Y);
     void fit();
-    void partial_fit(MatrixXd &X, VectorXi &Y, double learning_rate);
-    VectorXi predict(MatrixXd &Xtest);
+    void partial_fit(MatrixXd &X, VectorXd &Y, double learning_rate);
+    VectorXd predict(MatrixXd &Xtest);
     MatrixXd get_proba(MatrixXd &Xtest);
     VectorXd predict_proba(MatrixXd &Xtest, int target);
     double log_likelihood(VectorXd data, VectorXd mean, VectorXd sigma);
@@ -30,12 +30,12 @@ public:
     void setPrior(const std::map<unsigned int, double> &value);
     MatrixXd *getX();
     void setX(MatrixXd *value);
-    VectorXi *getY() ;
-    void setY( VectorXi *value);
+    VectorXd *getY() ;
+    void setY( VectorXd *value);
 
 private:
     MatrixXd *X;
-    VectorXi *Y;
+    VectorXd *Y;
     std::map<unsigned int,VectorXd> Means, Sigmas;
     std::map<unsigned int,double> Prior;
     bool initialized, one_fit;

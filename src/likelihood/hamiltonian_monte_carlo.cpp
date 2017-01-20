@@ -179,31 +179,6 @@ double Hamiltonian_MC::kinetic_energy(VectorXd &_velocity){
 }
 
 
-void Hamiltonian_MC::fit_map(int _numstart){
-	if (init)
-	{	
-		typedef double T;
-    	typedef LogisticRegressionWrapper<T> LogRegWrapper;
-    	LogRegWrapper fun(*X_train, *Y_train,lambda);
-		MatrixXd _weights(_numstart, dim);
-		VectorXd initial_w = VectorXd::Random(dim);
-		cppoptlib::Criteria<double> crit = cppoptlib::Criteria<double>::defaults(); // Create a Criteria class to set the solver's stop conditions
-    	cppoptlib::BfgsSolver<LogRegWrapper> solver;
-    	solver.setStopCriteria(crit);
-		for (int i = 0; i < _numstart; ++i)
-		{	
-			solver.minimize(fun, initial_w);
-			_weights.row(i) = initial_w;
-			
-		}
-		weights = _weights;
-	}
-	else{
-		cout << "Error: No initialized function"<< endl;
-	}
-       
-}
-
 void Hamiltonian_MC::setData(MatrixXd &_X,VectorXd &_Y){
 	if (init)
 	{	

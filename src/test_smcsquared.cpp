@@ -74,10 +74,10 @@ void TestSMCSampler::run(){
   }
   waitKey(1);
   time(&end);
-  double sec = difftime (end, start);
+  /*double sec = difftime (end, start);
   cout  << performance.get_avg_precision()/(num_frames-reinit_rate);
   cout << "," << performance.get_avg_recall()/(num_frames-reinit_rate);
-  cout << "," << num_frames/sec << "," << reinit_rate <<  "," << num_frames << endl;
+  cout << "," << num_frames/sec << "," << reinit_rate <<  "," << num_frames << endl;*/
 };
 
 int main(int argc, char* argv[]){

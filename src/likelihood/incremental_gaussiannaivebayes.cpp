@@ -6,7 +6,7 @@ GaussianNaiveBayes::GaussianNaiveBayes()
     initialized=false;
 }
 
-GaussianNaiveBayes::GaussianNaiveBayes(MatrixXd &datos,VectorXi &clases)
+GaussianNaiveBayes::GaussianNaiveBayes(MatrixXd &datos,VectorXd &clases)
 {
     X=&datos;
     Y=&clases;
@@ -29,7 +29,7 @@ void GaussianNaiveBayes::fit()
 }
 
 
-void GaussianNaiveBayes::partial_fit(MatrixXd &datos,VectorXi &clases, double learning_rate)
+void GaussianNaiveBayes::partial_fit(MatrixXd &datos,VectorXd &clases, double learning_rate)
 {   
     X=&datos;
     Y=&clases;
@@ -134,9 +134,9 @@ double GaussianNaiveBayes::likelihood(VectorXd data, VectorXd mean, VectorXd sig
     return likelihood;
 }
 
-VectorXi GaussianNaiveBayes::predict(MatrixXd &Xtest)
+VectorXd GaussianNaiveBayes::predict(MatrixXd &Xtest)
 {
-    VectorXi c=VectorXi::Zero(Xtest.rows());
+    VectorXd c=VectorXd::Zero(Xtest.rows());
     if (initialized){
         int max_class=0;
         double max_score=-100000000.0;
@@ -234,12 +234,12 @@ void GaussianNaiveBayes::setX( MatrixXd *value)
 {
     X = value;
 }
- VectorXi *GaussianNaiveBayes::getY() 
+ VectorXd *GaussianNaiveBayes::getY() 
 {
     return Y;
 }
 
-void GaussianNaiveBayes::setY( VectorXi *value)
+void GaussianNaiveBayes::setY( VectorXd *value)
 {
     Y = value;
 }

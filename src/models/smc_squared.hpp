@@ -43,6 +43,7 @@ private:
     int n_particles,m_particles,fixed_lag,mcmc_steps;
     vector<float>  theta_weights;
     bool initialized;
+    int time_step;
 
 public:
     smc_squared(int num_particles,int m_particles,int fixed_lag,int mcmc_steps);

@@ -13,8 +13,8 @@ const float THRESHOLD=1.0;
 const float OVERLAP_RATIO=0.8;
 
 //const bool INCREMENTAL_GAUSSIAN_NAIVEBAYES=true;
-const bool GAUSSIAN_NAIVEBAYES=true;
-const bool LOGISTIC_REGRESSION=false;
+const bool GAUSSIAN_NAIVEBAYES=false;
+const bool LOGISTIC_REGRESSION=true;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
 const bool HAAR_FEATURE=true;
@@ -152,8 +152,8 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
         haar.init(grayImg,reference_roi,sampleBox);
 
         if(GAUSSIAN_NAIVEBAYES){
-            VectorXi labels(2*n_particles);
-            labels << VectorXi::Ones(n_particles), VectorXi::Zero(n_particles);
+            VectorXd labels(2*n_particles);
+            labels << VectorXd::Ones(n_particles), VectorXd::Zero(n_particles);
             
             if(HAAR_FEATURE){
                 MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
@@ -760,11 +760,12 @@ void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_exam
             }
             hamiltonian_monte_carlo.setData(hog_descriptors, labels);
         }
+        hamiltonian_monte_carlo.run(10,1e-2,10);
     }
     if(GAUSSIAN_NAIVEBAYES){
-        VectorXi labels(positive_examples.size()+negative_examples.size());
-        labels << VectorXi::Ones(positive_examples.size()), VectorXi::Zero(negative_examples.size());
-        double learning_rate = 0.2;
+        VectorXd labels(positive_examples.size()+negative_examples.size());
+        labels << VectorXd::Ones(positive_examples.size()), VectorXd::Zero(negative_examples.size());
+        double learning_rate = 0.9;
         if(HAAR_FEATURE){
             haar.init(grayImg,reference_roi,positive_examples);
             MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;

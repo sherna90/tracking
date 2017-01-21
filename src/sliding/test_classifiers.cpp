@@ -291,7 +291,7 @@ void TestClassifiers::predict(){
 		yTest << VectorXd::Ones(this->positiveTestBoxes.size()), VectorXd::Constant(this->negativeTestBoxes.size(), -1);
 		VectorXd yHat;
 		//VectorXd yHat;
-		yHat = this->hamiltonian_monte_carlo.predict(this->xTest, false);
+		yHat = this->hamiltonian_monte_carlo.predict(this->xTest);
 		//ut.classification_Report_d(yTest, yHat);
 		cout << "Precision:" << endl;
 		ut.precision_score(yTest, yHat);

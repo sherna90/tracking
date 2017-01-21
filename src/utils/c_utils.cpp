@@ -69,6 +69,16 @@ void C_utils::classification_Report_d(VectorXi &test, VectorXd &predicted)
   
 }
 
+void C_utils::classification_Report(VectorXd &test, VectorXi &predicted)
+{
+  int count=0;
+  for (int i=0; i < test.size(); i++) if (int(predicted(i)) == test(i)) count++;
+  double percent = double(count) / double(test.size());
+  cout << setprecision(10) << fixed;
+  cout << percent*100 << endl;
+  
+}
+
 void C_utils::print(VectorXi &test, VectorXi &predicted)
 {
   for (int i=0; i < test.size(); i++) cout << test(i) << " " << predicted(i) << endl;
@@ -186,12 +196,50 @@ map<pair<int,int>, int> C_utils::confusion_matrix(VectorXi &test, VectorXd &pred
   return confusionMatrix;
 }
 
+map<pair<int,int>, int> C_utils::confusion_matrix(VectorXd &test, VectorXd &predicted, bool print){
+  vector<int> testedClasses = get_Classes_d(test);
+  vector<int> predictedClasses = get_Classes_d(predicted);
+  set<int> classes;
+
+  classes.insert(testedClasses.begin(), testedClasses.end());
+  classes.insert(predictedClasses.begin(), predictedClasses.end());
+
+  map<pair<int,int>, int> confusionMatrix;
+  
+  for (set<int>::iterator i = classes.begin(); i != classes.end(); ++i)
+  {
+    for (set<int>::iterator j = classes.begin(); j != classes.end(); ++j)
+    {
+      confusionMatrix[pair<int,int>(*i,*j)] = 0;
+    }
+  }
+  
+  for(int i = 0; i < test.size(); i++){
+    confusionMatrix[pair<int,int>(test(i),predicted(i))] +=1;
+  }
+  
+  if(print){
+    cout << "Confusion Matrix:" << endl;
+    for (std::map<pair<int,int>,int>::iterator it = confusionMatrix.begin(); it != confusionMatrix.end(); ++it)
+    {
+      cout << "class " << it->first.first << " was predicted " << it->second << " times as class " << it->first.second << endl;
+    }
+  }
+
+  return confusionMatrix;
+}
+
 map<int,double> C_utils::precision_score(VectorXi &test, VectorXi &predicted, bool print){
   map<pair<int,int>, int> confusionMatrix = confusion_matrix(test, predicted, false);
   return precision_score(confusionMatrix, print);
 }
 
 map<int, double> C_utils::precision_score(VectorXi &test, VectorXd &predicted, bool print){
+  map<pair<int,int>, int> confusionMatrix = confusion_matrix(test, predicted, false);
+  return precision_score(confusionMatrix, print);
+}
+
+map<int, double> C_utils::precision_score(VectorXd &test, VectorXd &predicted, bool print){
   map<pair<int,int>, int> confusionMatrix = confusion_matrix(test, predicted, false);
   return precision_score(confusionMatrix, print);
 }
@@ -233,6 +281,11 @@ map<int, double> C_utils::accuracy_score(VectorXi &test, VectorXi &predicted, bo
 }
 
 map<int, double> C_utils::accuracy_score(VectorXi &test, VectorXd &predicted, bool print){
+  map<pair<int,int>, int> confusionMatrix = confusion_matrix(test, predicted, false);
+  return accuracy_score(confusionMatrix, print);
+}
+
+map<int, double> C_utils::accuracy_score(VectorXd &test, VectorXd &predicted, bool print){
   map<pair<int,int>, int> confusionMatrix = confusion_matrix(test, predicted, false);
   return accuracy_score(confusionMatrix, print);
 }
@@ -281,6 +334,11 @@ map<int, double> C_utils::recall_score(VectorXi &test, VectorXi &predicted, bool
 }
 
 map<int, double> C_utils::recall_score(VectorXi &test, VectorXd &predicted, bool print){
+  map<pair<int,int>, int> confusionMatrix = confusion_matrix(test, predicted, false);
+  return recall_score(confusionMatrix, print);
+}
+
+map<int, double> C_utils::recall_score(VectorXd &test, VectorXd &predicted, bool print){
   map<pair<int,int>, int> confusionMatrix = confusion_matrix(test, predicted, false);
   return recall_score(confusionMatrix, print);
 }
@@ -339,6 +397,11 @@ map<int, double> C_utils::f1_score(VectorXi &test, VectorXd &predicted, bool pri
   return f1_score(confusionMatrix);
 }
 
+map<int, double> C_utils::f1_score(VectorXd &test, VectorXd &predicted, bool print){
+  map<pair<int, int>, int> confusionMatrix = confusion_matrix(test, predicted, false);
+  return f1_score(confusionMatrix);
+}
+
 map<int, double> C_utils::support_score(VectorXi &test){
   map<int, double> support;
   for (int i = 0; i < test.size(); ++i)
@@ -387,6 +450,11 @@ map<int, Metrics> C_utils::report(VectorXi &test, VectorXi &predicted, bool prin
 }
 
 map<int, Metrics> C_utils::report(VectorXi &test, VectorXd &predicted, bool print){
+  map<pair<int, int>, int> confusionMatrix = confusion_matrix(test, predicted, false);
+  return report(confusionMatrix, print);
+}
+
+map<int, Metrics> C_utils::report(VectorXd &test, VectorXd &predicted, bool print){
   map<pair<int, int>, int> confusionMatrix = confusion_matrix(test, predicted, false);
   return report(confusionMatrix, print);
 }

@@ -1,5 +1,5 @@
-#ifndef TEST_CLASSIFIERS_H
-#define TEST_CLASSIFIERS_H
+#ifndef DPPTRACKER_H
+#define DPPTRACKER_H
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -29,10 +29,12 @@ using namespace Eigen;
 class DPPTracker{
 public:
 	DPPTracker();
+	~DPPTracker();
 	void initialize(Mat& current_frame, Rect ground_truth);
 	bool is_initialized();
 	void predict();
 	void update(Mat& image, Rect ground_truth);
+	Rect estimate(Mat& image, bool draw);
 private:
 	bool initialized;
 	mt19937 generator;

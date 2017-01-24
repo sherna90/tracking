@@ -36,7 +36,8 @@ public:
 	bool is_initialized();
 	void predict();
 	void update(Mat& image);
-	Rect estimate(Mat& image, bool draw);
+	void draw_results(Mat& image);
+	Rect estimate(Mat& image, bool draw = false);
 private:
 	bool initialized;
 	mt19937 generator;
@@ -46,6 +47,7 @@ private:
 	Haar haar;
 	DPP dpp;
 	vector<Rect> dppResults;
+	Size image_size;
 };
 
 #endif

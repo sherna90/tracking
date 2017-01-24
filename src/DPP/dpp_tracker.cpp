@@ -29,6 +29,7 @@ bool DPPTracker::is_initialized() {
 
 void DPPTracker::initialize(Mat& current_frame, Rect ground_truth){
 	Mat grayImg;
+	image_size = current_frame.size();
 	this->detections.clear();
 	this->dpp = DPP();
 	cvtColor(current_frame, grayImg, CV_RGB2GRAY);
@@ -66,20 +67,8 @@ void DPPTracker::update(Mat& image){
 	this->weights.resize(0);
 	this->detections.clear();
 	cvtColor(image, grayImg, CV_RGB2GRAY);
-	/*int left = MAX(ground_truth.x, 1);
-	int top = MAX(ground_truth.y, 1);
-	int right = MIN(ground_truth.x + ground_truth.width, image.cols - 1);
-	int bottom = MIN(ground_truth.y + ground_truth.height, image.rows - 1);
-	reference_roi = Rect(left, top, right - left, bottom - top);*/
-	Rect reference_roi;
-	for (size_t i = 0; i < this->dppResults.size(); ++i)
-	{
-		Rect box = this->dppResults.at(i);
-		reference_roi.x += box.x; reference_roi.y += box.y;
-  		reference_roi.height += box.height; reference_roi.width += box.width;
-	}
-	reference_roi.x /= this->dppResults.size(); reference_roi.y /= this->dppResults.size();
-  	reference_roi.height /= this->dppResults.size(); reference_roi.width /= this->dppResults.size();
+	
+	Rect reference_roi = estimate(image);
 
 	for(int row = 0; row <= grayImg.rows - reference_roi.height; row+=STEPSLIDE){
     	for(int col = 0; col <= grayImg.cols - reference_roi.width; col+=STEPSLIDE){
@@ -92,32 +81,49 @@ void DPPTracker::update(Mat& image){
   	}
 
 	this->featureValues = MatrixXd(this->haar.featureNum, this->detections.size());
-	this->haar.getFeatureValue(grayImg, this->detections);
+	this->haar.init(grayImg, reference_roi, this->detections);
 	cv2eigen(this->haar.sampleFeatureValue,this->featureValues);
 	this->featureValues.transposeInPlace();
 
 }
 
+void DPPTracker::draw_results(Mat& image){
+	for (size_t i = 0; i < this->dppResults.size(); ++i)
+	{
+		Rect box = this->dppResults.at(i);
+		rectangle( image, box, Scalar(0,0,255), 2, LINE_AA );
+	}
+}
+
 Rect DPPTracker::estimate(Mat& image, bool draw){
-  	if(draw){
-    	for (size_t i = 0; i < this->dppResults.size(); ++i)
-    	{
-			Rect box = this->dppResults.at(i);
-			rectangle( image, box, Scalar(0,0,255), 2, LINE_AA );
-    	}
-  	}
-
   	Rect estimate;
-  	for (size_t i = 0; i < this->dppResults.size(); ++i)
-  	{
-  		Rect box = this->dppResults.at(i);
-  		estimate.x += box.x; estimate.y += box.y;
-  		estimate.height += box.height; estimate.width += box.width;
-  	}
-  	estimate.x /= this->dppResults.size(); estimate.y /= this->dppResults.size();
-  	estimate.height /= this->dppResults.size(); estimate.width /= this->dppResults.size();
+  	float _x = 0.0, _y = 0.0, _width = 0.0, _height = 0.0, norm = 0.0;
+  	
+  	for (size_t i = 0; i < this->dppResults.size();i++){
+        Rect state = this->dppResults.at(i);
+        if(state.x > 0 && state.x < image_size.width
+            && state.y > 0  && state.y < image_size.height 
+            && state.width > 0 && state.width < image_size.height 
+            && state.height > 0 && state.height < image_size.height){
+            _x += state.x;
+            _y += state.y;
+            _width += state.width; 
+            _height += state.height;
+            norm++;
+        }
+    }
 
-  	rectangle( image, estimate, Scalar(255,0,0), 2, LINE_AA);
+    Point pt1,pt2;
+    pt1.x = cvRound(_x / norm);
+    pt1.y = cvRound(_y / norm);
+    _width = cvRound(_width / norm);
+    _height = cvRound(_height / norm);
+    pt2.x = cvRound(pt1.x + _width);
+    pt2.y = cvRound(pt1.y + _height); 
+    if(pt2.x < image_size.width && pt1.x >= 0 && pt2.y < image_size.height && pt1.y >= 0){
+    	estimate = Rect( pt1.x, pt1.y, _width, _height );
+        if(draw) rectangle( image, estimate, Scalar(255,0,0), 2, LINE_AA );
+    }
 
   	return estimate;
 }

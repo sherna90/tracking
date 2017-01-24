@@ -29,7 +29,8 @@ void TestDPP::run(){
         cout << "----------------------------"<< endl;
         filter.predict();
         filter.update(current_frame);
-        filter.estimate(current_frame, false);
+        filter.draw_results(current_frame);
+        filter.estimate(current_frame, true);
 
     }
     imshow("Tracker", current_frame);

@@ -15,7 +15,8 @@ class DPP
 {
 public:
 	DPP();
-	vector<Rect> run(vector<Rect> preDetections, VectorXd &detectionWeights, MatrixXd &featureValues, double alpha, double lambda, double beta, double mu, double epsilon);
+	vector<Rect> run(vector<Rect> preDetections, VectorXd &detectionWeights, MatrixXd &featureValues,
+	 double alpha, double lambda, double beta, double mu, double epsilon);
 
 private:
 	VectorXd getQualityTerm(VectorXd &detectionWeights, VectorXd &nPenalty, double alpha, double beta);

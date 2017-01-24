@@ -28,17 +28,19 @@ void TestDPP::run(){
     }else{
         filter.predict();
         filter.update(current_frame,ground_truth);
+        vector<Rect> boxes = filter.estimate(current_frame, false);
+
     }
     imshow("Tracker",current_frame);
     waitKey(1);
   }
   time(&end);
-  double sec = difftime (end, start);
+  //double sec = difftime (end, start);
 };
 
 int main(int argc, char* argv[]){
     
-    if(argc != 7) {
+    if(argc != 5) {
         cerr <<"Incorrect input list" << endl;
         cerr <<"exiting..." << endl;
         return EXIT_FAILURE;

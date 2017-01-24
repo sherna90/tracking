@@ -5,9 +5,9 @@ DPP::DPP(){}
 vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, MatrixXd &featureValues, double alpha, double lambda, double beta, double mu, double epsilon)
 {
 	VectorXd area(preDetections.size());
+	cout << "preDetections size: " << preDetections.size() << endl;
 	MatrixXd intersectionArea(preDetections.size(), preDetections.size());
 
-	//cout << "preDetections size: " << preDetections.size() << endl;
 	for (size_t i = 0; i < preDetections.size(); ++i)
 	{
 		Rect bbox = preDetections.at(i);
@@ -33,6 +33,8 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ma
 				nContain(i) += 1;
 		}
 	}
+
+
 	nContain = nContain.array() - 1;
 	VectorXd nPenalty = nContain.array().exp().pow(lambda);
 	
@@ -48,7 +50,7 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ma
 	vector<int> top = solve(qualityTerm, similarityTerm, epsilon);	
 
 	vector<Rect> respDPP;
-	for (int i = 0; i < top.size(); ++i)
+	for (size_t i = 0; i < top.size(); ++i)
 	{
 		respDPP.push_back(preDetections.at(top.at(i)));
 	}

@@ -22,6 +22,8 @@
 #include "../likelihood/multinomialnaivebayes.hpp"
 #include "../likelihood/incremental_gaussiannaivebayes.hpp"
 
+#include "dpp.hpp"
+
 using namespace cv;
 using namespace std;
 using namespace Eigen;
@@ -34,7 +36,7 @@ public:
 	bool is_initialized();
 	void predict();
 	void update(Mat& image, Rect ground_truth);
-	Rect estimate(Mat& image, bool draw);
+	vector<Rect> estimate(Mat& image, bool draw);
 private:
 	bool initialized;
 	mt19937 generator;
@@ -42,6 +44,8 @@ private:
 	VectorXd weights;
 	MatrixXd featureValues;
 	Haar haar;
+	DPP dpp;
+	vector<Rect> dppResults;
 };
 
 #endif

@@ -5,7 +5,7 @@ DPP::DPP(){}
 vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, MatrixXd &featureValues, double alpha, double lambda, double beta, double mu, double epsilon)
 {
 	VectorXd area(preDetections.size());
-	cout << "preDetections size: " << preDetections.size() << endl;
+	//cout << "preDetections size: " << preDetections.size() << endl;
 	MatrixXd intersectionArea(preDetections.size(), preDetections.size());
 
 	for (size_t i = 0; i < preDetections.size(); ++i)
@@ -34,7 +34,6 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ma
 		}
 	}
 
-
 	nContain = nContain.array() - 1;
 	VectorXd nPenalty = nContain.array().exp().pow(lambda);
 	
@@ -48,7 +47,7 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ma
 
 	//cout << "solve" << endl;
 	vector<int> top = solve(qualityTerm, similarityTerm, epsilon);	
-
+	
 	vector<Rect> respDPP;
 	for (size_t i = 0; i < top.size(); ++i)
 	{
@@ -117,12 +116,6 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 		for (int i = 0; i < remained.size(); ++i)
 		{
 			VectorXd tmp = S_top.col(remained(i));
-
-			/*cout << "newS size: " << newS.rows() << "," << newS.cols() << endl;
-			cout << "newS block size: " << newS.block(0, newS.cols() - 1, newS.rows() - 1, 1).rows() << "," << newS.block(0, newS.cols() - 1, newS.rows() - 1, 1).cols() << endl;
-			cout << "newS block size: " << newS.block(newS.rows() - 1, 0, 1, newS.cols() - 1).rows() << "," << newS.block(newS.rows() - 1, 0, 1, newS.cols() - 1).cols() << endl;
-			cout << "tmp size: " << tmp.size() << endl;
-			cout << "tmp rows: " << tmp.rows() << "\tcols: " << tmp.cols() << endl;*/
 
 			newS.block(0, newS.cols() - 1, newS.rows() - 1, 1) << tmp;
 			newS.block(newS.rows() - 1, 0, 1, newS.cols() - 1) << tmp.transpose();

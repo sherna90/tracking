@@ -3,7 +3,7 @@
 #ifndef PARAMS
 const double RATIO_TRAINTEST = 0.8;
 const float OVERLAP_THRESHOLD = 0.8;
-const int STEPSLIDE = 1;
+const int STEPSLIDE = 5;
 
 //DPP's parameters
 const double ALPHA = 0.9;
@@ -51,16 +51,14 @@ void DPPTracker::initialize(Mat& current_frame, Rect ground_truth){
   this->featureValues = MatrixXd(this->haar.featureNum, this->detections.size());
 	this->haar.init(grayImg, reference_roi, this->detections);
 	cv2eigen(this->haar.sampleFeatureValue, this->featureValues);
+  this->featureValues.transposeInPlace();
 	this->initialized = true;
 
 	cout << "initialized!!!" << endl;
-	cout << this->detections.size() << endl;
-	cout << this->weights.size() << endl;
 }
 
 void DPPTracker::predict(){
   this->dppResults = this->dpp.run(this->detections, this->weights, this->featureValues, ALPHA, LAMBDA, BETA, MU, EPSILON);
-  cout << "predicted!!!" << endl;
 }
 
 void DPPTracker::update(Mat& image, Rect ground_truth){
@@ -87,9 +85,7 @@ void DPPTracker::update(Mat& image, Rect ground_truth){
   this->featureValues = MatrixXd(this->haar.featureNum, this->detections.size());
   this->haar.init(grayImg, reference_roi, this->detections);
   cv2eigen(this->haar.sampleFeatureValue,this->featureValues);
-
-
-  cout << "updated!!!" << endl;
+  this->featureValues.transposeInPlace();
 
 }
 
@@ -101,6 +97,5 @@ vector<Rect> DPPTracker::estimate(Mat& image, bool draw){
       rectangle( image, box, Scalar(0,0,255), 2, LINE_AA );
     }
   }
-  cout << "estimated!!!" << endl;
   return this->dppResults;
 }

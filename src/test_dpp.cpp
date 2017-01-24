@@ -28,7 +28,7 @@ void TestDPP::run(){
     }else{
         filter.predict();
         filter.update(current_frame,ground_truth);
-        vector<Rect> boxes = filter.estimate(current_frame, false);
+        filter.estimate(current_frame, true);
 
     }
     imshow("Tracker",current_frame);

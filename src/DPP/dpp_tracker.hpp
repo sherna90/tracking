@@ -35,8 +35,8 @@ public:
 	void initialize(Mat& current_frame, Rect ground_truth);
 	bool is_initialized();
 	void predict();
-	void update(Mat& image, Rect ground_truth);
-	vector<Rect> estimate(Mat& image, bool draw);
+	void update(Mat& image);
+	Rect estimate(Mat& image, bool draw);
 private:
 	bool initialized;
 	mt19937 generator;

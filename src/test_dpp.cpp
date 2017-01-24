@@ -28,11 +28,11 @@ void TestDPP::run(){
     }else{
         cout << "----------------------------"<< endl;
         filter.predict();
-        filter.update(current_frame,ground_truth);
-        filter.estimate(current_frame, true);
+        filter.update(current_frame);
+        filter.estimate(current_frame, false);
 
     }
-    imshow("Tracker",current_frame);
+    imshow("Tracker", current_frame);
     waitKey(1);
   }
   time(&end);

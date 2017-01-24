@@ -36,9 +36,15 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ma
 		area(i) = bbox.width * bbox.height;
 		//cout << "bbox.width: " << bbox.width << "\tbbox.height: " << bbox.height << "\tarea: " << area(i) << endl;
 		
-		for (size_t j = 0; j < preDetections.size(); ++j)
-		{	Rect bbox2 = preDetections.at(j);
+		/*for (size_t j = 0; j < preDetections.size(); ++j)
+		{	
+			Rect bbox2 = preDetections.at(j);
 			intersectionArea(i,j) = double((bbox & bbox2).area());
+		}*/
+		for (size_t j = i; j < preDetections.size(); ++j)
+		{	
+			Rect bbox2 = preDetections.at(j);
+			intersectionArea(i,j) = intersectionArea(j,i) = double((bbox & bbox2).area());
 		}
 			
 	}

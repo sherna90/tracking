@@ -37,8 +37,7 @@ void DPPTracker::initialize(Mat& current_frame, Rect ground_truth){
   int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
   int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
   Rect reference_roi = Rect(left, top, right - left, bottom - top);
-  this->weights.resize(0); 
-	
+  this->weights.resize(0);
   for(int row = 0; row <= grayImg.rows - reference_roi.height; row+=STEPSLIDE){
 		for(int col = 0; col <= grayImg.cols - reference_roi.width; col+=STEPSLIDE){
 			Rect current_window(col, row, reference_roi.height, reference_roi.width);
@@ -51,9 +50,12 @@ void DPPTracker::initialize(Mat& current_frame, Rect ground_truth){
 	
   this->featureValues = MatrixXd(this->haar.featureNum, this->detections.size());
 	this->haar.init(grayImg, reference_roi, this->detections);
-	cv2eigen(this->haar.sampleFeatureValue,this->featureValues);
+	cv2eigen(this->haar.sampleFeatureValue, this->featureValues);
 	this->initialized = true;
+
 	cout << "initialized!!!" << endl;
+	cout << this->detections.size() << endl;
+	cout << this->weights.size() << endl;
 }
 
 void DPPTracker::predict(){

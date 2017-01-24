@@ -9,8 +9,8 @@ const int STEPSLIDE = 5;
 const double ALPHA = 0.9;
 const double LAMBDA = -0.1;
 const double BETA = 1.1;
-const double MU = 0.8;
-const double EPSILON = 0.1;
+const double MU = 0;
+const double EPSILON = 0.4;
 
 #endif
 
@@ -40,7 +40,7 @@ void DPPTracker::initialize(Mat& current_frame, Rect ground_truth){
   this->weights.resize(0);
   for(int row = 0; row <= grayImg.rows - reference_roi.height; row+=STEPSLIDE){
 		for(int col = 0; col <= grayImg.cols - reference_roi.width; col+=STEPSLIDE){
-			Rect current_window(col, row, reference_roi.height, reference_roi.width);
+			Rect current_window(col, row, reference_roi.width, reference_roi.height);
 			Rect intersection = reference_roi & current_window;
 			this->detections.push_back(current_window);
 			this->weights.conservativeResize( this->weights.size() + 1 );
@@ -48,13 +48,13 @@ void DPPTracker::initialize(Mat& current_frame, Rect ground_truth){
 		}
 	}
 	
-  this->featureValues = MatrixXd(this->haar.featureNum, this->detections.size());
-	this->haar.init(grayImg, reference_roi, this->detections);
-	cv2eigen(this->haar.sampleFeatureValue, this->featureValues);
-  this->featureValues.transposeInPlace();
+   this->featureValues = MatrixXd(this->haar.featureNum, this->detections.size());
+   this->haar.init(grayImg, reference_roi, this->detections);
+   cv2eigen(this->haar.sampleFeatureValue, this->featureValues);
+   this->featureValues.transposeInPlace();
 	this->initialized = true;
-
 	cout << "initialized!!!" << endl;
+	cout << this->detections.size() << endl;
 }
 
 void DPPTracker::predict(){
@@ -74,7 +74,7 @@ void DPPTracker::update(Mat& image, Rect ground_truth){
   
   for(int row = 0; row <= grayImg.rows - reference_roi.height; row+=STEPSLIDE){
     for(int col = 0; col <= grayImg.cols - reference_roi.width; col+=STEPSLIDE){
-      Rect current_window(col, row, reference_roi.height, reference_roi.width);
+      Rect current_window(col, row,  reference_roi.width, reference_roi.height);
       Rect intersection = reference_roi & current_window;
       this->detections.push_back(current_window);
       this->weights.conservativeResize( this->weights.size() + 1 );
@@ -83,7 +83,7 @@ void DPPTracker::update(Mat& image, Rect ground_truth){
   }
 
   this->featureValues = MatrixXd(this->haar.featureNum, this->detections.size());
-  this->haar.init(grayImg, reference_roi, this->detections);
+  this->haar.getFeatureValue(grayImg, this->detections);
   cv2eigen(this->haar.sampleFeatureValue,this->featureValues);
   this->featureValues.transposeInPlace();
 

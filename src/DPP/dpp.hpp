@@ -22,6 +22,7 @@ private:
 	VectorXd getQualityTerm(VectorXd &detectionWeights, VectorXd &nPenalty, double alpha, double beta);
 	MatrixXd getSimilarityTerm(MatrixXd &featureValues, MatrixXd &intersectionArea, MatrixXd &sqrtArea, double mu);
 	vector<int> solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double epsilon);
+	MatrixXd squared_exponential_kernel(MatrixXd X, double nu, double sigma_f);
 };
 
 #endif

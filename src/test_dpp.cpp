@@ -26,6 +26,7 @@ void TestDPP::run(){
     if(!filter.is_initialized()){
         filter.initialize(current_frame,ground_truth);
     }else{
+        cout << "----------------------------"<< endl;
         filter.predict();
         filter.update(current_frame,ground_truth);
         filter.estimate(current_frame, true);

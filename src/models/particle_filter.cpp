@@ -364,11 +364,11 @@ void particle_filter::predict(){
     if(initialized==true){
         time_stamp++;
         vector<particle> tmp_new_states(n_particles);
-        for (int i=0;i<n_particles;i++){
-            particle state=states[i];
-            float _x,_y,_width,_height;
-            float _dx=position_random_x(generator);
-            float _dy=position_random_y(generator);
+        for (int i = 0; i < n_particles; i++){
+            particle state = states[i];
+            float _x, _y, _width, _height;
+            float _dx = position_random_x(generator);
+            float _dy = position_random_y(generator);
             //float _dw=scale_random_width(generator);
             //float _dh=scale_random_height(generator);
             _x=MIN(MAX(cvRound(state.x),0),im_size.width);

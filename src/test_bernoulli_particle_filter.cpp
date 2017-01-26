@@ -25,7 +25,7 @@ void TestBernoulliParticleFilter::run(){
 		if(!filter.is_initialized()){
 			filter.initialize(current_frame, ground_truth);
 		}else{
-			//filter.predict();
+			filter.predict();
 			filter.update(current_frame);
 			filter.draw_particles(current_frame, Scalar(0,255,255));
 			rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );

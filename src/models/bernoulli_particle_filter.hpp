@@ -50,14 +50,14 @@ public:
 private:
 	bool initialized;
 	vector<particle> states;
-	//vector<float> weights;
-	VectorXd weights;
+	vector<double> weights;
+	//VectorXd weights;
 	vector<VectorXd> theta_x;
 	Rect reference_roi;
 	Size img_size;
 	mt19937 generator;
 	float ESS;
-	vector<Rect> sampleBox;
+	//vector<Rect> sampleBox;
 	Haar haar;
 	double existence_prob;
 };

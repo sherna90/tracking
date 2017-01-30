@@ -3,7 +3,7 @@
 #ifndef PARAMS
 const double RATIO_TRAINTEST = 0.8;
 const float OVERLAP_THRESHOLD = 0.8;
-const int STEPSLIDE = 5;
+const int STEPSLIDE = 10;
 
 //DPP's parameters
 const double ALPHA = 0.9;

@@ -7,6 +7,7 @@
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
 #include <time.h>
+#include <math.h>
 #include <float.h>
 #include <vector>
 #include <iostream>
@@ -14,7 +15,8 @@
 #include <chrono>
 #include <fftw3.h>
 
-#include "../features/haar.hpp"
+#include "../likelihood/gaussian.hpp"
+#include "../likelihood/multivariate_gaussian.hpp"
 
 using namespace cv;
 using namespace std;
@@ -43,23 +45,24 @@ public:
 	void initialize(Mat& current_frame, Rect ground_truth);
 	void reinitialize();
 	void predict();
-	void update(Mat& image);
+	void update(Mat& image, vector<Rect> detections);
 	void draw_particles(Mat& image, Scalar color = Scalar(0, 255, 255));
+	void resample();
 	Rect estimate(Mat& image, bool draw = false);
 
 private:
 	bool initialized;
+	Rect reference_roi;
 	vector<particle> states;
 	vector<double> weights;
+	vector<Rect> estimates;
 	//VectorXd weights;
 	vector<VectorXd> theta_x;
-	Rect reference_roi;
 	Size img_size;
 	mt19937 generator;
 	float ESS;
 	//vector<Rect> sampleBox;
-	Haar haar;
-	double existence_prob;
+	double existence_prob, new_existence_prob;
 };
 
 #endif

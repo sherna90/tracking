@@ -5,6 +5,9 @@
 #include "utils/utils.hpp"
 #include "utils/image_generator.hpp"
 
+#include "DPP/dpp.hpp"
+#include "features/haar.hpp"
+
 #include <time.h>
 #include <iostream>
 #include <cstdlib>
@@ -22,6 +25,9 @@ private:
 	double reinit_rate;
 	vector<Mat> images;
 	vector<string> gt_vec;
+
+	DPP dpp;
+	Haar haar;
 };
 
 #endif

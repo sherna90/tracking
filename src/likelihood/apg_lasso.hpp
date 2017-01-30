@@ -14,7 +14,6 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
-#include "likelihood/logistic_regression.hpp"
 
 using namespace Eigen;
 using namespace std;
@@ -32,13 +31,6 @@ public:
 	VectorXd softThresholding(VectorXd &x, double gamma);
 	void fit(MatrixXd &A, VectorXd &b, double _step_lenght);
 	VectorXd predict();
-	//void partial_run(MatrixXd &_X,VectorXd &_Y);
-	//MatrixXd simulation(VectorXd &_initial_x);
-	//VectorXd predict(MatrixXd &_X_test);
-	//virtual VectorXd stochastic_gradient(VectorXd &weights, MatrixXd &_data);
-	//virtual double logPosterior(VectorXd &weights, MatrixXd &_data);
-	//virtual VectorXd stochastic_gradient(VectorXd &weights);
-	//virtual double logPosterior(VectorXd &weights);
 
 private:
 	VectorXd matrixDot(MatrixXd &A, VectorXd &x);

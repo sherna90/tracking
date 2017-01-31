@@ -2,13 +2,13 @@
 
 #ifndef PARAMS
 const float POS_STD = 1.0;
-const float SCALE_STD = 1.0;
+const float SCALE_STD = 0.5;
 const float OVERLAP_RATIO = 0.8;
 const float THRESHOLD = 1000;
-const int NEWBORN_PARTICLES = 100;
+const int NEWBORN_PARTICLES = 0;
 
 const float SURVIVAL_PROB = 0.99;
-const float INITIAL_EXISTENCE_PROB = 0.001;
+const float INITIAL_EXISTENCE_PROB = 0.99;
 const float BIRTH_PROB = 0.1;
 const float DETECTION_RATE = 0.9;
 const float CLUTTER_RATE = 1;
@@ -58,13 +58,12 @@ void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
 	int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
 	int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
 	this->reference_roi = Rect(left, top, right - left, bottom - top);
-
+	double weight = 1.0f/this->n_particles;
 	if ( (this->reference_roi.width > 0)
 		&& ((this->reference_roi.x + this->reference_roi.width) < this->img_size.width)
 		&& (this->reference_roi.height > 0)
 		&& ((this->reference_roi.y + this->reference_roi.height) < this->img_size.height) )
-	{
-		double weight = -log(this->n_particles);
+		{
 		for (int i = 0; i < this->n_particles; ++i)
 		{
 			particle state;
@@ -111,17 +110,11 @@ void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
 				state.height = cvRound(this->reference_roi.height);
 				state.scale = 1.0;
 			}
-			//cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << endl;
+			cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << "\tweight: " << weight << endl;
 			this->states.push_back(state);
 			this->weights.push_back(weight);
-			this->ESS = 0.0f;
-			//this->sampleBox.push_back(Rect(state.x, state.y, state.width, state.height));
 		}
 	}
-
-	Mat grayImg;
-	cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-
 	this->initialized = true;
 	cout << "bernoulli particle filter initialized!!!" << endl;
 }
@@ -132,23 +125,9 @@ void BernoulliParticleFilter::reinitialize(){
 
 void BernoulliParticleFilter::predict(){
 	/************** logsumexp **************/
-	vector<double> normalized_weights(this->weights.size());
-	double logsumexp = 0.0;
-    double max_value = *max_element(this->weights.begin(), this->weights.end());
-    for (size_t i = 0; i < this->weights.size(); i++) {
-    	if (std::isnan(this->weights[i])) {
-    		this->weights[i]=log(std::numeric_limits<double>::epsilon());
-        }
-        logsumexp += exp(this->weights[i] - max_value);
-    }
-    
-    double norm_const = max_value + log(logsumexp);
-    for (size_t i = 0; i < this->weights.size(); i++) {
-        normalized_weights.at(i) = exp(this->weights.at(i) - norm_const);
-    }
-    /***************************************/
-	//Scalar sum_weights = sum(this->weights);
-	Scalar sum_weights = sum(normalized_weights);
+
+	Scalar sum_weights = sum(this->weights);
+	//Scalar sum_weights = sum(normalized_weights);
     
 	this->new_existence_prob = BIRTH_PROB * (1 - this->existence_prob) + (SURVIVAL_PROB * sum_weights[0] * this->existence_prob);
 
@@ -170,47 +149,52 @@ void BernoulliParticleFilter::predict(){
 		{
 			particle state = this->states[i];
 			float _x, _y, _width, _height;
-			
-			do{
-				float _dx = position_random_x(this->generator);
-				float _dy = position_random_y(this->generator);
-
-				_x = MIN(MAX(cvRound(state.x + _dx), 0), this->img_size.width);
-				_y = MIN(MAX(cvRound(state.y + _dy), 0), this->img_size.height);
-				_width = MIN(MAX(cvRound(state.width), 0), this->img_size.width);
-				_height = MIN(MAX(cvRound(state.height), 0), this->img_size.height);
-				
-				state.x_p = state.x;
-				state.y_p = state.y;
-				state.width_p = state.width;
-				state.height_p = state.height;
-				state.scale_p = state.scale;
-				
-				state.x = _x;
-				state.y = _y;
-				state.width = _width;
-				state.height = _height;
-				state.scale = 2 * state.scale - state.scale_p + scale_random_width(this->generator);
-			}
-			while( ((_x + _width) < this->img_size.width)
+			float _dx = position_random_x(this->generator);
+			float _dy = position_random_y(this->generator);
+			_x = MIN(MAX(cvRound(state.x + _dx), 0), this->img_size.width);
+			_y = MIN(MAX(cvRound(state.y + _dy), 0), this->img_size.height);
+			_width = MIN(MAX(cvRound(state.width), 0), this->img_size.width);
+			_height = MIN(MAX(cvRound(state.height), 0), this->img_size.height);					
+			if(((_x + _width) < this->img_size.width)
 				&& (_x > 0)
 				&& ((_y + _height) < this->img_size.height)
 				&& (_y > 0)
 				&& (_width < this->img_size.width)
 				&& (_height < this->img_size.height)
 				&& (_width > 0)
-				&& (_height > 0)
-				&& (unif(this->generator) < SURVIVAL_PROB) );
+				&& (_height > 0)){
+				state.x_p = state.x;
+				state.y_p = state.y;
+				state.width_p = state.width;
+				state.height_p = state.height;
+				state.scale_p = state.scale;
+				state.x = _x;
+				state.y = _y;
+				state.width = _width;
+				state.height = _height;
+				state.scale = 2 * state.scale - state.scale_p;
+			}
+			else{
+				state.x=state.x;
+                state.y=state.y;
+                state.x_p=reference_roi.x;
+                state.y_p=reference_roi.y;
+                state.width=cvRound(reference_roi.width);
+                state.height=cvRound(reference_roi.height);
+                state.width_p=cvRound(reference_roi.width);
+                state.height_p=cvRound(reference_roi.height);
+                state.scale=1.0f;
+			}
 			tmp_states.push_back(state);
-			tmp_weights.push_back(log(this->existence_prob * SURVIVAL_PROB) + this->weights.at(i));
+			tmp_weights.push_back(SURVIVAL_PROB*this->existence_prob*this->weights.at(i));
 			//tmp_weights.push_back(this->weights.at(i));
 		}
 		/***********************************************************************/
 
 		/*********************** Generate birth particles ***********************/
-		uniform_int_distribution<int> random_new_born_x(0, this->img_size.width);
-		uniform_int_distribution<int> random_new_born_y(0, this->img_size.height);
-		//double weight = -log(NEWBORN_PARTICLES);
+		uniform_int_distribution<int> random_new_born_x(0, this->img_size.width-this->reference_roi.width);
+		uniform_int_distribution<int> random_new_born_y(0, this->img_size.height-this->reference_roi.width);
+		double nb_weight = 1.0f/NEWBORN_PARTICLES;
 		for (int i = 0; i < NEWBORN_PARTICLES; ++i)
 		{
 			particle state;
@@ -241,26 +225,20 @@ void BernoulliParticleFilter::predict(){
 				&& (_height < this->img_size.height)
 				&& (_width > 0)
 				&& (_height > 0)));
-			//cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << endl;
+			cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << "\tweight: " << nb_weight << endl;
+			this->states.push_back(state);
 			tmp_states.push_back(state);
-			tmp_weights.push_back(-log(NEWBORN_PARTICLES));
-			//this->sampleBox.push_back(Rect(state.x, state.y, state.width, state.height));
+			tmp_weights.push_back(nb_weight);
 		}
 		this->weights.swap(tmp_weights);
-
 		vector<double> normalized_weights(this->weights.size());
-		double logsumexp = 0.0;
-    	double max_value = *max_element(this->weights.begin(), this->weights.end());
+		Scalar sum_weights = sum(this->weights);
     	for (size_t i = 0; i < this->weights.size(); i++) {
-        	logsumexp += exp(this->weights[i] - max_value);
-    	}
-    	double norm_const = max_value + log(logsumexp);
-    	for (size_t i = 0; i < this->weights.size(); i++) {
-        	normalized_weights.at(i) = exp(this->weights.at(i) - norm_const);
+        	normalized_weights.at(i) =this->weights.at(i)/sum_weights[0];
     	}
 		/************************************************************************/
 		this->states.swap(tmp_states);
-		this->weights.swap(normalized_weights);
+		//this->weights.swap(normalized_weights);
 	}
 
 	/****************** limit range ******************/
@@ -268,17 +246,18 @@ void BernoulliParticleFilter::predict(){
 	if(this->new_existence_prob < 0.001) this->new_existence_prob = 0.001;
 	/*************************************************/
 
-	/*cout << "predict" << endl;
+	cout << "predict" << endl;
 	for (size_t i = 0; i < this->weights.size(); ++i)
     {
     	cout << this->weights.at(i) << ",";
-    }*/
-
+    }
+	//exit(EXIT_FAILURE);
 }
 
 void BernoulliParticleFilter::update(Mat& image, vector<Rect> detections){
 	if (detections.size() > 0)
 	{
+
 		vector<double> tmp_weights;
 		MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
 
@@ -298,17 +277,17 @@ void BernoulliParticleFilter::update(Mat& image, vector<Rect> detections){
             double weight = this->weights[i];
             psi.row(i) = DETECTION_RATE * weight * gaussian.log_likelihood(observations).array().exp();
         }
-
-        for (size_t i = 0; i < 100; ++i)
+        /*cout << "\nPSI" << endl;
+        for (int i = 0; i < this->n_particles; ++i)
         {
         	cout << psi.row(i).sum() << ",";
         }
-        cout << endl << "NEWBORN_PARTICLES" << endl;
-        for (size_t i = 100; i < 200; ++i)
+        cout << endl << "\nNEWBORN_PARTICLES" << endl;
+        for (int i = this->n_particles; i < this->n_particles+NEWBORN_PARTICLES; ++i)
         {
         	cout << psi.row(i).sum() << ",";
         }
-
+		*/
         VectorXd tau = VectorXd::Zero(detections.size());
         tau = psi.colwise().sum();
         
@@ -327,12 +306,12 @@ void BernoulliParticleFilter::update(Mat& image, vector<Rect> detections){
         }
 
         this->weights.swap(tmp_weights);
-
-        /*for (size_t i = 0; i < this->weights.size(); ++i)
+    	cout << "\nupdate" << endl;
+	    for (size_t i = 0; i < this->weights.size(); ++i)
         {
         	cout << this->weights.at(i) << ",";
         }
-        cout << endl;*/
+        cout << endl;
         /************** update existence probability **************/
         Scalar sum_weights = sum(this->weights);
 
@@ -346,11 +325,8 @@ void BernoulliParticleFilter::update(Mat& image, vector<Rect> detections){
 		/*************************************************/
 
         /**********************************************************/
-
-
         resample();
         tmp_weights.clear();
-
 	}
 }
 
@@ -367,36 +343,21 @@ void BernoulliParticleFilter::draw_particles(Mat& image, Scalar color){
 }
 
 void BernoulliParticleFilter::resample(){
+	uniform_real_distribution<double> unif_rnd(0.0,1.0);
 	int num_states = this->states.size();
-    //Scalar sum_weights = sum(this->weights);
-    vector<double> cumulative_sum(num_states);
-    vector<double> normalized_weights(num_states);
-    vector<double> squared_normalized_weights(num_states);
-    uniform_real_distribution<double> unif_rnd(0.0,1.0);
-    
-    Scalar sum_weights = sum(this->weights);
-
+	vector<double> normalized_weights(this->weights.size());
+	Scalar sum_weights = sum(this->weights);
     for (size_t i = 0; i < this->weights.size(); i++) {
-        //normalized_weights.at(i) = exp(this->weights.at(i) - norm_const);
-        normalized_weights.at(i) = this->weights.at(i) / sum_weights[0];
+        normalized_weights.at(i) =this->weights.at(i)/sum_weights[0];
     }
-    
+    vector<double> cumulative_sum(num_states);
     for (size_t i = 0; i < this->weights.size(); i++) {
-    	//cout <<  this->weights.at(i) << ", ";
-        squared_normalized_weights.at(i) = normalized_weights.at(i) * normalized_weights.at(i);
         if (i == 0) {
-            //cumulative_sum.at(i) = this->weights.at(i);
             cumulative_sum.at(i) = normalized_weights.at(i);
         } else {
-            //cumulative_sum.at(i) = cumulative_sum.at(i - 1) + this->weights.at(i);
             cumulative_sum.at(i) = cumulative_sum.at(i - 1) + normalized_weights.at(i);
         }
     }
-    
-    Scalar sum_squared_weights = sum(normalized_weights);
-    this->ESS = sum_squared_weights[0];
-    cout << endl << "-------------------------" << endl;
-    cout << "ESS: " << this->ESS << ", " << endl;
     vector<particle> new_states;
     vector<double> new_weights;
     for (int i = 0; i < this->n_particles; i++) {
@@ -406,14 +367,20 @@ void BernoulliParticleFilter::resample(){
         particle state = this->states[ipos];
         new_states.push_back(state);
         //this->weights.at(i) = double(sum_weights[0])/this->n_particles;
-        new_weights.push_back(-log(this->n_particles));
+        new_weights.push_back(1.0f/this->n_particles);
     }
 
     this->states.swap(new_states);
     this->weights.swap(new_weights);
 
     cumulative_sum.clear();
-    squared_normalized_weights.clear();
+    normalized_weights.clear();
+    cout << "\nresample" << endl;
+	for (size_t i = 0; i < this->weights.size(); ++i)
+    {
+    	cout << this->weights.at(i) << ",";
+    }
+    //exit(EXIT_FAILURE);
 }
 
 

@@ -9,6 +9,7 @@
 #include <time.h>
 #include <math.h>
 #include <float.h>
+#include <stdlib.h>
 #include <vector>
 #include <iostream>
 #include <random>

@@ -78,7 +78,10 @@ void TestBernoulliParticleFilter::run(){
 			filter.draw_particles(current_frame, Scalar(0,255,255));
 			rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
 			Rect estimate = filter.estimate(current_frame, true);
-			double r1 = performance.calc(ground_truth, estimate);
+			for (size_t i = 0; i < dppResults.size(); i++){
+	        	rectangle( current_frame, dppResults.at(i), Scalar(255,0,0), 1, LINE_AA );
+	    	}
+			//double r1 = performance.calc(ground_truth, estimate);
 			/*if(r1 < 0.1) {
 				filter.reinitialize();
 				reinit_rate += 1.0;

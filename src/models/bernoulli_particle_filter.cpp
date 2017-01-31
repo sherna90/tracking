@@ -131,13 +131,30 @@ void BernoulliParticleFilter::reinitialize(){
 }
 
 void BernoulliParticleFilter::predict(){
-	Scalar sum_weights = sum(this->weights);
-
-	//revisar escala
+	/************** logsumexp **************/
+	vector<double> normalized_weights(this->weights.size());
+	double logsumexp = 0.0;
+    double max_value = *max_element(this->weights.begin(), this->weights.end());
+    for (size_t i = 0; i < this->weights.size(); i++) {
+    	if (std::isnan(this->weights[i])) {
+    		this->weights[i]=log(std::numeric_limits<double>::epsilon());
+        }
+        logsumexp += exp(this->weights[i] - max_value);
+    }
+    
+    double norm_const = max_value + log(logsumexp);
+    for (size_t i = 0; i < this->weights.size(); i++) {
+        normalized_weights.at(i) = exp(this->weights.at(i) - norm_const);
+    }
+    /***************************************/
+	//Scalar sum_weights = sum(this->weights);
+	Scalar sum_weights = sum(normalized_weights);
+    
 	this->new_existence_prob = BIRTH_PROB * (1 - this->existence_prob) + (SURVIVAL_PROB * sum_weights[0] * this->existence_prob);
 
-	//cout << "old_existence_prob: " << this->existence_prob << endl;	
-	//cout << "new_existence_prob: " << this->new_existence_prob << endl;
+	cout << "old_existence_prob: " << this->existence_prob << endl;	
+	cout << "new_existence_prob: " << this->new_existence_prob << endl;
+
 
 	if (this->initialized)
 	{
@@ -193,7 +210,7 @@ void BernoulliParticleFilter::predict(){
 		/*********************** Generate birth particles ***********************/
 		uniform_int_distribution<int> random_new_born_x(0, this->img_size.width);
 		uniform_int_distribution<int> random_new_born_y(0, this->img_size.height);
-		double weight = -log(NEWBORN_PARTICLES);
+		//double weight = -log(NEWBORN_PARTICLES);
 		for (int i = 0; i < NEWBORN_PARTICLES; ++i)
 		{
 			particle state;
@@ -226,7 +243,7 @@ void BernoulliParticleFilter::predict(){
 				&& (_height > 0)));
 			//cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << endl;
 			tmp_states.push_back(state);
-			tmp_weights.push_back(weight);
+			tmp_weights.push_back(-log(NEWBORN_PARTICLES));
 			//this->sampleBox.push_back(Rect(state.x, state.y, state.width, state.height));
 		}
 		this->weights.swap(tmp_weights);
@@ -245,6 +262,11 @@ void BernoulliParticleFilter::predict(){
 		this->states.swap(tmp_states);
 		this->weights.swap(normalized_weights);
 	}
+
+	/****************** limit range ******************/
+	if(this->new_existence_prob > 0.999) this->new_existence_prob = 0.999;
+	if(this->new_existence_prob < 0.001) this->new_existence_prob = 0.001;
+	/*************************************************/
 
 	/*cout << "predict" << endl;
 	for (size_t i = 0; i < this->weights.size(); ++i)
@@ -277,6 +299,16 @@ void BernoulliParticleFilter::update(Mat& image, vector<Rect> detections){
             psi.row(i) = DETECTION_RATE * weight * gaussian.log_likelihood(observations).array().exp();
         }
 
+        for (size_t i = 0; i < 100; ++i)
+        {
+        	cout << psi.row(i).sum() << ",";
+        }
+        cout << endl << "NEWBORN_PARTICLES" << endl;
+        for (size_t i = 100; i < 200; ++i)
+        {
+        	cout << psi.row(i).sum() << ",";
+        }
+
         VectorXd tau = VectorXd::Zero(detections.size());
         tau = psi.colwise().sum();
         
@@ -290,17 +322,29 @@ void BernoulliParticleFilter::update(Mat& image, vector<Rect> detections){
         for (size_t i = 0; i < this->weights.size(); ++i)
         {
             double weight = this->weights[i];
-            tmp_weights.push_back(log(weight * (1 - DETECTION_RATE) + eta.sum()));
+            //tmp_weights.push_back(log(weight * (1 - DETECTION_RATE) + eta.sum()));
+            tmp_weights.push_back(weight * (1 - DETECTION_RATE) + eta.sum());
         }
 
         this->weights.swap(tmp_weights);
 
+        /*for (size_t i = 0; i < this->weights.size(); ++i)
+        {
+        	cout << this->weights.at(i) << ",";
+        }
+        cout << endl;*/
         /************** update existence probability **************/
         Scalar sum_weights = sum(this->weights);
+
         double lambda_c = 20.0;
         double pdf_c = 1.6e-4;
-        //this->existence_prob = (log(this->new_existence_prob) + sum_weights[0]) - log( (lambda_c * pdf_c) * (1 - this->new_existence_prob) + (this->new_existence_prob * sum_weights[0]) );
-        //cout << "existence_prob: " << this->existence_prob << endl;
+        
+        this->existence_prob =  (this->new_existence_prob * sum_weights[0]) / ( ( (lambda_c * pdf_c) * (1 - this->new_existence_prob) ) + ( this->new_existence_prob + sum_weights[0]) );
+	    /****************** limit range ******************/
+		if(this->existence_prob > 0.999) this->existence_prob = 0.999;
+		if(this->existence_prob < 0.001) this->existence_prob = 0.001;
+		/*************************************************/
+
         /**********************************************************/
 
 
@@ -330,18 +374,11 @@ void BernoulliParticleFilter::resample(){
     vector<double> squared_normalized_weights(num_states);
     uniform_real_distribution<double> unif_rnd(0.0,1.0);
     
-    double logsumexp = 0.0;
-    double max_value = *max_element(this->weights.begin(), this->weights.end());
+    Scalar sum_weights = sum(this->weights);
+
     for (size_t i = 0; i < this->weights.size(); i++) {
-    	if (std::isnan(this->weights[i])) {
-    		this->weights[i]=log(std::numeric_limits<double>::epsilon());
-        }
-        logsumexp += exp(this->weights[i] - max_value);
-    }
-    
-    double norm_const = max_value + log(logsumexp);
-    for (size_t i = 0; i < this->weights.size(); i++) {
-        normalized_weights.at(i) = exp(this->weights.at(i) - norm_const);
+        //normalized_weights.at(i) = exp(this->weights.at(i) - norm_const);
+        normalized_weights.at(i) = this->weights.at(i) / sum_weights[0];
     }
     
     for (size_t i = 0; i < this->weights.size(); i++) {

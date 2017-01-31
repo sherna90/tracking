@@ -68,6 +68,10 @@ void TestBernoulliParticleFilter::run(){
 
 	   	if(!filter.is_initialized()){
 	   		filter.initialize(current_frame, ground_truth);
+	   		filter.draw_particles(current_frame, Scalar(0,255,255));
+	   		/*string s;
+	   		s = "../../images/"+std::to_string(k)+".png";
+	   		imwrite(s, current_frame);*/
 		}else{
 			filter.predict();
 			filter.update(current_frame, dppResults);
@@ -75,10 +79,13 @@ void TestBernoulliParticleFilter::run(){
 			rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
 			Rect estimate = filter.estimate(current_frame, true);
 			double r1 = performance.calc(ground_truth, estimate);
-			if(r1 < 0.1) {
+			/*if(r1 < 0.1) {
 				filter.reinitialize();
 				reinit_rate += 1.0;
-	  		}
+	  		}*/
+			/*string s;
+	   		s = "../../images/"+std::to_string(k)+".png";
+	   		imwrite(s, current_frame);*/
 		}
 		imshow("Tracker", current_frame);
 		waitKey(1);

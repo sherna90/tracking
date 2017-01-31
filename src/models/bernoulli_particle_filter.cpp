@@ -5,7 +5,7 @@ const float POS_STD = 3.0;
 const float SCALE_STD = 0.5;
 const float OVERLAP_RATIO = 0.8;
 const float THRESHOLD = 1000;
-const int NEWBORN_PARTICLES = 0;
+const int NEWBORN_PARTICLES = 10;
 
 const float SURVIVAL_PROB = 0.99;
 const float INITIAL_EXISTENCE_PROB = 0.99;
@@ -196,7 +196,7 @@ void BernoulliParticleFilter::predict(){
 		/*********************** Generate birth particles ***********************/
 		uniform_int_distribution<int> random_new_born_x(0, this->img_size.width-this->reference_roi.width);
 		uniform_int_distribution<int> random_new_born_y(0, this->img_size.height-this->reference_roi.width);
-		double nb_weight = 1.0f/NEWBORN_PARTICLES;
+		double nb_weight = BIRTH_PROB*(1-this->existence_prob)/NEWBORN_PARTICLES;
 		for (int i = 0; i < NEWBORN_PARTICLES; ++i)
 		{
 			particle state;

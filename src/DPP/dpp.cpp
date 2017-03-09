@@ -1,6 +1,13 @@
 #include "dpp.hpp"
 
-DPP::DPP(){}
+DPP::DPP(){
+	int p = 1000;
+	int n = 500;
+	int iterations = 2000;
+	double beta = 0.75;
+	double lambda = sqrt(2*n*log(p));
+	this->apgLasso = APG_LASSO(iterations, beta, lambda);
+}
 
 MatrixXd DPP::squared_exponential_kernel(MatrixXd X, double nu, double sigma_f){
     MatrixXd Cov;
@@ -14,7 +21,7 @@ MatrixXd DPP::squared_exponential_kernel(MatrixXd X, double nu, double sigma_f){
           double d = ( X(i,k) - X(j,k));
           S += exp(nu) * d * d;
         }
-        Cov(i,j) =  exp(sigma_f - 0.5 * S);
+        Cov(i,j) = exp(sigma_f - 0.5 * S);
         Cov(j,i) = Cov(i,j);
       }
     }
@@ -24,7 +31,8 @@ MatrixXd DPP::squared_exponential_kernel(MatrixXd X, double nu, double sigma_f){
     return Cov;
 } 
 
-vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, MatrixXd &featureValues, double alpha, double lambda, double beta, double mu, double epsilon)
+vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, MatrixXd &featureValues, 
+	double alpha, double lambda, double beta, double mu, double epsilon)
 {
 	VectorXd area(preDetections.size());
 	//cout << "preDetections size: " << preDetections.size() << endl;
@@ -64,13 +72,13 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ma
 	
 	nContain = nContain.array() - 1;
 	VectorXd nPenalty = nContain.array().exp().pow(lambda);
-	VectorXd qualityTerm = get_quality_term(detectionWeights, nPenalty, alpha, beta);
-
-	//cout << qualityTerm << endl;
 	
-	//cout << "st" << endl;
+	//VectorXd qualityTerm = get_quality_term(detectionWeights, nPenalty, alpha, beta);
+	//VectorXd qualityTerm = get_quality_term(featureValues, detectionWeights);
+	VectorXd qualityTerm = detectionWeights;
+
 	MatrixXd similarityTerm = get_similarity_term(featureValues, intersectionArea, sqrtArea, mu);
-	//cout << "Kernel done" << endl;
+	
 	vector<int> top = solve(qualityTerm, similarityTerm, epsilon);	
 	
 	vector<Rect> respDPP;
@@ -81,6 +89,11 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ma
 	
 	return respDPP;
 	
+}
+
+VectorXd DPP::get_quality_term(MatrixXd &featureValues, VectorXd &detectionWeights){
+	apgLasso.fit(featureValues, detectionWeights, 0.01);
+	return apgLasso.predict();
 }
 
 VectorXd DPP::get_quality_term(VectorXd &detectionWeights, VectorXd &nPenalty, double alpha, double beta){
@@ -106,8 +119,8 @@ MatrixXd DPP::get_similarity_term(MatrixXd &featureValues, MatrixXd &intersectio
 	 ****/
 
 	MatrixXd Ss = intersectionArea.array() / sqrtArea.array();
-	MatrixXd Sc = squared_exponential_kernel(featureValues, -3.9, 0);
-	//MatrixXd Sc = featureValues * featureValues.adjoint();
+	//MatrixXd Sc = squared_exponential_kernel(featureValues, 0, 0);
+	MatrixXd Sc = featureValues * featureValues.adjoint();
 	MatrixXd S = mu * Ss.array() + (1 - mu) * Sc.array();
 	return S;
 }
@@ -147,7 +160,7 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 			newS.block(newS.rows() - 1, 0, 1, newS.cols() - 1) << tmp.transpose();
 
 			double obj_ = qualityTerm(remained(i)) * newS.determinant();
-			//cout << newS.determinant() << ","<< qualityTerm(remained(i)) << ","<< maxObj_ << endl;
+			//cout << obj_  << ","<< maxObj_ << endl;
 			if (obj_ > maxObj_)
 			{
 				selected = i;
@@ -158,8 +171,8 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 		}
 
 		double maxObj = prodQ * maxObj_ ;
-		//cout << maxObj / oldObj << ","<< 1 + epsilon << endl;
-		if ( (maxObj / oldObj) > (1 + epsilon) )
+		cout << maxObj / oldObj << ","<<  1+epsilon << endl;
+		if ( (maxObj / oldObj) > ( epsilon) )
 		{
 			top.push_back(remained(selected));
 			oldObj = maxObj;

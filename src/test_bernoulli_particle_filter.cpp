@@ -1,15 +1,5 @@
 #include "test_bernoulli_particle_filter.hpp"
 
-#ifndef PARAMS
-const int STEPSLIDE = 10;
-//DPP's parameters
-const double ALPHA = 0.9;
-const double LAMBDA = -0.1;
-const double BETA = 1.1;
-const double MU = 0;
-const double EPSILON = 0.4;
-#endif
-
 TestBernoulliParticleFilter::TestBernoulliParticleFilter(string _firstFrameFilename, string _gtFilename, int _num_particles){
 	imageGenerator generator(_firstFrameFilename,_gtFilename);
 	num_particles = _num_particles;
@@ -31,77 +21,27 @@ void TestBernoulliParticleFilter::run(){
 
 	VectorXd weights;
 	MatrixXd featureValues;
-	vector<Rect> dppResults, preDetections;	
+	vector<Rect> dppResults, preDetections;
 
-	for(int k = 0; k <num_frames; ++k){
+	for(int k = 0; k < num_frames; ++k){
 		current_gt = gt_vec[k];
 		ground_truth = generator.stringToRect(current_gt);
 		current_frame = images[k].clone();
 
-		/*************** DPP ***************/
-		Mat grayImg;
-		cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-		/***********************************/
-
-	   	if(!filter.is_initialized()){
+	   	if(!filter.is_initialized())
+	   	{
 	   		filter.initialize(current_frame, ground_truth);
-	   		filter.draw_particles(current_frame, Scalar(0,255,255));
-			int left = MAX(ground_truth.x, 1);
-			int top = MAX(ground_truth.y, 1);
-			int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
-			int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
-			Rect reference_roi = Rect(left, top, right - left, bottom - top);
-			weights.resize(0);
-			preDetections.clear();
-			dppResults.clear();
-			for(int row = 0; row <= grayImg.rows - reference_roi.height; row+=STEPSLIDE){
-				for(int col = 0; col <= grayImg.cols - reference_roi.width; col+=STEPSLIDE){
-				Rect current_window(col, row, reference_roi.width, reference_roi.height);
-				Rect intersection = reference_roi & current_window;
-				preDetections.push_back(current_window);
-				weights.conservativeResize( weights.size() + 1 );
-				weights(weights.size() - 1) = intersection.area();
-				}
-			}
-			featureValues = MatrixXd(this->haar.featureNum, preDetections.size());
-		   	this->haar.init(grayImg, reference_roi, preDetections);
-		   	cv2eigen(this->haar.sampleFeatureValue, featureValues);
-		   	featureValues.transposeInPlace();
-		   	dppResults = this->dpp.run(preDetections, weights, featureValues, ALPHA, LAMBDA, BETA, MU, EPSILON);
-		   	
-		}else{
+	   		//filter.draw_particles(current_frame, Scalar(0,255,255));
+		}
+		else{
 			filter.predict();
-			filter.update(current_frame, dppResults);
-			filter.draw_particles(current_frame, Scalar(0,255,255));
+			filter.update(current_frame);
+			//filter.draw_particles(current_frame, Scalar(0,255,255));
 			rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
 			Rect estimate = filter.estimate(current_frame, true);
-			for (size_t i = 0; i < dppResults.size(); i++){
-	        	rectangle( current_frame, dppResults.at(i), Scalar(255,0,0), 1, LINE_AA );
-	    	}
-			int left = MAX(estimate.x, 1);
-			int top = MAX(estimate.y, 1);
-			int right = MIN(estimate.x + estimate.width, current_frame.cols - 1);
-			int bottom = MIN(estimate.y + estimate.height, current_frame.rows - 1);
-			Rect update_roi = Rect(left, top, right - left, bottom - top);
-			weights.resize(0);
-			preDetections.clear();
-			dppResults.clear();
-			for(int row = 0; row <= grayImg.rows - update_roi.height; row+=STEPSLIDE){
-				for(int col = 0; col <= grayImg.cols - update_roi.width; col+=STEPSLIDE){
-				Rect current_window(col, row, update_roi.width, update_roi.height);
-				Rect intersection = update_roi & current_window;
-				preDetections.push_back(current_window);
-				weights.conservativeResize( weights.size() + 1 );
-				weights(weights.size() - 1) = intersection.area();
-				}
-			}
-			featureValues = MatrixXd(this->haar.featureNum, preDetections.size());
-		   	this->haar.init(grayImg, update_roi, preDetections);
-		   	cv2eigen(this->haar.sampleFeatureValue, featureValues);
-		   	featureValues.transposeInPlace();
-		   	dppResults = this->dpp.run(preDetections, weights, featureValues, ALPHA, LAMBDA, BETA, MU, EPSILON);		}
-			imshow("Tracker", current_frame);
-			waitKey(1);
+		}
+		imshow("Tracker", current_frame);
+		waitKey(1);
   	}
 	time(&end);
 	double sec = difftime (end, start);

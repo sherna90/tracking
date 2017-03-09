@@ -18,6 +18,12 @@
 
 #include "../likelihood/gaussian.hpp"
 #include "../likelihood/multivariate_gaussian.hpp"
+//#include "../likelihood/hamiltonian_monte_carlo.hpp"
+#include "../likelihood/hmc.hpp"
+#include "../likelihood/logistic_regression.hpp"
+#include "../features/haar.hpp"
+#include "../features/local_binary_pattern.hpp"
+#include "../DPP/dpp.hpp"
 
 using namespace cv;
 using namespace std;
@@ -46,7 +52,7 @@ public:
 	void initialize(Mat& current_frame, Rect ground_truth);
 	void reinitialize();
 	void predict();
-	void update(Mat& image, vector<Rect> detections);
+	void update(Mat& image);
 	void draw_particles(Mat& image, Scalar color = Scalar(0, 255, 255));
 	void resample();
 	Rect estimate(Mat& image, bool draw = false);
@@ -64,6 +70,16 @@ private:
 	float ESS;
 	//vector<Rect> sampleBox;
 	double existence_prob, new_existence_prob;
+	
+	DPP dpp;
+	Haar haar;
+	LocalBinaryPattern local_binary_pattern;
+	PCA pca;
+	Hamiltonian_MC hamiltonian_monte_carlo;
+	LogisticRegression logistic_regression;
+	MatrixXd featureValues;
+	VectorXd intersectionArea;
+	vector<Rect> dppResults, preDetections;
 };
 
 #endif

@@ -93,7 +93,7 @@ MatrixXd LogisticRegression::computeHessian(const MatrixXd &_X,  VectorXd &_Y,Ro
 }
 
 VectorXd LogisticRegression::predict(MatrixXd &_X,bool prob){
-	//Hessian = ComputeHessian(*X_train,*Y_train,weights);
+	MVNGaussian posterior(weights.transpose(),Hessian);
 	//cout << "data " << Y_train->rows() << "," << Y_train->cols() << "," << X_train->rows() << "," << X_train->cols() << endl;
 	MatrixXd *X_test=&_X;
 	//X_test->rowwise()-=featureMeans.transpose();
@@ -104,18 +104,15 @@ VectorXd LogisticRegression::predict(MatrixXd &_X,bool prob){
 	}
 	else{
 		phi=sigmoid(eta);
-		phi.noalias() = phi.unaryExpr([](double elem){
-	    	return (elem > 0.5) ? 1.0 : -1.0;
-		});
+		//phi.noalias() = phi.unaryExpr([](double elem){
+	    //	return (elem > 0.5) ? 1.0 : -1.0;
+		//});
 	}
 	/*int n_samples=100;
-	MVNGaussian posterior(weights.transpose(),Hessian);
 	for(int i=0; i< n_samples;i++){
 		VectorXd sample_weight=posterior.sample();
-		cout << sample_weight.size() << endl;
-		cout << X_test->rows() << "," << X_test->cols() << endl;
 		VectorXd eta = *X_test*sample_weight;
-		//phi+=(1.0/n_samples)*Sigmoid(eta);	
+		phi+=(1.0/n_samples)*sigmoid(eta);	
 	}*/
 	return phi;
 }

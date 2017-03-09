@@ -7,6 +7,8 @@
 #include <Eigen/Dense>
 #include <iostream>
 
+#include "apg_lasso.hpp"
+
 using namespace cv;
 using namespace std;
 using namespace Eigen;
@@ -20,9 +22,11 @@ public:
 
 private:
 	VectorXd get_quality_term(VectorXd &detectionWeights, VectorXd &nPenalty, double alpha, double beta);
+	VectorXd get_quality_term(MatrixXd &featureValues, VectorXd &detectionWeights);
 	MatrixXd get_similarity_term(MatrixXd &featureValues, MatrixXd &intersectionArea, MatrixXd &sqrtArea, double mu);
 	vector<int> solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double epsilon);
 	MatrixXd squared_exponential_kernel(MatrixXd X, double nu, double sigma_f);
+	APG_LASSO apgLasso;
 };
 
 #endif

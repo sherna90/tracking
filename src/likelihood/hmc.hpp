@@ -27,7 +27,7 @@ public:
 	Hamiltonian_MC(MatrixXd &_X, MatrixXd &_data);
 	void run(int _iterations, double _step_size, int _num_step);
 	VectorXd simulation(VectorXd &_initial_x);
-	VectorXd predict(MatrixXd &_X_test);
+	VectorXd predict(MatrixXd &_X_test, bool prob = true);
 	MatrixXd predict();
 	virtual VectorXd gradient(VectorXd &weights, MatrixXd &);
 	virtual double logPosterior(VectorXd &weights, MatrixXd &_data);

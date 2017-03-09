@@ -5,14 +5,11 @@ APG_LASSO::APG_LASSO(){
 	init = false;
 }
 
-
 APG_LASSO::APG_LASSO(int _iterations, double _beta, double _lambda){
 	iterations = _iterations;
 	beta = _beta;
 	lambda = _lambda;
 	init = true;
-
-
 }
 
 //Objective function: f(x) + lambda*norm1(x)
@@ -25,7 +22,6 @@ double APG_LASSO::objetive_Function(MatrixXd &A, VectorXd &x, VectorXd &b){
 		cout << "Error: No initialized function"<< endl;
 	}
 	return Of;
-
 }
 
 //f(x) = (1/2)||Ax-b||^2
@@ -39,7 +35,6 @@ double APG_LASSO::function(MatrixXd &A, VectorXd &x, VectorXd &b){
 		cout << "Error: No initialized function"<< endl;
 	}
 	return Ax_b;
-
 }
 
 //gradient of f(x)
@@ -68,7 +63,6 @@ double APG_LASSO::modelFunction(VectorXd &x, VectorXd &xk, MatrixXd &A, VectorXd
 		cout << "Error: No initialized function"<< endl;
 	}
 	return model;
-
 }
 
 //Shrinkage or Proximal operation, Soft Thresholding
@@ -134,7 +128,7 @@ void APG_LASSO::fit(MatrixXd &A, VectorXd &b, double _step_lenght){
  			//Line search
 			while (true){
 				//Accelerated Gradient Descent (GD) Step
-				x_kplus1_acc = yk_acc  - step_lenght*gradient(A,yk_acc,b);
+				x_kplus1_acc = yk_acc - step_lenght*gradient(A,yk_acc,b);
 				if (function(A,x_kplus1_acc,b) <= modelFunction(x_kplus1_acc,xk_acc, A, b, step_lenght)){
 					break;
 				}
@@ -148,7 +142,7 @@ void APG_LASSO::fit(MatrixXd &A, VectorXd &b, double _step_lenght){
  			double t_kplus1_acc = 0.5 + 0.5*sqrt(1+ 4*(pow(tk_acc,2)));
  			VectorXd y_kplus1_acc = x_kplus1_acc + ((tk_acc -1) / (tk_acc +1)) * (x_kplus1_acc - xk_acc);
 
- 			//Change in the value of objective funtion for this iteration
+ 			//Change in the value of objective function for this iteration
  			Dobj_acc = fabs(objetive_Function(A, xk_acc, b)) -(objetive_Function(A, x_kplus1_acc, b));
 
  			//Update
@@ -156,14 +150,12 @@ void APG_LASSO::fit(MatrixXd &A, VectorXd &b, double _step_lenght){
  			yk_acc = y_kplus1_acc;
  			tk_acc = t_kplus1_acc;
 
- 			
- 			cout << Dobj_acc << endl;
+ 			//cout << Dobj_acc << endl;
  			//Terminating Condition        
  			if (Dobj_acc < 1.0)
  			{
  				break;
  			}
-
  			
  		}
  		weights = xk_acc;
@@ -174,15 +166,11 @@ void APG_LASSO::fit(MatrixXd &A, VectorXd &b, double _step_lenght){
 	}
 }
 
-
 VectorXd APG_LASSO::predict(){
 	VectorXd predict;
 	if (init)
-	{	
-		
+	{			
 		predict = weights;
-
-
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;

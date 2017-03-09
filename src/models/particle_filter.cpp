@@ -234,6 +234,23 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
                 hamiltonian_monte_carlo = Hamiltonian_MC(eigen_sample_feature_value, labels,lambda);
                 hamiltonian_monte_carlo.run(1e3,1e-2,10);
                 //hamiltonian_monte_carlo.fit_map(3);
+
+                VectorXd phi = this->hamiltonian_monte_carlo.predict(eigen_sample_feature_value);
+                cout << "phi" << endl;
+                int sum = 0;
+                for (int i = 0; i < 100; ++i)
+                {
+                    cout << phi(i) << ",";
+                    sum+=phi(i);
+                }
+                cout << endl << "sum positivos: " << sum << endl;
+                sum=0;
+                for (int i = 100; i < 200; ++i)
+                {
+                    cout << phi(i) << ",";
+                    sum+=phi(i);
+                }
+                cout << endl << "sum negativos: " << sum << endl;
             }
 
             if(LBP_FEATURE){
@@ -422,7 +439,6 @@ void particle_filter::predict(){
         tmp_new_states = vector<particle>();
     }
 }
-
 
 void particle_filter::draw_particles(Mat& image, Scalar color=Scalar(0,255,255)){
     for (int i=0;i<n_particles;i++){

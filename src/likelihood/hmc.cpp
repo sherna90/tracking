@@ -113,13 +113,13 @@ void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
 	}
 }
 
-VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test){
+VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test, bool prob){
 	VectorXd predict;
 	if (init)
 	{	
 
 		logistic_regression.setWeights(mean_weights);
-		predict = logistic_regression.predict(_X_test, true);
+		predict = logistic_regression.predict(_X_test, prob);
 		return predict;
 		
 	}

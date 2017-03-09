@@ -34,9 +34,7 @@ void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
 		VectorXd initial_x = VectorXd::Random(dim);
 		for (int i = 0; i < _iterations; ++i)
 		{	
-
 			_weights.row(i) = simulation(initial_x);
-			
 		}
 		weights = _weights;
 	}
@@ -45,7 +43,7 @@ void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
 	}
 }
 
-VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test){
+VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test, bool prob){
 	VectorXd predict;
 	if (init)
 	{	
@@ -57,7 +55,7 @@ VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test){
 		//	mean_weights = VectorXd::Random(dim);
 		//}
 		logistic_regression.setWeights(mean_weights);
-		predict = logistic_regression.predict(_X_test);
+		predict = logistic_regression.predict(_X_test,prob);
 		return predict;
 		
 	}

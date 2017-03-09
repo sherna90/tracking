@@ -5,7 +5,7 @@ const float POS_STD = 3.0;
 const float SCALE_STD = 0.5;
 const float OVERLAP_RATIO = 0.8;
 const float THRESHOLD = 1000;
-const int NEWBORN_PARTICLES = 10;
+const int NEWBORN_PARTICLES = 0;
 
 const float SURVIVAL_PROB = 0.99;
 const float INITIAL_EXISTENCE_PROB = 0.99;
@@ -13,8 +13,16 @@ const float BIRTH_PROB = 0.1;
 const float DETECTION_RATE = 0.9;
 const float CLUTTER_RATE = 1;
 const float POSITION_LIKELIHOOD_STD = 10.0;
-const float LAMBDA_C = 20.0;
+const float LAMBDA_C= 20.0;
 const float PDF_C = 1.6e-4;
+
+const int STEPSLIDE = 5;
+//DPP's parameters
+const double ALPHA = 0.9;
+const double LAMBDA = -0.1;
+const double BETA = 1.1;
+const double MU = 0.0;
+const double EPSILON = 0.2;
 #endif
 
 BernoulliParticleFilter::~BernoulliParticleFilter(){}
@@ -46,10 +54,14 @@ bool BernoulliParticleFilter::is_initialized(){
 }
 
 void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
+	vector<Rect> sample_boxes;
+
 	this->img_size = current_frame.size();
 
 	normal_distribution<double> position_random_x(0.0, this->theta_x.at(0)(0));
 	normal_distribution<double> position_random_y(0.0, this->theta_x.at(0)(1));
+
+	normal_distribution<double> negative_random_pos(0.0,20.0);
 
 	this->states.clear();
 	this->weights.clear();
@@ -65,7 +77,7 @@ void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
 		&& ((this->reference_roi.x + this->reference_roi.width) < this->img_size.width)
 		&& (this->reference_roi.height > 0)
 		&& ((this->reference_roi.y + this->reference_roi.height) < this->img_size.height) )
-		{
+	{
 		for (int i = 0; i < this->n_particles; ++i)
 		{
 			particle state;
@@ -112,13 +124,84 @@ void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
 				state.height = cvRound(this->reference_roi.height);
 				state.scale = 1.0;
 			}
-			cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << "\tweight: " << weight << endl;
+			//cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << "\tweight: " << weight << endl;
 			this->states.push_back(state);
 			this->weights.push_back(weight);
+			sample_boxes.push_back(Rect(state.x,state.y,state.width,state.height));
 		}
+
+		for (int i = 0; i < n_particles; i++){
+            Rect box = this->reference_roi;
+            Rect intersection = (box & this->reference_roi);
+            while( double(intersection.area())/double(this->reference_roi.area()) > OVERLAP_RATIO ){
+                float _dx = negative_random_pos(generator);
+                float _dy = negative_random_pos(generator);
+                box.x = MIN(MAX(cvRound(this->reference_roi.x + _dx), 0), this->img_size.width);
+                box.y = MIN(MAX(cvRound(this->reference_roi.y + _dy), 0), this->img_size.height);
+                box.width = MIN(MAX(cvRound(this->reference_roi.width), 0), this->img_size.width - box.x);
+                box.height = MIN(MAX(cvRound(this->reference_roi.height), 0), this->img_size.height - box.y);
+                intersection = (box & this->reference_roi);
+            }
+            sample_boxes.push_back(box); 
+        }
+
 	}
+
+	/******************** Logistic Regression ********************/
+	VectorXd labels(2 * n_particles);
+    labels << VectorXd::Ones(n_particles), VectorXd::Constant(n_particles, -1.0);
+    double lambda = 0.1;
+
+    Mat grayImg;
+    cvtColor(current_frame, grayImg, CV_RGB2GRAY);
+    MatrixXd sample_feature_values;
+
+    /*this->haar.init(grayImg, this->reference_roi, sample_boxes);
+	cv2eigen(haar.sampleFeatureValue, sample_feature_values);
+	sample_feature_values.transposeInPlace();
+	this->hamiltonian_monte_carlo = Hamiltonian_MC(sample_feature_values, labels, lambda);
+    this->hamiltonian_monte_carlo.run(1e4,1e-2,3);
+    VectorXd phi = this->hamiltonian_monte_carlo.predict(sample_feature_values);*/
+
+	this->local_binary_pattern.init(grayImg, sample_boxes);
+    /*Mat features, projection_result;
+    eigen2cv(this->local_binary_pattern.sampleFeatureValue, features);
+    this->pca = PCA(features, Mat(), PCA::DATA_AS_ROW, 30);
+    this->pca.project(features, projection_result);
+    cv2eigen(projection_result, sample_feature_values);*/
+
+
+    this->hamiltonian_monte_carlo = Hamiltonian_MC(this->local_binary_pattern.sampleFeatureValue, labels, lambda);
+    this->hamiltonian_monte_carlo.run(1e3,1e-2,10);
+
+    
+    VectorXd phi = this->hamiltonian_monte_carlo.predict(this->local_binary_pattern.sampleFeatureValue, false);
+
+
+    /*this->logistic_regression = LogisticRegression(sample_feature_values, labels);
+    this->logistic_regression.train(1e3,1e-2,1e-2);
+    VectorXd phi = this->logistic_regression.predict(sample_feature_values);*/
+    
+
+    cout << "phi" << endl;
+    int sum = 0;
+    for (int i = 0; i < 100; ++i)
+    {
+        cout << phi(i) << ",";
+        sum+=(int)phi(i)>0.5;
+    }
+    cout << endl << "sum positivos: " << sum << endl;
+    sum=0;
+    for (int i = 100; i < 200; ++i)
+    {
+        cout << phi(i) << ",";
+        sum+=(int)phi(i)<0.5 ;
+    }
+    cout << endl << "sum negativos: " << sum << endl;
+	/*************************************************************/
+	
 	this->initialized = true;
-	cout << "bernoulli particle filter initialized!!!" << endl;
+	//cout << "bernoulli particle filter initialized!!!" << endl;
 }
 
 void BernoulliParticleFilter::reinitialize(){
@@ -133,9 +216,8 @@ void BernoulliParticleFilter::predict(){
     
 	this->new_existence_prob = BIRTH_PROB * (1 - this->existence_prob) + (SURVIVAL_PROB * sum_weights[0] * this->existence_prob);
 
-	cout << "old_existence_prob: " << this->existence_prob << endl;	
-	cout << "new_existence_prob: " << this->new_existence_prob << endl;
-
+	/*cout << "old_existence_prob: " << this->existence_prob << endl;	
+	cout << "new_existence_prob: " << this->new_existence_prob << endl;*/
 
 	if (this->initialized)
 	{
@@ -177,15 +259,15 @@ void BernoulliParticleFilter::predict(){
 				state.scale = 2 * state.scale - state.scale_p;
 			}
 			else{
-				state.x=state.x;
-                state.y=state.y;
-                state.x_p=reference_roi.x;
-                state.y_p=reference_roi.y;
-                state.width=cvRound(reference_roi.width);
-                state.height=cvRound(reference_roi.height);
-                state.width_p=cvRound(reference_roi.width);
-                state.height_p=cvRound(reference_roi.height);
-                state.scale=1.0f;
+				state.x = state.x;
+                state.y = state.y;
+                state.x_p = this->reference_roi.x;
+                state.y_p = this->reference_roi.y;
+                state.width = cvRound(this->reference_roi.width);
+                state.height = cvRound(this->reference_roi.height);
+                state.width_p = cvRound(this->reference_roi.width);
+                state.height_p = cvRound(this->reference_roi.height);
+                state.scale = 1.0f;
 			}
 			tmp_states.push_back(state);
 			tmp_weights.push_back(SURVIVAL_PROB*this->existence_prob*this->weights.at(i));
@@ -194,9 +276,9 @@ void BernoulliParticleFilter::predict(){
 		/***********************************************************************/
 
 		/*********************** Generate birth particles ***********************/
-		uniform_int_distribution<int> random_new_born_x(0, this->img_size.width-this->reference_roi.width);
-		uniform_int_distribution<int> random_new_born_y(0, this->img_size.height-this->reference_roi.width);
-		double nb_weight = BIRTH_PROB*(1-this->existence_prob)/NEWBORN_PARTICLES;
+		uniform_int_distribution<int> random_new_born_x(0, this->img_size.width - this->reference_roi.width);
+		uniform_int_distribution<int> random_new_born_y(0, this->img_size.height - this->reference_roi.width);
+		double nb_weight = BIRTH_PROB * (1 - this->existence_prob)/NEWBORN_PARTICLES;
 		for (int i = 0; i < NEWBORN_PARTICLES; ++i)
 		{
 			particle state;
@@ -227,7 +309,7 @@ void BernoulliParticleFilter::predict(){
 				&& (_height < this->img_size.height)
 				&& (_width > 0)
 				&& (_height > 0)));
-			cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << "\tweight: " << nb_weight << endl;
+			//cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << "\tweight: " << nb_weight << endl;
 			this->states.push_back(state);
 			tmp_states.push_back(state);
 			tmp_weights.push_back(nb_weight);
@@ -248,27 +330,67 @@ void BernoulliParticleFilter::predict(){
 	if(this->new_existence_prob < 0.001) this->new_existence_prob = 0.001;
 	/*************************************************/
 
-	cout << "predict" << endl;
-	for (size_t i = 0; i < this->weights.size(); ++i)
-    {
-    	cout << this->weights.at(i) << ",";
-    }
 	//exit(EXIT_FAILURE);
 }
 
-void BernoulliParticleFilter::update(Mat& image, vector<Rect> detections){
-	if (detections.size() > 0)
-	{
+void BernoulliParticleFilter::update(Mat& image){
+	Mat grayImg;
+	cvtColor(image, grayImg, CV_RGB2GRAY);
+	int left = MAX(this->reference_roi.x, 1);
+	int top = MAX(this->reference_roi.y, 1);
+	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
+	int bottom = MIN(this->reference_roi.y + this->reference_roi.height, image.rows - 1);
+	Rect update_roi = Rect(left, top, right - left, bottom - top);
+	this->intersectionArea.resize(0);
+	this->preDetections.clear();
+	this->dppResults.clear();
+	for(int row = 0; row <= grayImg.rows - update_roi.height; row+=STEPSLIDE){
+		for(int col = 0; col <= grayImg.cols - update_roi.width; col+=STEPSLIDE){
+			Rect current_window(col, row, update_roi.width, update_roi.height);
+			Rect intersection = update_roi & current_window;
+			this->preDetections.push_back(current_window);
+			this->intersectionArea.conservativeResize( this->intersectionArea.size() + 1 );
+			this->intersectionArea(this->intersectionArea.size() - 1) = intersection.area();
+		}
+	}
+	
+	/*this->featureValues = MatrixXd(this->haar.featureNum, this->preDetections.size());
+   	this->haar.init(grayImg, update_roi, this->preDetections);
+   	cv2eigen(this->haar.sampleFeatureValue, this->featureValues);
+   	this->featureValues.transposeInPlace();*/
+   	
+   	this->local_binary_pattern.init(grayImg, this->preDetections);
+   	this->featureValues = MatrixXd(this->preDetections.size(), this->local_binary_pattern.sampleFeatureValue.cols());
+   	this->featureValues << this->local_binary_pattern.sampleFeatureValue;
 
+   	/*Mat features, projection_result;
+   	eigen2cv(this->featureValues, features);
+   	this->pca.project(features, projection_result);
+    cv2eigen(projection_result, this->featureValues);*/
+
+
+
+   	VectorXd phi = this->hamiltonian_monte_carlo.predict(this->featureValues,false);
+   	//VectorXd phi = this->logistic_regression.predict(this->featureValues);
+
+   	this->dppResults = this->dpp.run(this->preDetections, phi, this->featureValues, ALPHA, LAMBDA, BETA, MU, EPSILON);
+   	cout << "---------------" << endl;
+   	for (size_t i = 0; i < this->dppResults.size(); ++i)
+   	{
+   		rectangle( image, dppResults.at(i), Scalar(255,0,0), 1, LINE_AA );
+   	}
+
+	if (this->dppResults.size() > 0)
+	{
 		vector<double> tmp_weights;
 		MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
 
-		MatrixXd observations = MatrixXd::Zero(detections.size(), 4);
-		for (size_t i = 0; i < detections.size(); i++){
-            observations.row(i) << detections[i].x, detections[i].y, detections[i].width, detections[i].height;
+		MatrixXd observations = MatrixXd::Zero(this->dppResults.size(), 4);
+		for (size_t i = 0; i < this->dppResults.size(); i++){
+            observations.row(i) << this->dppResults[i].x, this->dppResults[i].y, this->dppResults[i].width, this->dppResults[i].height;
         }
 
-        MatrixXd psi(this->states.size(), detections.size());
+        MatrixXd psi(this->states.size(), this->dppResults.size());
         for (size_t i = 0; i < this->states.size(); ++i)
         {
         	particle state = this->states[i];
@@ -277,8 +399,9 @@ void BernoulliParticleFilter::update(Mat& image, vector<Rect> detections){
         	MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
             MVNGaussian gaussian(mean, cov);
             double weight = this->weights[i];
-            psi.row(i) =   gaussian.log_likelihood(observations).array().exp();
+            psi.row(i) = gaussian.log_likelihood(observations).array().exp();
         }
+
         /*cout << "\nPSI" << endl;
         for (int i = 0; i < this->n_particles; ++i)
         {
@@ -288,12 +411,11 @@ void BernoulliParticleFilter::update(Mat& image, vector<Rect> detections){
         for (int i = this->n_particles; i < this->n_particles+NEWBORN_PARTICLES; ++i)
         {
         	cout << psi.row(i).sum() << ",";
-        }
-		*/
-        VectorXd tau = VectorXd::Zero(detections.size());
+        }*/
+        VectorXd tau = VectorXd::Zero(this->dppResults.size());
         tau = psi.colwise().sum();
         
-        //for (size_t i = 0; i < detections.size(); ++i)
+        //for (size_t i = 0; i < this->dppResults.size(); ++i)
         //{
         //    psi.col(i) = psi.col(i).array() / (tau(i) + CLUTTER_RATE);
         //}
@@ -307,12 +429,7 @@ void BernoulliParticleFilter::update(Mat& image, vector<Rect> detections){
         }
 
         this->weights.swap(tmp_weights);
-    	cout << "\nupdate" << endl;
-	    for (size_t i = 0; i < this->weights.size(); ++i)
-        {
-        	cout << this->weights.at(i) << ",";
-        }
-        cout << endl;
+    	
         /************** update existence probability **************/
         Scalar sum_weights = sum(this->weights);
         this->existence_prob =  (this->new_existence_prob * sum_weights[0]) / ( ( (LAMBDA_C * PDF_C) * (1 - this->new_existence_prob) ) + ( this->new_existence_prob + sum_weights[0]) );
@@ -372,11 +489,11 @@ void BernoulliParticleFilter::resample(){
 
     cumulative_sum.clear();
     normalized_weights.clear();
-    cout << "\nresample" << endl;
+    /*cout << "\nresample" << endl;
 	for (size_t i = 0; i < this->weights.size(); ++i)
     {
     	cout << this->weights.at(i) << ",";
-    }
+    }*/
     //exit(EXIT_FAILURE);
 }
 
@@ -417,6 +534,9 @@ Rect BernoulliParticleFilter::estimate(Mat& image, bool draw){
         if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 2, LINE_AA );
         estimate = Rect(pt1.x,pt1.y,_width,_height);
     }
+
+    this->reference_roi = estimate;
+
     this->estimates.push_back(estimate);
 
     return estimate;

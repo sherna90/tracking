@@ -26,7 +26,7 @@ public:
 	Hamiltonian_MC(MatrixXd &_X,VectorXd &_Y, double _lamda);
 	void run(int _iterations, double _step_size, int _num_step);
 	VectorXd simulation(VectorXd &_initial_x);
-	VectorXd predict(MatrixXd &_X_test);
+	VectorXd predict(MatrixXd &_X_test, bool prob = true);
 	void fit_map(int _numstart);
 	void setData(MatrixXd &_X,VectorXd &_Y);
 private:

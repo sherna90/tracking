@@ -1,12 +1,6 @@
 #include "dpp.hpp"
 
 DPP::DPP(){
-	int p = 1000;
-	int n = 500;
-	int iterations = 2000;
-	double beta = 0.75;
-	double lambda = sqrt(2*n*log(p));
-	this->apgLasso = APG_LASSO(iterations, beta, lambda);
 }
 
 MatrixXd DPP::squared_exponential_kernel(MatrixXd X, double nu, double sigma_f){
@@ -31,54 +25,16 @@ MatrixXd DPP::squared_exponential_kernel(MatrixXd X, double nu, double sigma_f){
     return Cov;
 } 
 
-vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, MatrixXd &featureValues, 
+vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights,VectorXd &penaltyWeights, MatrixXd &featureValues, 
 	double alpha, double lambda, double beta, double mu, double epsilon)
 {
-	VectorXd area(preDetections.size());
-	//cout << "preDetections size: " << preDetections.size() << endl;
-	MatrixXd intersectionArea(preDetections.size(), preDetections.size());
 
-	for (size_t i = 0; i < preDetections.size(); ++i)
-	{
-		Rect bbox = preDetections.at(i);
-		area(i) = bbox.width * bbox.height;
-		//cout << "bbox.width: " << bbox.width << "\tbbox.height: " << bbox.height << "\tarea: " << area(i) << endl;
-		
-		/*for (size_t j = 0; j < preDetections.size(); ++j)
-		{	
-			Rect bbox2 = preDetections.at(j);
-			intersectionArea(i,j) = double((bbox & bbox2).area());
-		}*/
-		for (size_t j = i; j < preDetections.size(); ++j)
-		{	
-			Rect bbox2 = preDetections.at(j);
-			intersectionArea(i,j) = intersectionArea(j,i) = double((bbox & bbox2).area());
-		}
-			
-	}
-
-	MatrixXd sqrtArea = area.cwiseSqrt() * area.cwiseSqrt().adjoint();
-	MatrixXd rIntersectionArea = intersectionArea.array() / area.replicate(1, area.size()).adjoint().array();
-
-	VectorXd nContain = VectorXd::Zero(rIntersectionArea.rows());
-	for (int i = 0; i < rIntersectionArea.rows(); ++i)
-	{
-		for (int j = 0; j < rIntersectionArea.cols(); ++j)
-		{
-			if(rIntersectionArea(i,j) == 1)
-				nContain(i) += 1;
-		}
-	}
-	
-	nContain = nContain.array() - 1;
-	VectorXd nPenalty = nContain.array().exp().pow(lambda);
-	
-	//VectorXd qualityTerm = get_quality_term(detectionWeights, nPenalty, alpha, beta);
+	VectorXd qualityTerm = get_quality_term(detectionWeights, penaltyWeights, lambda,alpha, beta);
 	//VectorXd qualityTerm = get_quality_term(featureValues, detectionWeights);
-	VectorXd qualityTerm = detectionWeights;
+	//VectorXd qualityTerm = detectionWeights;
 
-	MatrixXd similarityTerm = get_similarity_term(featureValues, intersectionArea, sqrtArea, mu);
-	
+	//MatrixXd similarityTerm = get_similarity_term(featureValues, intersectionArea, sqrtArea, mu);
+	MatrixXd similarityTerm = featureValues * featureValues.adjoint();
 	vector<int> top = solve(qualityTerm, similarityTerm, epsilon);	
 	
 	vector<Rect> respDPP;
@@ -91,24 +47,8 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ma
 	
 }
 
-VectorXd DPP::get_quality_term(MatrixXd &featureValues, VectorXd &detectionWeights){
-	apgLasso.fit(featureValues, detectionWeights, 0.01);
-	return apgLasso.predict();
-}
-
-VectorXd DPP::get_quality_term(VectorXd &detectionWeights, VectorXd &nPenalty, double alpha, double beta){
-	/*** 
-	 ***	Get quality term 
-	 ***	q = alpha * log(1 + s) + beta
-	 ***/
-
-	VectorXd qt = detectionWeights.cwiseProduct(nPenalty);
-	//double maxQt = qt.maxCoeff();
-	qt = qt.array() / qt.maxCoeff();
-	qt = qt.array() + 1;
-	qt = qt.array().log() / log(10);
-	qt = alpha * qt.array() + beta;
-	qt = qt.array().square();
+VectorXd DPP::get_quality_term(VectorXd &detectionWeights, VectorXd &penaltyWeights,double lambda, double alpha, double beta){
+	VectorXd qt=lambda*detectionWeights.array()+(1-lambda)*penaltyWeights.array();
 	return qt;
 }
 
@@ -118,10 +58,11 @@ MatrixXd DPP::get_similarity_term(MatrixXd &featureValues, MatrixXd &intersectio
 	 ****	S = w * S^c + (1 - w) * S^s
 	 ****/
 
-	MatrixXd Ss = intersectionArea.array() / sqrtArea.array();
+	//MatrixXd Ss = intersectionArea.array() / sqrtArea.array();
 	//MatrixXd Sc = squared_exponential_kernel(featureValues, 0, 0);
-	MatrixXd Sc = featureValues * featureValues.adjoint();
-	MatrixXd S = mu * Ss.array() + (1 - mu) * Sc.array();
+	//MatrixXd Sc = featureValues * featureValues.adjoint();
+	//MatrixXd S = mu * Ss.array() + (1 - mu) * Sc.array();
+	MatrixXd S = featureValues * featureValues.adjoint();
 	return S;
 }
 
@@ -171,8 +112,8 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 		}
 
 		double maxObj = prodQ * maxObj_ ;
-		cout << maxObj / oldObj << ","<<  1+epsilon << endl;
-		if ( (maxObj / oldObj) > ( epsilon) )
+		//cout << maxObj / oldObj << ","<<  1+epsilon << endl;
+		if ( (maxObj / oldObj) > (epsilon) )
 		{
 			top.push_back(remained(selected));
 			oldObj = maxObj;

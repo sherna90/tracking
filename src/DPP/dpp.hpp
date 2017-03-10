@@ -7,7 +7,6 @@
 #include <Eigen/Dense>
 #include <iostream>
 
-#include "apg_lasso.hpp"
 
 using namespace cv;
 using namespace std;
@@ -17,16 +16,14 @@ class DPP
 {
 public:
 	DPP();
-	vector<Rect> run(vector<Rect> preDetections, VectorXd &detectionWeights, MatrixXd &featureValues,
+	vector<Rect> run(vector<Rect> preDetections, VectorXd &detectionWeights,VectorXd &penaltyWeights,MatrixXd &featureValues,
 	 double alpha, double lambda, double beta, double mu, double epsilon);
 
 private:
-	VectorXd get_quality_term(VectorXd &detectionWeights, VectorXd &nPenalty, double alpha, double beta);
-	VectorXd get_quality_term(MatrixXd &featureValues, VectorXd &detectionWeights);
+	VectorXd get_quality_term(VectorXd &detectionWeights, VectorXd &nPenalty, double lambda, double alpha, double beta);
 	MatrixXd get_similarity_term(MatrixXd &featureValues, MatrixXd &intersectionArea, MatrixXd &sqrtArea, double mu);
 	vector<int> solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double epsilon);
 	MatrixXd squared_exponential_kernel(MatrixXd X, double nu, double sigma_f);
-	APG_LASSO apgLasso;
 };
 
 #endif

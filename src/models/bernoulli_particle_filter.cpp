@@ -16,12 +16,12 @@ const float POSITION_LIKELIHOOD_STD = 10.0;
 const float LAMBDA_C= 20.0;
 const float PDF_C = 1.6e-4;
 
-const int STEPSLIDE = 5;
+const int STEPSLIDE = 10;
 //DPP's parameters
 const double ALPHA = 0.9;
-const double LAMBDA = -0.1;
+const double LAMBDA = 0.9;
 const double BETA = 1.1;
-const double MU = 0.0;
+const double MU = 0.1;
 const double EPSILON = 0.2;
 #endif
 
@@ -171,20 +171,18 @@ void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
     cv2eigen(projection_result, sample_feature_values);*/
 
 
-    this->hamiltonian_monte_carlo = Hamiltonian_MC(this->local_binary_pattern.sampleFeatureValue, labels, lambda);
-    this->hamiltonian_monte_carlo.run(1e3,1e-2,10);
+    //this->hamiltonian_monte_carlo = Hamiltonian_MC(this->local_binary_pattern.sampleFeatureValue, labels, lambda);
+    //this->hamiltonian_monte_carlo.run(1e4,1e-2,3);
 
     
-    VectorXd phi = this->hamiltonian_monte_carlo.predict(this->local_binary_pattern.sampleFeatureValue, false);
+    //VectorXd phi = this->hamiltonian_monte_carlo.predict(this->local_binary_pattern.sampleFeatureValue, false);
 
 
-    /*this->logistic_regression = LogisticRegression(sample_feature_values, labels);
-    this->logistic_regression.train(1e3,1e-2,1e-2);
-    VectorXd phi = this->logistic_regression.predict(sample_feature_values);*/
+    this->logistic_regression = LogisticRegression(this->local_binary_pattern.sampleFeatureValue, labels);
+    this->logistic_regression.train(1e4,1e-2,1e-2);
+    VectorXd phi = this->logistic_regression.predict(this->local_binary_pattern.sampleFeatureValue, false);
     
-
-    cout << "phi" << endl;
-    int sum = 0;
+	/*int sum = 0;
     for (int i = 0; i < 100; ++i)
     {
         cout << phi(i) << ",";
@@ -197,7 +195,7 @@ void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
         cout << phi(i) << ",";
         sum+=(int)phi(i)<0.5 ;
     }
-    cout << endl << "sum negativos: " << sum << endl;
+    cout << endl << "sum negativos: " << sum << endl;*/
 	/*************************************************************/
 	
 	this->initialized = true;
@@ -350,7 +348,7 @@ void BernoulliParticleFilter::update(Mat& image){
 			Rect intersection = update_roi & current_window;
 			this->preDetections.push_back(current_window);
 			this->intersectionArea.conservativeResize( this->intersectionArea.size() + 1 );
-			this->intersectionArea(this->intersectionArea.size() - 1) = intersection.area();
+			this->intersectionArea(this->intersectionArea.size() - 1) = (double)intersection.area()/reference_roi.area();
 		}
 	}
 	
@@ -369,12 +367,10 @@ void BernoulliParticleFilter::update(Mat& image){
     cv2eigen(projection_result, this->featureValues);*/
 
 
+   	//VectorXd phi = this->hamiltonian_monte_carlo.predict(this->featureValues,false);
+   	VectorXd phi = this->logistic_regression.predict(this->featureValues,false);
 
-   	VectorXd phi = this->hamiltonian_monte_carlo.predict(this->featureValues,false);
-   	//VectorXd phi = this->logistic_regression.predict(this->featureValues);
-
-   	this->dppResults = this->dpp.run(this->preDetections, phi, this->featureValues, ALPHA, LAMBDA, BETA, MU, EPSILON);
-   	cout << "---------------" << endl;
+   	this->dppResults = this->dpp.run(this->preDetections, phi, this->intersectionArea, this->featureValues, ALPHA, LAMBDA, BETA, MU, EPSILON);
    	for (size_t i = 0; i < this->dppResults.size(); ++i)
    	{
    		rectangle( image, dppResults.at(i), Scalar(255,0,0), 1, LINE_AA );
@@ -398,7 +394,7 @@ void BernoulliParticleFilter::update(Mat& image){
         	mean << state.x, state.y, state.width, state.height;
         	MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
             MVNGaussian gaussian(mean, cov);
-            double weight = this->weights[i];
+            //double weight = this->weights[i];
             psi.row(i) = gaussian.log_likelihood(observations).array().exp();
         }
 

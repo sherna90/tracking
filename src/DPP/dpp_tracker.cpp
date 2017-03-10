@@ -67,9 +67,6 @@ void DPPTracker::update(Mat& image){
 	this->weights.resize(0);
 	this->detections.clear();
 	cvtColor(image, grayImg, CV_RGB2GRAY);
-	
-	Rect reference_roi = estimate(image);
-
 	for(int row = 0; row <= grayImg.rows - reference_roi.height; row+=STEPSLIDE){
     	for(int col = 0; col <= grayImg.cols - reference_roi.width; col+=STEPSLIDE){
       		Rect current_window(col, row,  reference_roi.width, reference_roi.height);

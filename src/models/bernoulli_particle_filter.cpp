@@ -22,7 +22,7 @@ const double ALPHA = 0.9;
 const double LAMBDA = 0.9;
 const double BETA = 1.1;
 const double MU = 0.1;
-const double EPSILON = 0.2;
+const double EPSILON = 0.6;
 #endif
 
 BernoulliParticleFilter::~BernoulliParticleFilter(){}

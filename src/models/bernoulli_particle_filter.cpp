@@ -16,13 +16,13 @@ const float POSITION_LIKELIHOOD_STD = 10.0;
 const float LAMBDA_C= 20.0;
 const float PDF_C = 1.6e-4;
 
-const int STEPSLIDE = 10;
+const int STEPSLIDE = 5;
 //DPP's parameters
 const double ALPHA = 0.9;
-const double LAMBDA = 0.9;
+const double LAMBDA = 0.5;
 const double BETA = 1.1;
 const double MU = 0.1;
-const double EPSILON = 0.2;
+const double EPSILON = 0.4;
 #endif
 
 BernoulliParticleFilter::~BernoulliParticleFilter(){}
@@ -162,8 +162,7 @@ void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
 	this->hamiltonian_monte_carlo = Hamiltonian_MC(sample_feature_values, labels, lambda);
     this->hamiltonian_monte_carlo.run(1e4,1e-2,3);
     VectorXd phi = this->hamiltonian_monte_carlo.predict(sample_feature_values);*/
-
-	this->local_binary_pattern.init(grayImg, sample_boxes);
+    this->local_binary_pattern.init(grayImg, sample_boxes);
     /*Mat features, projection_result;
     eigen2cv(this->local_binary_pattern.sampleFeatureValue, features);
     this->pca = PCA(features, Mat(), PCA::DATA_AS_ROW, 30);
@@ -361,16 +360,13 @@ void BernoulliParticleFilter::update(Mat& image){
    	this->featureValues = MatrixXd(this->preDetections.size(), this->local_binary_pattern.sampleFeatureValue.cols());
    	this->featureValues << this->local_binary_pattern.sampleFeatureValue;
 
-   	/*Mat features, projection_result;
-   	eigen2cv(this->featureValues, features);
-   	this->pca.project(features, projection_result);
-    cv2eigen(projection_result, this->featureValues);*/
-
-
+   	
    	//VectorXd phi = this->hamiltonian_monte_carlo.predict(this->featureValues,false);
    	VectorXd phi = this->logistic_regression.predict(this->featureValues,false);
 
-   	this->dppResults = this->dpp.run(this->preDetections, phi, this->intersectionArea, this->featureValues, ALPHA, LAMBDA, BETA, MU, EPSILON);
+   	VectorXd qualityTerm;
+
+   	this->dppResults = this->dpp.run(this->preDetections, phi, this->intersectionArea, this->featureValues, qualityTerm, ALPHA, LAMBDA, BETA, MU, EPSILON);
    	for (size_t i = 0; i < this->dppResults.size(); ++i)
    	{
    		rectangle( image, dppResults.at(i), Scalar(255,0,0), 1, LINE_AA );
@@ -387,6 +383,7 @@ void BernoulliParticleFilter::update(Mat& image){
         }
 
         MatrixXd psi(this->states.size(), this->dppResults.size());
+
         for (size_t i = 0; i < this->states.size(); ++i)
         {
         	particle state = this->states[i];
@@ -395,7 +392,8 @@ void BernoulliParticleFilter::update(Mat& image){
         	MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
             MVNGaussian gaussian(mean, cov);
             //double weight = this->weights[i];
-            psi.row(i) = gaussian.log_likelihood(observations).array().exp();
+
+            psi.row(i) = gaussian.log_likelihood(observations).array().exp() * qualityTerm.array();
         }
 
         /*cout << "\nPSI" << endl;

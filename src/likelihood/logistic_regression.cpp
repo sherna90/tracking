@@ -84,7 +84,7 @@ MatrixXd LogisticRegression::computeHessian(const MatrixXd &_X,  VectorXd &_Y,Ro
 	MatrixXd H=MatrixXd::Zero(dim,dim);
 	MatrixXd J=MatrixXd::Zero(rows,rows);
 	J.diagonal() << P.array()*(1-P.array()).array();
-	cout << "data " << _Y.rows() << "," << _Y.cols() << "," << _X.rows() << "," << _X.cols() << endl;
+	//cout << "data " << _Y.rows() << "," << _Y.cols() << "," << _X.rows() << "," << _X.cols() << endl;
 	MatrixXd H_temp=_X.transpose();
 	//H_temp *= J;
 	//H.noalias()=H_temp*_X;

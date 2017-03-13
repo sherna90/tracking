@@ -13,8 +13,8 @@ const float THRESHOLD=1.0;
 const float OVERLAP_RATIO=0.8;
 
 //const bool INCREMENTAL_GAUSSIAN_NAIVEBAYES=true;
-const bool GAUSSIAN_NAIVEBAYES=false;
-const bool LOGISTIC_REGRESSION=true;
+const bool GAUSSIAN_NAIVEBAYES=true;
+const bool LOGISTIC_REGRESSION=false;
 const bool MULTINOMIAL_NAIVEBAYES=false;
 
 const bool HAAR_FEATURE=true;

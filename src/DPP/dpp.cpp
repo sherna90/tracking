@@ -25,31 +25,50 @@ MatrixXd DPP::squared_exponential_kernel(MatrixXd X, double nu, double sigma_f){
     return Cov;
 } 
 
-vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights,VectorXd &penaltyWeights, MatrixXd &featureValues, 
-	double alpha, double lambda, double beta, double mu, double epsilon)
+vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, VectorXd &penaltyWeights, MatrixXd &featureValues, 
+	VectorXd &qualityTermResults, double alpha, double lambda, double beta, double mu, double epsilon)
 {
+	VectorXd area(preDetections.size());
+	MatrixXd intersectionArea(preDetections.size(), preDetections.size());
+
+	for (size_t i = 0; i < preDetections.size(); ++i)
+	{
+		Rect bbox = preDetections.at(i);
+		area(i) = bbox.width * bbox.height;
+
+		for (size_t j = 0; j < preDetections.size(); ++j)
+		{
+			Rect bbox2 = preDetections.at(j);
+			intersectionArea(i,j) = intersectionArea(i,j) = double((bbox & bbox2).area());
+		}
+	}
+
+	MatrixXd sqrtArea = area.cwiseSqrt() * area.cwiseSqrt().adjoint();
 
 	VectorXd qualityTerm = get_quality_term(detectionWeights, penaltyWeights, lambda,alpha, beta);
+	
 	//VectorXd qualityTerm = get_quality_term(featureValues, detectionWeights);
 	//VectorXd qualityTerm = detectionWeights;
 
-	//MatrixXd similarityTerm = get_similarity_term(featureValues, intersectionArea, sqrtArea, mu);
-	MatrixXd similarityTerm = featureValues * featureValues.adjoint();
+	MatrixXd similarityTerm = get_similarity_term(featureValues, intersectionArea, sqrtArea, mu);
+	//MatrixXd similarityTerm = featureValues * featureValues.adjoint();
 	vector<int> top = solve(qualityTerm, similarityTerm, epsilon);	
 	
 	vector<Rect> respDPP;
+	qualityTermResults.conservativeResize(0);
 	for (size_t i = 0; i < top.size(); ++i)
 	{
 		respDPP.push_back(preDetections.at(top.at(i)));
+		qualityTermResults.conservativeResize(qualityTermResults.size() + 1);
+		qualityTermResults(i) = qualityTerm(top.at(i));
 	}
 	
 	return respDPP;
 	
 }
 
-VectorXd DPP::get_quality_term(VectorXd &detectionWeights, VectorXd &penaltyWeights,double lambda, double alpha, double beta){
-	VectorXd qt=lambda*detectionWeights.array()+(1-lambda)*penaltyWeights.array();
-	return qt;
+VectorXd DPP::get_quality_term(VectorXd &detectionWeights, VectorXd &penaltyWeights, double lambda, double alpha, double beta){
+	return lambda * detectionWeights.array() + (1 - lambda) * penaltyWeights.array();
 }
 
 MatrixXd DPP::get_similarity_term(MatrixXd &featureValues, MatrixXd &intersectionArea, MatrixXd &sqrtArea, double mu){
@@ -58,11 +77,11 @@ MatrixXd DPP::get_similarity_term(MatrixXd &featureValues, MatrixXd &intersectio
 	 ****	S = w * S^c + (1 - w) * S^s
 	 ****/
 
-	//MatrixXd Ss = intersectionArea.array() / sqrtArea.array();
 	//MatrixXd Sc = squared_exponential_kernel(featureValues, 0, 0);
-	//MatrixXd Sc = featureValues * featureValues.adjoint();
-	//MatrixXd S = mu * Ss.array() + (1 - mu) * Sc.array();
-	MatrixXd S = featureValues * featureValues.adjoint();
+	MatrixXd Ss = intersectionArea.array() / sqrtArea.array();
+	MatrixXd Sc = featureValues * featureValues.adjoint();
+	MatrixXd S = mu * Ss.array() + (1 - mu) * Sc.array();
+	//MatrixXd S = featureValues * featureValues.adjoint();
 	return S;
 }
 

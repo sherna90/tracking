@@ -1,1 +1,1 @@
-./bernoulli_pf -img ../../../../Datasets/$1/$2/00000001.jpg -gt ../../../../Datasets/$1/$2/groundtruth.txt -npart $3
+./bernoulli_pf -img ../../../../Datasets/$1/$2/00000001.jpg -gt ../../../../Datasets/$1/$2/groundtruth.txt -npart $3 -lambda $4 -mu $5 -epsilon $6

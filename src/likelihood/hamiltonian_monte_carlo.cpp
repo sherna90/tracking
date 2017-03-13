@@ -1,11 +1,9 @@
 //Author: Diego Vergara
 #include "hamiltonian_monte_carlo.hpp"
 
-
 Hamiltonian_MC::Hamiltonian_MC(){
 	init = false;
 }
-
 
 Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, VectorXd &_Y, double _lambda){
 	lambda=_lambda;
@@ -33,7 +31,7 @@ void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
 		VectorXd initial_x = VectorXd::NullaryExpr(dim, normal);*/
 		VectorXd initial_x = VectorXd::Random(dim);
 		for (int i = 0; i < _iterations; ++i)
-		{	
+		{
 			_weights.row(i) = simulation(initial_x);
 		}
 		weights = _weights;

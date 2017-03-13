@@ -16,12 +16,12 @@ const float POSITION_LIKELIHOOD_STD = 10.0;
 const float LAMBDA_C= 20.0;
 const float PDF_C = 1.6e-4;
 
-const int STEPSLIDE = 5;
+const int STEPSLIDE = 15;
 //DPP's parameters
 const double ALPHA = 0.9;
-const double LAMBDA = 0.5;
+const double LAMBDA = 0.7;
 const double BETA = 1.1;
-const double MU = 0.1;
+const double MU = 0.7;
 const double EPSILON = 0.4;
 #endif
 
@@ -29,7 +29,7 @@ BernoulliParticleFilter::~BernoulliParticleFilter(){}
 
 BernoulliParticleFilter::BernoulliParticleFilter(){}
 
-BernoulliParticleFilter::BernoulliParticleFilter(int n_particles){
+BernoulliParticleFilter::BernoulliParticleFilter(int n_particles, double lambda, double mu, double epsilon){
 	this->n_particles = n_particles;
 	this->initialized = false;
 	this->states.clear();
@@ -47,6 +47,10 @@ BernoulliParticleFilter::BernoulliParticleFilter(int n_particles){
 	this->theta_x.push_back(theta_x_scale);
 
 	this->existence_prob = INITIAL_EXISTENCE_PROB;
+
+	this->lambda = lambda;
+	this->mu = mu;
+	this->epsilon = epsilon;
 }
 
 bool BernoulliParticleFilter::is_initialized(){
@@ -150,7 +154,7 @@ void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
 	/******************** Logistic Regression ********************/
 	VectorXd labels(2 * n_particles);
     labels << VectorXd::Ones(n_particles), VectorXd::Constant(n_particles, -1.0);
-    double lambda = 0.1;
+    //double lambda = 0.1;
 
     Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
@@ -178,7 +182,7 @@ void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
 
 
     this->logistic_regression = LogisticRegression(this->local_binary_pattern.sampleFeatureValue, labels);
-    this->logistic_regression.train(1e4,1e-2,1e-2);
+    this->logistic_regression.train(1e4,1e-3,1e-2);
     VectorXd phi = this->logistic_regression.predict(this->local_binary_pattern.sampleFeatureValue, false);
     
 	/*int sum = 0;

@@ -47,7 +47,7 @@ public:
 	int n_particles;
 	~BernoulliParticleFilter();
 	BernoulliParticleFilter();
-	BernoulliParticleFilter(int n_particles);
+	BernoulliParticleFilter(int n_particles, double lambda, double mu, double epsilon);
 	bool is_initialized();
 	void initialize(Mat& current_frame, Rect ground_truth);
 	void reinitialize();
@@ -70,6 +70,7 @@ private:
 	float ESS;
 	//vector<Rect> sampleBox;
 	double existence_prob, new_existence_prob;
+	double lambda, mu, epsilon;
 	
 	DPP dpp;
 	Haar haar;

@@ -46,7 +46,6 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ve
 	MatrixXd sqrtArea = area.cwiseSqrt() * area.cwiseSqrt().adjoint();
 
 	VectorXd qualityTerm = get_quality_term(detectionWeights, penaltyWeights, lambda,alpha, beta);
-	
 	//VectorXd qualityTerm = get_quality_term(featureValues, detectionWeights);
 	//VectorXd qualityTerm = detectionWeights;
 
@@ -131,7 +130,7 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 		}
 
 		double maxObj = prodQ * maxObj_ ;
-		//cout << maxObj / oldObj << ","<<  1+epsilon << endl;
+		cout << maxObj / oldObj << ","<<  1+epsilon << endl;
 		if ( (maxObj / oldObj) > (epsilon) )
 		{
 			top.push_back(remained(selected));

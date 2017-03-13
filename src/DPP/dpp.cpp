@@ -130,7 +130,6 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 		}
 
 		double maxObj = prodQ * maxObj_ ;
-		cout << maxObj / oldObj << ","<<  1+epsilon << endl;
 		if ( (maxObj / oldObj) > (epsilon) )
 		{
 			top.push_back(remained(selected));

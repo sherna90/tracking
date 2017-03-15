@@ -17,12 +17,6 @@ const float LAMBDA_C= 20.0;
 const float PDF_C = 1.6e-4;
 
 const int STEPSLIDE = 15;
-//DPP's parameters
-const double ALPHA = 0.9;
-const double LAMBDA = 0.7;
-const double BETA = 1.1;
-const double MU = 0.7;
-const double EPSILON = 0.4;
 #endif
 
 BernoulliParticleFilter::~BernoulliParticleFilter(){}
@@ -370,7 +364,7 @@ void BernoulliParticleFilter::update(Mat& image){
 
    	VectorXd qualityTerm;
 
-   	this->dppResults = this->dpp.run(this->preDetections, phi, this->intersectionArea, this->featureValues, qualityTerm, ALPHA, LAMBDA, BETA, MU, EPSILON);
+   	this->dppResults = this->dpp.run(this->preDetections, phi, this->intersectionArea, this->featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
    	for (size_t i = 0; i < this->dppResults.size(); ++i)
    	{
    		rectangle( image, dppResults.at(i), Scalar(255,0,0), 1, LINE_AA );

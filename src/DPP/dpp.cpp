@@ -26,7 +26,7 @@ MatrixXd DPP::squared_exponential_kernel(MatrixXd X, double nu, double sigma_f){
 } 
 
 vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, VectorXd &penaltyWeights, MatrixXd &featureValues, 
-	VectorXd &qualityTermResults, double alpha, double lambda, double beta, double mu, double epsilon)
+	VectorXd &qualityTermResults, double lambda, double mu, double epsilon)
 {
 	VectorXd area(preDetections.size());
 	MatrixXd intersectionArea(preDetections.size(), preDetections.size());
@@ -45,7 +45,7 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ve
 
 	MatrixXd sqrtArea = area.cwiseSqrt() * area.cwiseSqrt().adjoint();
 
-	VectorXd qualityTerm = get_quality_term(detectionWeights, penaltyWeights, lambda,alpha, beta);
+	VectorXd qualityTerm = get_quality_term(detectionWeights, penaltyWeights, lambda);
 	//VectorXd qualityTerm = get_quality_term(featureValues, detectionWeights);
 	//VectorXd qualityTerm = detectionWeights;
 
@@ -66,7 +66,7 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ve
 	
 }
 
-VectorXd DPP::get_quality_term(VectorXd &detectionWeights, VectorXd &penaltyWeights, double lambda, double alpha, double beta){
+VectorXd DPP::get_quality_term(VectorXd &detectionWeights, VectorXd &penaltyWeights, double lambda){
 	return lambda * detectionWeights.array() + (1 - lambda) * penaltyWeights.array();
 }
 

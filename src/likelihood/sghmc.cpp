@@ -1,14 +1,14 @@
 //Author: Diego Vergara
 #include "sghmc.hpp"
 
-SG_HMC::SG_HMC(){
+Stochastic_Gradient_Hamiltonian_MC::Stochastic_Gradient_Hamiltonian_MC(){
 	init = false;
 	init_2 = false;
 	init_sg = false;
 }
 
 
-SG_HMC::SG_HMC(MatrixXd &_X, VectorXd &_Y, double _lambda){
+Stochastic_Gradient_Hamiltonian_MC::Stochastic_Gradient_Hamiltonian_MC(MatrixXd &_X, VectorXd &_Y, double _lambda){
 	lambda=_lambda;
 	X_train = &_X;
  	Y_train = &_Y;
@@ -21,7 +21,7 @@ SG_HMC::SG_HMC(MatrixXd &_X, VectorXd &_Y, double _lambda){
 
 }
 
-SG_HMC::SG_HMC(MatrixXd &_X, MatrixXd &_data){
+Stochastic_Gradient_Hamiltonian_MC::Stochastic_Gradient_Hamiltonian_MC(MatrixXd &_X, MatrixXd &_data){
 	X_train = &_X;
 	data = _data;
 	dim = _X.cols();
@@ -32,7 +32,7 @@ SG_HMC::SG_HMC(MatrixXd &_X, MatrixXd &_data){
 
 }
 
-VectorXd SG_HMC::stochastic_gradient(VectorXd &weights, MatrixXd &_data){
+VectorXd Stochastic_Gradient_Hamiltonian_MC::gradient(VectorXd &weights, MatrixXd &_data){
 	VectorXd grad;
 	if (init_2)
 	{	
@@ -47,7 +47,7 @@ VectorXd SG_HMC::stochastic_gradient(VectorXd &weights, MatrixXd &_data){
 
 }
 
-double SG_HMC::logPosterior(VectorXd &weights, MatrixXd &_data){
+double Stochastic_Gradient_Hamiltonian_MC::logPosterior(VectorXd &weights, MatrixXd &_data){
 	double logPost = 0.0;
 	if (init_2)
 	{
@@ -62,7 +62,7 @@ double SG_HMC::logPosterior(VectorXd &weights, MatrixXd &_data){
 
 }
 
-VectorXd SG_HMC::stochastic_gradient(VectorXd &weights){
+VectorXd Stochastic_Gradient_Hamiltonian_MC::stochastic_gradient(VectorXd &weights){
 	VectorXd grad;
 	if (init)
 	{	
@@ -77,7 +77,7 @@ VectorXd SG_HMC::stochastic_gradient(VectorXd &weights){
 
 }
 
-double SG_HMC::logPosterior(VectorXd &weights){
+double Stochastic_Gradient_Hamiltonian_MC::logPosterior(VectorXd &weights){
 	double logPost = 0.0;
 	if (init)
 	{
@@ -92,7 +92,7 @@ double SG_HMC::logPosterior(VectorXd &weights){
 
 }
 
-void SG_HMC::run(double _eta, double _alpha, int _num_step, int _V){
+void Stochastic_Gradient_Hamiltonian_MC::run(double _eta, double _alpha, int _num_step, int _V){
 	init_sg = true;
 	if (init)
 	{	
@@ -103,7 +103,7 @@ void SG_HMC::run(double _eta, double _alpha, int _num_step, int _V){
 
 		VectorXd initial_x = VectorXd::Random(dim);
 			
-		MatrixXd _weights = simulation(initial_x);
+		MatrixXd _weights = this->simulation(initial_x);
 			
 		weights = _weights;
 		mean_weights = weights.colwise().mean();
@@ -113,14 +113,15 @@ void SG_HMC::run(double _eta, double _alpha, int _num_step, int _V){
 	}
 }
 
-void SG_HMC::partial_run(MatrixXd &_X, VectorXd &_Y){
+void Stochastic_Gradient_Hamiltonian_MC::partial_run(MatrixXd &_X, VectorXd &_Y){
 	if (init_sg and init)
 	{	
 		X_train = &_X;
  		Y_train = &_Y;
+ 		logistic_regression = LogisticRegression(_X, _Y, lambda);
  		if (_X.cols() == dim)
  		{
-			MatrixXd _weights = simulation(mean_weights);
+			MatrixXd _weights = this->simulation(mean_weights);
 				
 			weights = _weights;
 			mean_weights = weights.colwise().mean();
@@ -131,18 +132,19 @@ void SG_HMC::partial_run(MatrixXd &_X, VectorXd &_Y){
 
 	}
 	else{
-		cout << "Error: No initialized run SG_HMC or LogisticRegression mode constructor"<< endl;
+		cout << "Error: No initialized run Stochastic_Gradient_Hamiltonian_MC or LogisticRegression mode constructor"<< endl;
 	}
 }
 
-void SG_HMC::partial_run(MatrixXd &_X, MatrixXd &_data){
+/*void Stochastic_Gradient_Hamiltonian_MC::partial_run(MatrixXd &_X, MatrixXd &_data){
 	if (init_sg and init_2)
 	{	
 		X_train = &_X;
 		data = _data;
+		//logistic_regression = LogisticRegression(_X, _Y, lambda);
  		if (_X.cols() == dim)
  		{
-			MatrixXd _weights = simulation(mean_weights);
+			MatrixXd _weights = this->simulation(mean_weights);
 				
 			weights = _weights;
 			mean_weights = weights.colwise().mean();
@@ -153,17 +155,17 @@ void SG_HMC::partial_run(MatrixXd &_X, MatrixXd &_data){
 
 	}
 	else{
-		cout << "Error: No initialized run SG_HMC or Generic mode constructor"<< endl;
+		cout << "Error: No initialized run Stochastic_Gradient_Hamiltonian_MC or Generic mode constructor"<< endl;
 	}
-}
+}*/
 
 
-VectorXd SG_HMC::predict(MatrixXd &_X_test){
+VectorXd Stochastic_Gradient_Hamiltonian_MC::predict(MatrixXd &_X_test, bool prob){
 	VectorXd predict;
 	if (init)
 	{	
 		logistic_regression.setWeights(mean_weights);
-		predict = logistic_regression.predict(_X_test, true);
+		predict = logistic_regression.predict(_X_test, prob);
 		return predict;
 	}
 	else{
@@ -172,7 +174,7 @@ VectorXd SG_HMC::predict(MatrixXd &_X_test){
 	}
 }
 
-MatrixXd SG_HMC::predict(){
+MatrixXd Stochastic_Gradient_Hamiltonian_MC::get_weights(){
 	MatrixXd predict;
 	if (init)
 	{	
@@ -185,7 +187,7 @@ MatrixXd SG_HMC::predict(){
 }
 
 
-MatrixXd SG_HMC::simulation(VectorXd &_initial_x){
+MatrixXd Stochastic_Gradient_Hamiltonian_MC::simulation(VectorXd &_initial_x){
 	MatrixXd _weights(num_step, dim);
 	if (init)
 	{
@@ -202,7 +204,7 @@ MatrixXd SG_HMC::simulation(VectorXd &_initial_x){
 
   		double momentum = 1- alpha;
 
-  		leap_Frog(_initial_x, v0, _weights, momentum, sigma);
+  		this->leap_Frog(_initial_x, v0, _weights, momentum, sigma);
 
 		return _weights;
 	}
@@ -212,13 +214,13 @@ MatrixXd SG_HMC::simulation(VectorXd &_initial_x){
 	}
 }
 
-void SG_HMC::leap_Frog(VectorXd &_x0, VectorXd &_v0, MatrixXd &_weights, double momentum, double _sigma){
+void Stochastic_Gradient_Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, MatrixXd &_weights, double momentum, double _sigma){
 
 	VectorXd gradient;	
 	for (int i = 0; i < num_step; ++i)
 	{
 		if(init_2){
-			gradient = this->stochastic_gradient(_x0, data);
+			gradient = this->gradient(_x0, data);
 		}
 		else{
 			gradient = this->stochastic_gradient(_x0);	

@@ -102,7 +102,7 @@ void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
 		for (int i = 0; i < _iterations; ++i)
 		{	
 			
-			_weights.row(i) = simulation(initial_x);
+			_weights.row(i) = this->simulation(initial_x);
 			
 		}
 		weights = _weights;
@@ -129,7 +129,7 @@ VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test, bool prob){
 	}
 }
 
-MatrixXd Hamiltonian_MC::predict(){
+MatrixXd Hamiltonian_MC::get_weights(){
 	MatrixXd predict;
 	if (init)
 	{	
@@ -168,14 +168,15 @@ VectorXd Hamiltonian_MC::simulation(VectorXd &_initial_x){
   		VectorXd v0  = VectorXd::Random(_initial_x.rows());
   		VectorXd x(_initial_x.rows());
   		VectorXd v(_initial_x.rows());
-  		double orig = hamiltonian(_initial_x, v0); // old Data
+  		double orig = this->hamiltonian(_initial_x, v0); // old Data
 
-  		leap_Frog(_initial_x, v0, x, v);
+  		this->leap_Frog(_initial_x, v0, x, v);
 
-		double current = hamiltonian(x, v); // new Data
+		double current = this->hamiltonian(x, v); // new Data
 
 		// Metopolis-Hasting Correction
 		double p_accept = exp(orig - current);
+		//double p_accept = min(1.0, exp(orig - current));
 
 		normal_distribution<double> dnormal(0.0,1.0);
 		if (p_accept > dnormal(generator))
@@ -291,7 +292,7 @@ double Hamiltonian_MC::hamiltonian(VectorXd &_position, VectorXd &_velocity){
 		energy_function = -this->logPosterior(_position);
 	}
 
-	return energy_function + kinetic_energy(_velocity);
+	return energy_function + this->kinetic_energy(_velocity);
 }
 
 double Hamiltonian_MC::kinetic_energy(VectorXd &_velocity){

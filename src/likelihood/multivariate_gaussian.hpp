@@ -13,6 +13,7 @@ using namespace std;
 
 class MVNGaussian{
     public:
+        MVNGaussian();
         MVNGaussian(VectorXd _mean, MatrixXd _cov);
         MVNGaussian(MatrixXd &data);
         VectorXd getMean();

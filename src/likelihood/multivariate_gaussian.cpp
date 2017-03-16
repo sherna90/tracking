@@ -1,4 +1,7 @@
 #include "multivariate_gaussian.hpp"
+MVNGaussian::MVNGaussian(){
+    
+}
 
 MVNGaussian::MVNGaussian(VectorXd _mean, MatrixXd _cov){
     dim=_mean.size();

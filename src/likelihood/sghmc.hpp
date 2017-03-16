@@ -1,6 +1,6 @@
 //Author: Diego Vergara
-#ifndef SG_HMC_H
-#define SG_HMC_H
+#ifndef STOCHASTIC_GRADIENT_HAMILTONIAN_MC_H
+#define STOCHASTIC_GRADIENT_HAMILTONIAN_MC_H
 #include <iostream>
 #include <stdlib.h>
 #include <cfloat>
@@ -13,25 +13,25 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
-#include "likelihood/logistic_regression.hpp"
+#include "logistic_regression.hpp"
 
 using namespace Eigen;
 using namespace std;
 
 
-class SG_HMC
+class Stochastic_Gradient_Hamiltonian_MC
 {
 public:
-	SG_HMC();
-	SG_HMC(MatrixXd &_X,VectorXd &_Y, double _lamda);
-	SG_HMC(MatrixXd &_X, MatrixXd &_data);
+	Stochastic_Gradient_Hamiltonian_MC();
+	Stochastic_Gradient_Hamiltonian_MC(MatrixXd &_X,VectorXd &_Y, double _lamda);
+	Stochastic_Gradient_Hamiltonian_MC(MatrixXd &_X, MatrixXd &_data);
 	void run(double _eta, double _alpha, int _num_step, int _V);
 	void partial_run(MatrixXd &_X,VectorXd &_Y);
-	void partial_run(MatrixXd &_X, MatrixXd &_data);
+	//void partial_run(MatrixXd &_X, MatrixXd &_data);
 	MatrixXd simulation(VectorXd &_initial_x);
-	VectorXd predict(MatrixXd &_X_test);
-	MatrixXd predict();
-	virtual VectorXd stochastic_gradient(VectorXd &weights, MatrixXd &_data);
+	VectorXd predict(MatrixXd &_X_test, bool prob = true);
+	MatrixXd get_weights();
+	virtual VectorXd gradient(VectorXd &weights, MatrixXd &_data);
 	virtual double logPosterior(VectorXd &weights, MatrixXd &_data);
 	virtual VectorXd stochastic_gradient(VectorXd &weights);
 	virtual double logPosterior(VectorXd &weights);
@@ -53,4 +53,4 @@ private:
  	LogisticRegression logistic_regression;
 };
 
-#endif // SG_HMC_H
+#endif // STOCHASTIC_GRADIENT_HAMILTONIAN_MC_H

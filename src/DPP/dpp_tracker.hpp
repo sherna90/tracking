@@ -42,12 +42,15 @@ private:
 	bool initialized;
 	mt19937 generator;
 	vector<Rect> detections;
-	VectorXd weights;
+	VectorXd weights,labels,phi;
+	LocalBinaryPattern local_binary_pattern;
 	MatrixXd featureValues;
 	Haar haar;
 	DPP dpp;
 	vector<Rect> dppResults;
 	Size image_size;
+	Rect reference_roi;
+	LogisticRegression logistic_regression;
 };
 
 #endif

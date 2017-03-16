@@ -46,11 +46,9 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ve
 	MatrixXd sqrtArea = area.cwiseSqrt() * area.cwiseSqrt().adjoint();
 
 	VectorXd qualityTerm = get_quality_term(detectionWeights, penaltyWeights, lambda);
-	//VectorXd qualityTerm = get_quality_term(featureValues, detectionWeights);
-	//VectorXd qualityTerm = detectionWeights;
 
 	MatrixXd similarityTerm = get_similarity_term(featureValues, intersectionArea, sqrtArea, mu);
-	//MatrixXd similarityTerm = featureValues * featureValues.adjoint();
+
 	vector<int> top = solve(qualityTerm, similarityTerm, epsilon);	
 	
 	vector<Rect> respDPP;
@@ -119,7 +117,8 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 			newS.block(newS.rows() - 1, 0, 1, newS.cols() - 1) << tmp.transpose();
 
 			double obj_ = qualityTerm(remained(i)) * newS.determinant();
-			//cout << obj_  << ","<< maxObj_ << endl;
+			//double obj_ = qualityTerm(remained(i));
+			//cout << newS.determinant()   << "," << obj_  << ","<< maxObj_ << endl;
 			if (obj_ > maxObj_)
 			{
 				selected = i;
@@ -129,7 +128,7 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 		}
 
 		double maxObj = prodQ * maxObj_ ;
-		//cout << maxObj / oldObj << ","<<  1+epsilon << endl;
+		//cout  << maxObj / oldObj << ","<<  epsilon << endl;
 		if ( (maxObj / oldObj) > (epsilon) )
 		{
 			top.push_back(remained(selected));

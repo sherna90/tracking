@@ -25,7 +25,7 @@ class LogisticRegression
 	LogisticRegression();
 	LogisticRegression(MatrixXd &_X,VectorXd &_Y,double lambda=1.0);
  	VectorXd train(int n_iter,double alpha=0.01,double tol=0.001);
- 	VectorXd predict(MatrixXd &_X, bool log_prob=true);
+ 	VectorXd predict(MatrixXd &_X, bool prob=true);
  	double logPosterior(RowVectorXd& _weights);
  	VectorXd gradient(RowVectorXd& _weights);
     VectorXd computeGradient(MatrixXd &_X, VectorXd &_Y,RowVectorXd &_W);
@@ -49,7 +49,7 @@ class LogisticRegression
  	double logPrior(RowVectorXd &_W);
  	double logLikelihood(MatrixXd &_X,VectorXd &_Y,RowVectorXd &_W);
  	MatrixXd Hessian;
-    //MVNGaussian posterior;
+    MVNGaussian posterior;
 };
 
 

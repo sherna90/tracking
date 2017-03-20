@@ -4,4 +4,5 @@ vot2014/
 vot2015/
 docs/
 resultados/
+CMakeLists.txt
 src/vot-integration/build/

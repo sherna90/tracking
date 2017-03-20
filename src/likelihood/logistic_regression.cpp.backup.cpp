@@ -56,10 +56,12 @@ VectorXd LogisticRegression::train(int n_iter,double alpha,double tol){
 	for(int i=0;i<n_iter;i++){
 		VectorXd Grad=gradient(weights);
 		log_likelihood(i)=logPosterior(weights);
+		//cout << i << ", ll:" << log_likelihood(i)  <<endl;
 		weights.noalias()=weights-alpha*Grad.transpose();
 	}
-	//Hessian = computeHessian(*X_train,*Y_train,weights);
-	//this->posterior = MVNGaussian(weights.transpose(),Hessian);
+	//cout << "end training!" << endl;
+	Hessian = computeHessian(*X_train,*Y_train,weights);
+	this->posterior = MVNGaussian(weights.transpose(),Hessian);
 	return log_likelihood;
 }
 
@@ -99,43 +101,40 @@ MatrixXd LogisticRegression::computeHessian(MatrixXd &_X, VectorXd &_Y, RowVecto
 	return H.inverse();
 }
 
-/*MatrixXd LogisticRegression::computeHessian( MatrixXd &_X, VectorXd &_Y, RowVectorXd &_W){
-
-	VectorXd eta = (_X * _W.transpose());
-	VectorXd YZ=_Y.cwiseProduct(eta);
-	MatrixXd I=MatrixXd::Identity(dim,dim);
-	VectorXd P=sigmoid(YZ);
-	MatrixXd H=MatrixXd::Zero(dim,dim);
-	MatrixXd J=MatrixXd::Zero(rows,rows);
-	J.diagonal() << P.array()*(1-P.array()).array();
-	//cout << "data " << _Y.rows() << "," << _Y.cols() << "," << _X.rows() << "," << _X.cols() << endl;
-	//MatrixXd H_temp=_X.transpose();
-	//H_temp *= J;
-	//H.noalias()=H_temp*_X;
-	H+=lambda*I;
-	return H.inverse();
-}*/
-
-
-VectorXd LogisticRegression::predict(MatrixXd &_X,bool log_prob){
+/*
+VectorXd LogisticRegression::predict(MatrixXd &_X,bool prob){
+	//Hessian = ComputeHessian(*X_train,*Y_train,weights);
+	//cout << "data " << Y_train->rows() << "," << Y_train->cols() << "," << X_train->rows() << "," << X_train->cols() << endl;
 	MatrixXd *X_test=&_X;
 	//X_test->rowwise()-=featureMeans.transpose();
 	VectorXd phi=VectorXd::Zero(X_test->rows());
 	VectorXd eta = (*X_test)*weights.transpose();
-	if(log_prob){
+	if(prob){
 		phi=logSigmoid(eta);		
 	}
 	else{
 		phi=sigmoid(eta);
-		/*phi.noalias() = phi.unaryExpr([](double elem){
+		phi.noalias() = phi.unaryExpr([](double elem){
 	    	return (elem > 0.5) ? 1.0 : -1.0;
-		});*/
+		});
 	}
+	//int n_samples=100;
+	//MVNGaussian posterior(weights.transpose(),Hessian);
+	//for(int i=0; i< n_samples;i++){
+	//	VectorXd sample_weight=posterior.sample();
+	//	cout << sample_weight.size() << endl;
+	//	cout << X_test->rows() << "," << X_test->cols() << endl;
+	//	VectorXd eta = *X_test*sample_weight;
+	//	//phi+=(1.0/n_samples)*Sigmoid(eta);	
+	//}
 	return phi;
-}
+}*/
 
 /*
 VectorXd LogisticRegression::predict(MatrixXd &_X,bool prob){
+	cout << "in" << endl;
+	cout << Y_train->rows() << endl;
+	Hessian = computeHessian(*X_train,*Y_train,weights);
 	MatrixXd *X_test=&_X;
 	X_test->rowwise()-=featureMeans.transpose();
 	VectorXd phi=VectorXd::Zero(X_test->rows());
@@ -156,11 +155,28 @@ VectorXd LogisticRegression::predict(MatrixXd &_X,bool prob){
 		VectorXd eta = *X_test*sample_weight;
 		//phi+=(1.0/n_samples)*Sigmoid(eta);	
 	}
+	cout << "out" << endl;
+	cout << Y_train->rows() << endl;
 	return phi;
 }*/
 
 
-/*VectorXd LogisticRegression::predict(MatrixXd &_X, bool prob){
+/*MatrixXd LogisticRegression::computeHessian( MatrixXd &_X, VectorXd &_Y, RowVectorXd &_W){
+	VectorXd eta = (_X * _W.transpose());
+	VectorXd YZ=_Y.cwiseProduct(eta);
+	MatrixXd I=MatrixXd::Identity(dim,dim);
+	VectorXd P=sigmoid(YZ);
+	MatrixXd H=MatrixXd::Zero(dim,dim);
+	MatrixXd J=MatrixXd::Zero(rows,rows);
+	J.diagonal() << P.array()*(1-P.array()).array();
+	//MatrixXd H_temp=_X.transpose();
+	//H_temp *= J;
+	//H.noalias()=H_temp*_X;
+	H+=lambda*I;
+	return H.inverse();
+}*/
+
+VectorXd LogisticRegression::predict(MatrixXd &_X, bool prob){
 	MatrixXd *X_test=&_X;
 	X_test->rowwise()-=featureMeans.transpose();
 	X_test->conservativeResize(NoChange, dim);
@@ -185,11 +201,12 @@ VectorXd LogisticRegression::predict(MatrixXd &_X,bool prob){
 		phi.noalias() = phi.unaryExpr([](double elem)
 		{
 		    return (elem > 0.5) ? 1.0 : -1.0;
+		    //return (elem > 0.5) ? 1.0 : 0.0;
 		});
 	}
 	return phi;
 
-}*/
+}
 
 double LogisticRegression::logLikelihood(MatrixXd &_X,VectorXd &_Y,RowVectorXd &_W){
 	VectorXd eta = (_X*_W.transpose());
@@ -213,8 +230,8 @@ VectorXd LogisticRegression::gradient(RowVectorXd& _weights){
 
 void LogisticRegression::setWeights(VectorXd& _W){
 	weights=_W.transpose();
-	//Hessian = computeHessian(*X_train,*Y_train,weights);
-	//this->posterior = MVNGaussian(weights.transpose(),Hessian);
+	Hessian = computeHessian(*X_train,*Y_train,weights);
+	this->posterior = MVNGaussian(weights.transpose(),Hessian);
 }
 
 VectorXd LogisticRegression::getWeights(){

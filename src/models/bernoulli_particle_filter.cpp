@@ -16,7 +16,7 @@ const float POSITION_LIKELIHOOD_STD = 10.0;
 const float LAMBDA_C= 20.0;
 const float PDF_C = 1.6e-4;
 
-const int STEPSLIDE = 15;
+const int STEPSLIDE = 5;
 #endif
 
 BernoulliParticleFilter::~BernoulliParticleFilter(){}
@@ -161,19 +161,11 @@ void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
     this->hamiltonian_monte_carlo.run(1e4,1e-2,3);
     VectorXd phi = this->hamiltonian_monte_carlo.predict(sample_feature_values);*/
     this->local_binary_pattern.init(grayImg, sample_boxes);
-    /*Mat features, projection_result;
-    eigen2cv(this->local_binary_pattern.sampleFeatureValue, features);
-    this->pca = PCA(features, Mat(), PCA::DATA_AS_ROW, 30);
-    this->pca.project(features, projection_result);
-    cv2eigen(projection_result, sample_feature_values);*/
 
 
     //this->hamiltonian_monte_carlo = Hamiltonian_MC(this->local_binary_pattern.sampleFeatureValue, labels, lambda);
     //this->hamiltonian_monte_carlo.run(1e4,1e-2,3);
-
-    
     //VectorXd phi = this->hamiltonian_monte_carlo.predict(this->local_binary_pattern.sampleFeatureValue, false);
-
 
     this->logistic_regression = LogisticRegression(this->local_binary_pattern.sampleFeatureValue, labels);
     this->logistic_regression.train(1e4,1e-3,1e-2);

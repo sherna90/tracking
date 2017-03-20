@@ -28,6 +28,7 @@ MatrixXd DPP::squared_exponential_kernel(MatrixXd X, double nu, double sigma_f){
 vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, VectorXd &penaltyWeights, MatrixXd &featureValues, 
 	VectorXd &qualityTermResults, double lambda, double mu, double epsilon)
 {
+	//cout << "lambda:" << lambda << " mu:" << mu << " epsilon:" << epsilon << endl;
 	VectorXd area(preDetections.size());
 	MatrixXd intersectionArea(preDetections.size(), preDetections.size());
 
@@ -46,7 +47,6 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ve
 	MatrixXd sqrtArea = area.cwiseSqrt() * area.cwiseSqrt().adjoint();
 
 	VectorXd qualityTerm = get_quality_term(detectionWeights, penaltyWeights, lambda);
-
 	MatrixXd similarityTerm = get_similarity_term(featureValues, intersectionArea, sqrtArea, mu);
 
 	vector<int> top = solve(qualityTerm, similarityTerm, epsilon);	
@@ -61,7 +61,6 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ve
 	}
 	
 	return respDPP;
-	
 }
 
 VectorXd DPP::get_quality_term(VectorXd &detectionWeights, VectorXd &penaltyWeights, double lambda){

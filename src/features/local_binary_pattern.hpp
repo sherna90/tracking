@@ -20,8 +20,6 @@
 #include <float.h>
 
 #include "../libs/LBP/LBP.hpp"
-//#include "../libs/lbp_opencv/lbp.hpp"
-//#include "../libs/lbp_opencv/histogram.hpp"
 
 using std::vector;
 using namespace cv;
@@ -32,14 +30,14 @@ class LocalBinaryPattern{
 	public:
 		LocalBinaryPattern();
 		void getFeatureValue(Mat& _image, vector<Rect> _sampleBox, bool _isPositiveBox=true);
-		void init(Mat& _image, vector<Rect> _sampleBox, bool _not_resize = true);
+		void init(Mat& _image, vector<Rect> _sampleBox, bool _resize = false, bool _complete_image = false, bool _equalized = false);
 		MatrixXd sampleFeatureValue, negativeFeatureValue;
 	private:
 		bool initialized;
 		int numBlocks;
 		int numSupportPoints;
 		int rad;
-		bool normalizedHist, not_resize;
+		bool normalizedHist, resize, complete_image, equalized;
 		String mapping;
 };
 #endif

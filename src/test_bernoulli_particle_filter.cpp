@@ -23,9 +23,9 @@ void TestBernoulliParticleFilter::run(){
 	Performance performance;
 	namedWindow("Tracker");
 
-	VectorXd weights;
+	/*VectorXd weights;
 	MatrixXd featureValues;
-	vector<Rect> dppResults, preDetections;
+	vector<Rect> dppResults, preDetections;*/
 
 	for(int k = 0; k < num_frames; ++k){
 		current_gt = this->gt_vec[k];

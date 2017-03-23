@@ -7,16 +7,16 @@ LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda)
 	lambda=_lambda;
  	X_train = &_X;
  	Y_train = &_Y;
- 	VectorXi indices = VectorXi::LinSpaced(X_train->rows(), 0, X_train->rows());
+ 	/*VectorXi indices = VectorXi::LinSpaced(X_train->rows(), 0, X_train->rows());
  	srand((unsigned int) time(0));
  	std::random_shuffle(indices.data(), indices.data() + X_train->rows());
   	X_train->noalias() = indices.asPermutation() * *X_train;  
-  	Y_train->noalias() = indices.asPermutation() * *Y_train; 
+  	Y_train->noalias() = indices.asPermutation() * *Y_train;*/
  	rows = X_train->rows();
 	dim = X_train->cols();
 	weights = RowVectorXd::Random(dim);
-	featureMeans = X_train->colwise().mean();
-	X_train->rowwise()-=featureMeans.transpose();
+	/*featureMeans = X_train->colwise().mean();
+	X_train->rowwise()-=featureMeans.transpose();*/
 	/*X_train->conservativeResize(NoChange, dim+1);
 	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
 	X_train->col(dim) = bias_vec;*/
@@ -224,12 +224,12 @@ VectorXd LogisticRegression::getWeights(){
 void LogisticRegression::setData(MatrixXd &_X,VectorXd &_Y){
 	X_train = &_X;
  	Y_train = &_Y;
- 	VectorXi indices = VectorXi::LinSpaced(X_train->rows(), 0, X_train->rows());
+ 	/*VectorXi indices = VectorXi::LinSpaced(X_train->rows(), 0, X_train->rows());
  	srand((unsigned int) time(0));
  	std::random_shuffle(indices.data(), indices.data() + X_train->rows());
   	X_train->noalias() = indices.asPermutation() * *X_train;  
-  	Y_train->noalias() = indices.asPermutation() * *Y_train; 
+  	Y_train->noalias() = indices.asPermutation() * *Y_train; */
  	rows = X_train->rows();
 	dim = X_train->cols();
-	featureMeans = X_train->colwise().mean();
+	//featureMeans = X_train->colwise().mean();
 }

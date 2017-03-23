@@ -34,24 +34,30 @@ using namespace lbp;
  * Constructors
  */
 LBP::LBP( void )
-: type( LBP_MAPPING_NONE ), samples( 0 ), num( 0 ), fftIn( NULL ), fftOut( NULL ), fftPlan( NULL ),
-fftN( 0 ), fftHermN( 0 ) {
+: type( LBP_MAPPING_NONE ), samples( 0 ), num( 0 ) {
+//: type( LBP_MAPPING_NONE ), samples( 0 ), num( 0 ), fftIn( NULL ), fftOut( NULL ), fftPlan( NULL ),
+//fftN( 0 ), fftHermN( 0 ) {
 }
 LBP::LBP( unsigned int _samples, MappingType _type )
-: type( _type ), samples( _samples ), num( 0 ), fftIn( NULL ), fftOut( NULL ),
- fftPlan( NULL ), fftN( 0 ), fftHermN( 0 ) {
+: type( _type ), samples( _samples ), num( 0 ){
+//: type( _type ), samples( _samples ), num( 0 ), fftIn( NULL ), fftOut( NULL ),
+// fftPlan( NULL ), fftN( 0 ), fftHermN( 0 ) {
 	generateMapping();
     
-	if( type == LBP_MAPPING_HF ) {
+	/*if( type == LBP_MAPPING_HF ) {
 		initHF();
-	}
+	}*/
 }
-LBP::~LBP() {
+/*LBP::~LBP() {
 	if( fftIn != NULL ) {
 		fftw_destroy_plan( fftPlan );
 		fftw_free( fftIn );
 		delete[] fftOut;
 	}
+}*/
+
+LBP::~LBP() {
+
 }
 
 /** ******************************************************************
@@ -64,7 +70,7 @@ LBP & LBP::generateMapping() {
 }
 
 LBP & LBP::generateMapping( unsigned int samples, MappingType type ) {
-	this->orbits.clear();
+	//this->orbits.clear();
 	this->table.clear();
 	this->num = 0;
 	this->type = type;
@@ -142,7 +148,7 @@ LBP & LBP::generateMapping( unsigned int samples, MappingType type ) {
 				table.push_back( samples + 1 );
 		}
 	}
-	else if( type == LBP_MAPPING_HF ) {
+	/*else if( type == LBP_MAPPING_HF ) {
 		// Histogram Fourier
 		newMax = samples * (samples - 1) + 3;
 		table.push_back( newMax - 3 );
@@ -182,7 +188,7 @@ LBP & LBP::generateMapping( unsigned int samples, MappingType type ) {
 		orbits.push_back( o );
 		o[0] = newMax - 1;
 		orbits.push_back( o );
-	}
+	}*/
 	else {
 		cerr << "Unknown mapping!" << endl;
 		exit(1);
@@ -214,7 +220,7 @@ bool LBP::saveMapping( string fileName ) {
         ofs << table[i] << " ";
     }
     ofs << endl;
-    if( type == LBP_MAPPING_HF ) {
+    /*if( type == LBP_MAPPING_HF ) {
         ofs << "orbits ";
         for(unsigned int i = 0; i < orbits.size(); i++ ) {
             for(unsigned int j = 0; j < (orbits[i]).size(); j++ ) {
@@ -223,7 +229,7 @@ bool LBP::saveMapping( string fileName ) {
             ofs << "-1 ";
         }
         ofs << endl;
-    }
+    }*/
     
     
 	return true;
@@ -266,11 +272,11 @@ bool LBP::loadMapping( string fileName ) {
         table.push_back( i );
     }
     
-    if ( type != LBP_MAPPING_HF ) {
+    /*if ( type != LBP_MAPPING_HF ) {
         return true;
-    }
+    }*/
     // Get orbits for HF
-    this->orbits.clear();
+    /*this->orbits.clear();
     ifs >> s;
     vector<int> o;
     while( ifs >> i ) {
@@ -280,7 +286,7 @@ bool LBP::loadMapping( string fileName ) {
             continue;
         }
         o.push_back(i);
-    }
+    }*/
     
     return true;
 }
@@ -488,22 +494,22 @@ vector<double> LBP::getHist( bool norm ) {
 	Scalar sum( 1 );
     
 	// normalization value
-	if( norm || type == LBP_MAPPING_HF ) {
+	/*if( norm || type == LBP_MAPPING_HF ) {
 		sum = cv::sum( hist );
-	}
+	}*/
     
 	for( int i = 0; i < hist.rows; i++ ) {
 		h[i] = hist.at<float>( i ) / sum[0];
 	}
     
-	if( type == LBP_MAPPING_HF ) {
+	/*if( type == LBP_MAPPING_HF ) {
 		h = constructHF( h );
-	}
+	}*/
     
 	return h;
 }
 
-void LBP::initHF( void ) {
+/*void LBP::initHF( void ) {
 	// All the vectors in the orbit have at least the same size as the first one.
 	//	only the last 3 are off size 1 which are not converted anyway
 	fftN = this->orbits[0].size();
@@ -527,9 +533,9 @@ void LBP::initHF( void ) {
 	fftPlan = fftw_plan_dft_r2c_1d(
                                    fftN, fftIn, reinterpret_cast<fftw_complex *>( fftOut ), FFTW_ESTIMATE);
     
-}
+}*/
 
-vector<double> LBP::constructHF( vector<double> h ) {
+/*vector<double> LBP::constructHF( vector<double> h ) {
 	if( this->type != LBP_MAPPING_HF ) {
 		cerr << "The mapping type must be " << MappingTypeStr[LBP_MAPPING_HF] << endl;
 		return h;
@@ -562,7 +568,7 @@ vector<double> LBP::constructHF( vector<double> h ) {
 	}
     
 	return hf;
-}
+}*/
 
 /** ******************************************************************
  *
@@ -583,7 +589,7 @@ std::string LBP::toString( bool verbose ) const {
     }
 	s += "\t samples: " + SSTR( this->samples )+ (string) "\n";
 	s += "\t     num: " + SSTR( this->num )+ (string) "\n";
-	if( this->type == LBP_MAPPING_HF ) {
+	/*if( this->type == LBP_MAPPING_HF ) {
         if (verbose) {
             s += "\t  orbits: {";
             for (unsigned int i = 0; i < orbits.size(); i++ ) {
@@ -598,7 +604,7 @@ std::string LBP::toString( bool verbose ) const {
         else {
             s += "\t  orbits: {" + SSTR( this->orbits.size() )+ (string) "x1}\n";
         }
-    }
+    }*/
 	return s;
 }
 

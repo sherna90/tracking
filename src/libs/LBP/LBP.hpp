@@ -35,7 +35,7 @@
 #include <complex>
 #include <string>
 
-#include <fftw3.h>
+//#include <fftw3.h>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -67,12 +67,14 @@ namespace lbp {
 		LBP_MAPPING_NONE = 0,
 		LBP_MAPPING_U2,
 		LBP_MAPPING_RI,
-		LBP_MAPPING_RIU2,
-		LBP_MAPPING_HF
+		LBP_MAPPING_RIU2
+		//LBP_MAPPING_HF
 	};
     
-	static const string MappingTypeStr[] = {
-				"none", "u2", "ri", "riu2", "hf" };
+	//static const string MappingTypeStr[] = {
+	//			"none", "u2", "ri", "riu2", "hf" };
+    static const string MappingTypeStr[] = {
+                "none", "u2", "ri", "riu2" };
     
 	class LBP {
         
@@ -98,8 +100,8 @@ namespace lbp {
                 return LBP_MAPPING_RI;
             else if ( s.compare("riu2") == 0 )
                 return LBP_MAPPING_RIU2;
-            else if( s.compare("hf")  == 0 )
-                return LBP_MAPPING_HF;
+            //else if( s.compare("hf")  == 0 )
+            //    return LBP_MAPPING_HF;
             else
                 return LBP_MAPPING_NONE;
         }
@@ -111,12 +113,12 @@ namespace lbp {
 		/**
 		 * Descriptor methods
 		 */
-        void calcGPU( Mat img, double radius = 1. ) {
+        //void calcGPU( Mat img, double radius = 1. ) {
         	//unsigned char * src;
         	//unsigned char * dst;
 //        	LBPMapping mapping;
 //        	calcLBPGPU( src, dst, 10, 10, &mapping );
-        }
+        //}
 		LBP & calcLBP( Mat img, double radius = 1., bool borderCopy=false );
 		Mat getLBPImage( void ) const {
 			return lbpImage;
@@ -145,13 +147,13 @@ namespace lbp {
         unsigned int samples;
         unsigned int num;
         // Fourier Histogram variables
-        vector< vector<int> > orbits;
+        /*vector< vector<int> > orbits;
         double *fftIn;
         complex<double> *fftOut;
         fftw_plan fftPlan;
         unsigned int fftN;
         unsigned int fftHermN;
-        vector<double> hf;
+        vector<double> hf;*/
         // Histogram
         vector<double> h;
         // Descriptor variables

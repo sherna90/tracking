@@ -497,6 +497,10 @@ vector<double> LBP::getHist( bool norm ) {
 	/*if( norm || type == LBP_MAPPING_HF ) {
 		sum = cv::sum( hist );
 	}*/
+
+	if( norm ) {
+		sum = cv::sum( hist );
+	}
     
 	for( int i = 0; i < hist.rows; i++ ) {
 		h[i] = hist.at<float>( i ) / sum[0];

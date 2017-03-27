@@ -18,7 +18,7 @@ const float PDF_C = 1.6e-4;
 
 const double LAMBDA_BC=2.4;
 
-const int STEPSLIDE = 10;
+//const int this->step_slide = 20;
 #endif
 
 BernoulliParticleFilter::~BernoulliParticleFilter(){}
@@ -47,15 +47,17 @@ BernoulliParticleFilter::BernoulliParticleFilter(int n_particles, double lambda,
 	this->lambda = lambda;
 	this->mu = mu;
 	this->epsilon = epsilon;
+	this->step_slide=10;
 }
 
 bool BernoulliParticleFilter::is_initialized(){
 	return this->initialized;
 }
 
-void BernoulliParticleFilter::initialize(Mat& current_frame, Rect ground_truth){
+void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect ground_truth){
+	this->step_slide=(int)(max(current_frame.rows,current_frame.cols)/30.);
 	vector<Rect> sample_boxes;
-
+	cout << current_frame.rows << "," << current_frame.cols << endl;
 	this->img_size = current_frame.size();
 
 	normal_distribution<double> position_random_x(0.0, this->theta_x.at(0)(0));
@@ -264,7 +266,7 @@ void BernoulliParticleFilter::predict(){
 	//exit(EXIT_FAILURE);
 }
 
-void BernoulliParticleFilter::update(Mat& image){
+void BernoulliParticleFilter::update(const Mat& image){
 	Mat grayImg;
 	cvtColor(image, grayImg, CV_RGB2GRAY);
 	int left = MAX(this->reference_roi.x, 1);
@@ -276,8 +278,8 @@ void BernoulliParticleFilter::update(Mat& image){
 	this->intersectionArea.resize(0);
 	this->preDetections.clear();
 	this->dppResults.clear();
-	for(int row = 0; row <= grayImg.rows - update_roi.height; row+=STEPSLIDE){
-		for(int col = 0; col <= grayImg.cols - update_roi.width; col+=STEPSLIDE){
+	for(int row = 0; row <= grayImg.rows - update_roi.height; row+=this->step_slide){
+		for(int col = 0; col <= grayImg.cols - update_roi.width; col+=this->step_slide){
 			Rect current_window(col, row, update_roi.width, update_roi.height);
 			Rect intersection = update_roi & current_window;
 			this->preDetections.push_back(current_window);
@@ -296,10 +298,10 @@ void BernoulliParticleFilter::update(Mat& image){
 	VectorXd phi=(-LAMBDA_BC*bc.array().square()).exp();
    	VectorXd qualityTerm;
    	this->dppResults = this->dpp.run(this->preDetections, phi, this->intersectionArea, this->featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
-   	for (size_t i = 0; i < this->dppResults.size(); ++i)
+   	/*for (size_t i = 0; i < this->dppResults.size(); ++i)
    	{
    		rectangle( image, dppResults.at(i), Scalar(255,0,0), 1, LINE_AA );
-   	}
+   	}*/
 
 	if (this->dppResults.size() > 0)
 	{
@@ -422,7 +424,7 @@ void BernoulliParticleFilter::resample(){
 }
 
 
-Rect BernoulliParticleFilter::estimate(Mat& image, bool draw){
+Rect BernoulliParticleFilter::estimate(const Mat& image, bool draw){
 	float _x = 0.0, _y = 0.0, _width = 0.0, _height = 0.0, norm = 0.0;
     Rect estimate;
     

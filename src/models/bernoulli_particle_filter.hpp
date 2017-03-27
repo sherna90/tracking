@@ -20,7 +20,6 @@
 #include "../likelihood/multivariate_gaussian.hpp"
 #include "../likelihood/hmc.hpp"
 #include "../likelihood/logistic_regression.hpp"
-#include "../features/haar.hpp"
 #include "../features/local_binary_pattern.hpp"
 #include "../DPP/dpp.hpp"
 #include "../utils/utils.hpp"
@@ -49,13 +48,13 @@ public:
 	BernoulliParticleFilter();
 	BernoulliParticleFilter(int n_particles, double lambda, double mu, double epsilon);
 	bool is_initialized();
-	void initialize(Mat& current_frame, Rect ground_truth);
+	void initialize(const Mat& current_frame, const Rect ground_truth);
 	void reinitialize();
 	void predict();
-	void update(Mat& image);
+	void update(const Mat& image);
 	void draw_particles(Mat& image, Scalar color = Scalar(0, 255, 255));
 	void resample();
-	Rect estimate(Mat& image, bool draw = false);
+	Rect estimate(const Mat& image, bool draw = false);
 
 private:
 	bool initialized;
@@ -71,9 +70,8 @@ private:
 	//vector<Rect> sampleBox;
 	double existence_prob, new_existence_prob;
 	double lambda, mu, epsilon;
-	
+	int step_slide;
 	DPP dpp;
-	Haar haar;
 	LocalBinaryPattern local_binary_pattern;
 	PCA pca;
 	Hamiltonian_MC hamiltonian_monte_carlo;

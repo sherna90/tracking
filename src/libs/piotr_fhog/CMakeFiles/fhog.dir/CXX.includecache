@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/sergio/code/cpp/kcf/src/piotr_fhog/gradientMex.cpp
+wrappers.hpp
+/home/sergio/code/cpp/kcf/src/piotr_fhog/wrappers.hpp
+math.h
+-
+string.h
+/home/sergio/code/cpp/kcf/src/piotr_fhog/string.h
+sse.hpp
+/home/sergio/code/cpp/kcf/src/piotr_fhog/sse.hpp
+
+/home/sergio/code/cpp/kcf/src/piotr_fhog/sse.hpp
+emmintrin.h
+-
+
+/home/sergio/code/cpp/kcf/src/piotr_fhog/wrappers.hpp
+mex.h
+/home/sergio/code/cpp/kcf/src/piotr_fhog/mex.h
+stdlib.h
+-
+

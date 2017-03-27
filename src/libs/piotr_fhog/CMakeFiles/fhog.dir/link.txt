@@ -1,0 +1,2 @@
+/usr/bin/ar qc libfhog.a  CMakeFiles/fhog.dir/gradientMex.cpp.o
+/usr/bin/ranlib libfhog.a

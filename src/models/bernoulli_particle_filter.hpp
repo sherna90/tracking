@@ -14,16 +14,16 @@
 #include <iostream>
 #include <random>
 #include <chrono>
-#include <fftw3.h>
+
 
 #include "../likelihood/gaussian.hpp"
 #include "../likelihood/multivariate_gaussian.hpp"
-//#include "../likelihood/hamiltonian_monte_carlo.hpp"
 #include "../likelihood/hmc.hpp"
 #include "../likelihood/logistic_regression.hpp"
 #include "../features/haar.hpp"
 #include "../features/local_binary_pattern.hpp"
 #include "../DPP/dpp.hpp"
+#include "../utils/utils.hpp"
 
 using namespace cv;
 using namespace std;
@@ -79,6 +79,7 @@ private:
 	Hamiltonian_MC hamiltonian_monte_carlo;
 	LogisticRegression logistic_regression;
 	MatrixXd featureValues;
+	VectorXd reference_hist;
 	VectorXd intersectionArea;
 	vector<Rect> dppResults, preDetections;
 };

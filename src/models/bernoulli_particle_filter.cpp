@@ -16,7 +16,7 @@ const float POSITION_LIKELIHOOD_STD = 10.0;
 const float LAMBDA_C= 20.0;
 const float PDF_C = 1.6e-4;
 
-const double LAMBDA_BC=2.4;
+const double LAMBDA_BC=20.4;
 
 //const int this->step_slide = 20;
 #endif
@@ -137,7 +137,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	/******************** Logistic Regression ********************/
 	Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-    this->local_binary_pattern.init(grayImg, sample_boxes);
+    this->local_binary_pattern.init(grayImg, sample_boxes,true,false,true);
     this->reference_hist=this->local_binary_pattern.sampleFeatureValue.row(0);
     this->initialized = true;
 }
@@ -159,6 +159,7 @@ void BernoulliParticleFilter::predict(){
 		normal_distribution<double> position_random_x(0.0, this->theta_x.at(0)(0));
 		normal_distribution<double> position_random_y(0.0, this->theta_x.at(0)(1));
 		normal_distribution<double> scale_random_width(0.0, this->theta_x.at(1)(0));
+		normal_distribution<double> scale_random_height(0.0, this->theta_x.at(1)(1));
 		uniform_real_distribution<double> unif(0.0,1.0);
 
 		for (size_t i = 0; i < this->states.size(); ++i)
@@ -168,7 +169,7 @@ void BernoulliParticleFilter::predict(){
 			float _dx = position_random_x(this->generator);
 			float _dy = position_random_y(this->generator);
 			float _dw = scale_random_width(this->generator);
-			float _dh = scale_random_width(this->generator);
+			float _dh = scale_random_height(this->generator);
 			_x = MIN(MAX(cvRound(state.x + _dx), 0), this->img_size.width);
 			_y = MIN(MAX(cvRound(state.y + _dy), 0), this->img_size.height);
 			_width = MIN(MAX(cvRound(state.width+_dw), 0), this->img_size.width);
@@ -372,7 +373,7 @@ void BernoulliParticleFilter::update(const Mat& image){
 }
 
 void BernoulliParticleFilter::draw_particles(Mat& image, Scalar color){
-    for (size_t i = 0; i < this->states.size(); i++){
+    /*for (size_t i = 0; i < this->states.size(); i++){
         particle state = this->states[i];
         Point pt1, pt2;
         pt1.x = cvRound(state.x);
@@ -380,7 +381,11 @@ void BernoulliParticleFilter::draw_particles(Mat& image, Scalar color){
         pt2.x = cvRound(state.x + state.width);
         pt2.y = cvRound(state.y + state.height);
         rectangle( image, pt1, pt2, color, 1, LINE_AA );
-    }
+    }*/
+    for (size_t i = 0; i < this->dppResults.size(); ++i)
+   	{
+   		rectangle( image, dppResults.at(i), Scalar(255,0,0), 1, LINE_AA );
+   	}
 }
 
 void BernoulliParticleFilter::resample(){

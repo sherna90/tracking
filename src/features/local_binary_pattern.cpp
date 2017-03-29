@@ -13,8 +13,8 @@ LocalBinaryPattern::LocalBinaryPattern(){
 	complete_image= false;
 }
 
-void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, bool _isPositiveBox){
-
+void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox){
+	sampleFeatureValue = MatrixXd(_sampleBox.size(),numBlocks*numBlocks*59);
 	if (complete_image){
 
 		Mat Image;
@@ -31,9 +31,10 @@ void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 		
 		for (unsigned int k = 0; k < _sampleBox.size(); ++k)
 		{
-			int width = _sampleBox.at(k).width, height = _sampleBox.at(k).height;
 			
-			vector<double> hist;
+	        int width = _sampleBox.at(k).width, height = _sampleBox.at(k).height;
+
+	        vector<double> hist;
 
 	        for (int i = 0; i < numBlocks; ++i)
 	        {
@@ -54,17 +55,10 @@ void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 	        	}
 	        }
 	        
-	        if(_isPositiveBox){
-		        for (unsigned int i = 0; i < hist.size(); ++i)
+		    for (unsigned int i = 0; i < hist.size(); ++i)
 		        {
 		        	sampleFeatureValue(k,i) = hist[i];
 		        }
-		    }else{
-		    	for (unsigned int i = 0; i < hist.size(); ++i)
-		        {
-		        	negativeFeatureValue(k,i) = hist[i];
-		        }
-		    }
 		}
 
 	}
@@ -109,33 +103,17 @@ void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 	        	}
 	        }
 	        
-	        if(_isPositiveBox){
-		        for (unsigned int i = 0; i < hist.size(); ++i)
-		        {
+	        for (unsigned int i = 0; i < hist.size(); ++i){
 		        	sampleFeatureValue(k,i) = hist[i];
-		        }
-		    }else{
-		    	for (unsigned int i = 0; i < hist.size(); ++i)
-		        {
-		        	negativeFeatureValue(k,i) = hist[i];
-		        }
-		    }
+		     }
 		}
 	}
-
-	/* size:
-    -hf = 32
-    -riu2 = 10
-    -ri = 36
-    -u2 = 59
-    */
 }
 
 
 void LocalBinaryPattern::init(Mat& _image, vector<Rect> _sampleBox, bool _resize, bool _complete_image, bool _equalized){
-	initial_size=_sampleBox[0].size();
-	sampleFeatureValue = MatrixXd(_sampleBox.size(),numBlocks*numBlocks*59);
-    negativeFeatureValue = MatrixXd(_sampleBox.size(),numBlocks*numBlocks*59);
+	//this->initial_size=Size(64,128);
+	this->initial_size=_sampleBox[0].size();
     getFeatureValue(_image, _sampleBox);
     initialized=true;
     resize = _resize;

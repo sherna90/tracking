@@ -26,8 +26,6 @@ void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 		int image_width = Image.cols , image_height = Image.rows;
 		LBP lbp( numSupportPoints, LBP::strToType( mapping ) );
 	    lbp.calcLBP( Image, rad, true );
-
-
 		
 		for (unsigned int k = 0; k < _sampleBox.size(); ++k)
 		{
@@ -50,7 +48,6 @@ void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 					roi = Scalar( 255 );
 					vector<double> histAux = lbp.calcHist( mask ).getHist();
 					hist.insert(hist.end(), histAux.begin(), histAux.end());
-
 	        	}
 	        }
 	        

@@ -140,6 +140,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
     this->local_binary_pattern.init(grayImg, sample_boxes);
     this->reference_hist=this->local_binary_pattern.sampleFeatureValue.row(0);
     this->initialized = true;
+    //cout << "initialized!!!" << endl;
 }
 
 void BernoulliParticleFilter::reinitialize(){
@@ -159,6 +160,7 @@ void BernoulliParticleFilter::predict(){
 		normal_distribution<double> position_random_x(0.0, this->theta_x.at(0)(0));
 		normal_distribution<double> position_random_y(0.0, this->theta_x.at(0)(1));
 		normal_distribution<double> scale_random_width(0.0, this->theta_x.at(1)(0));
+		normal_distribution<double> scale_random_height(0.0, this->theta_x.at(1)(1));
 		uniform_real_distribution<double> unif(0.0,1.0);
 
 		for (size_t i = 0; i < this->states.size(); ++i)
@@ -168,7 +170,7 @@ void BernoulliParticleFilter::predict(){
 			float _dx = position_random_x(this->generator);
 			float _dy = position_random_y(this->generator);
 			float _dw = scale_random_width(this->generator);
-			float _dh = scale_random_width(this->generator);
+			float _dh = scale_random_height(this->generator);
 			_x = MIN(MAX(cvRound(state.x + _dx), 0), this->img_size.width);
 			_y = MIN(MAX(cvRound(state.y + _dy), 0), this->img_size.height);
 			_width = MIN(MAX(cvRound(state.width+_dw), 0), this->img_size.width);
@@ -252,7 +254,7 @@ void BernoulliParticleFilter::predict(){
 		vector<double> normalized_weights(this->weights.size());
 		Scalar sum_weights = sum(this->weights);
     	for (size_t i = 0; i < this->weights.size(); i++) {
-        	normalized_weights.at(i) =this->weights.at(i)/sum_weights[0];
+        	normalized_weights.at(i) = this->weights.at(i)/sum_weights[0];
     	}
 		/************************************************************************/
 		this->states.swap(tmp_states);
@@ -265,6 +267,7 @@ void BernoulliParticleFilter::predict(){
 	/*************************************************/
 
 	//exit(EXIT_FAILURE);
+	//cout << "predicted!!!" << endl;
 }
 
 void BernoulliParticleFilter::update(const Mat& image){
@@ -289,20 +292,16 @@ void BernoulliParticleFilter::update(const Mat& image){
 		}
 	}
 	
-   	this->local_binary_pattern.getFeatureValue(grayImg, this->preDetections);
+	this->local_binary_pattern.init(grayImg, this->preDetections);
    	this->featureValues = MatrixXd(this->preDetections.size(), this->local_binary_pattern.sampleFeatureValue.cols());
    	this->featureValues << this->local_binary_pattern.sampleFeatureValue;
 	VectorXd bc(this->preDetections.size());
-	for(unsigned int i=0;i<this->preDetections.size();i++){
-		bc(i)=bhattarchaya(this->featureValues.row(i),this->reference_hist);
+	for(unsigned int i = 0; i < this->preDetections.size(); i++){
+		bc(i) = bhattarchaya(this->featureValues.row(i), this->reference_hist);
 	}
-	VectorXd phi=(-LAMBDA_BC*bc.array().square()).exp();
+	VectorXd phi = (-LAMBDA_BC*bc.array().square()).exp();
    	VectorXd qualityTerm;
    	this->dppResults = this->dpp.run(this->preDetections, phi, this->intersectionArea, this->featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
-   	/*for (size_t i = 0; i < this->dppResults.size(); ++i)
-   	{
-   		rectangle( image, dppResults.at(i), Scalar(255,0,0), 1, LINE_AA );
-   	}*/
 
 	if (this->dppResults.size() > 0)
 	{
@@ -381,6 +380,13 @@ void BernoulliParticleFilter::draw_particles(Mat& image, Scalar color){
         pt2.y = cvRound(state.y + state.height);
         rectangle( image, pt1, pt2, color, 1, LINE_AA );
     }
+}
+
+void BernoulliParticleFilter::draw_dpp(Mat& image, Scalar color){
+	for (size_t i = 0; i < this->dppResults.size(); ++i)
+   	{
+   		rectangle( image, this->dppResults.at(i), color, 1, LINE_AA );
+   	}
 }
 
 void BernoulliParticleFilter::resample(){

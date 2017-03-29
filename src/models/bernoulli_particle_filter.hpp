@@ -53,6 +53,7 @@ public:
 	void predict();
 	void update(const Mat& image);
 	void draw_particles(Mat& image, Scalar color = Scalar(0, 255, 255));
+	void draw_dpp(Mat& image, Scalar color = Scalar(255,0,0));
 	void resample();
 	Rect estimate(const Mat& image, bool draw = false);
 

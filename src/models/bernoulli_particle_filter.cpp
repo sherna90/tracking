@@ -16,7 +16,7 @@ const float POSITION_LIKELIHOOD_STD = 10.0;
 const float LAMBDA_C= 20.0;
 const float PDF_C = 1.6e-4;
 
-const double LAMBDA_BC=2.4;
+const double LAMBDA_BC=20.4;
 
 //const int this->step_slide = 20;
 #endif
@@ -137,7 +137,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	/******************** Logistic Regression ********************/
 	Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-    this->local_binary_pattern.init(grayImg, sample_boxes);
+    this->local_binary_pattern.init(grayImg, sample_boxes,true,false,true);
     this->reference_hist=this->local_binary_pattern.sampleFeatureValue.row(0);
     this->initialized = true;
     //cout << "initialized!!!" << endl;

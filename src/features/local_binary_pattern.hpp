@@ -29,9 +29,9 @@ using namespace Eigen;
 class LocalBinaryPattern{
 	public:
 		LocalBinaryPattern();
-		void getFeatureValue(Mat& _image, vector<Rect> _sampleBox, bool _isPositiveBox=true);
+		void getFeatureValue(Mat& _image, vector<Rect> _sampleBox);
 		void init(Mat& _image, vector<Rect> _sampleBox, bool _resize = false, bool _complete_image = false, bool _equalized = false);
-		MatrixXd sampleFeatureValue, negativeFeatureValue;
+		MatrixXd sampleFeatureValue;
 	private:
 		Size initial_size;
 		bool initialized;

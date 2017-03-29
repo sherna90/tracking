@@ -31,10 +31,9 @@ void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 		
 		for (unsigned int k = 0; k < _sampleBox.size(); ++k)
 		{
+			int width = _sampleBox.at(k).width, height = _sampleBox.at(k).height;
 			
-	        int width = _sampleBox.at(k).width, height = _sampleBox.at(k).height;
-
-	        vector<double> hist;
+			vector<double> hist;
 
 	        for (int i = 0; i < numBlocks; ++i)
 	        {
@@ -79,8 +78,7 @@ void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 			auxSubImage.copyTo(subImage);
 
 			if(resize){
-				Size size(64,128);	
-				cv::resize(subImage, subImage, size);
+				cv::resize(subImage, subImage, this->initial_size);
 			}
 
 			if(equalized){
@@ -135,6 +133,7 @@ void LocalBinaryPattern::getFeatureValue(Mat& _image, vector<Rect> _sampleBox, b
 
 
 void LocalBinaryPattern::init(Mat& _image, vector<Rect> _sampleBox, bool _resize, bool _complete_image, bool _equalized){
+	initial_size=_sampleBox[0].size();
 	sampleFeatureValue = MatrixXd(_sampleBox.size(),numBlocks*numBlocks*59);
     negativeFeatureValue = MatrixXd(_sampleBox.size(),numBlocks*numBlocks*59);
     getFeatureValue(_image, _sampleBox);

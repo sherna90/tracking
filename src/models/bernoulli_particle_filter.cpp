@@ -57,7 +57,6 @@ bool BernoulliParticleFilter::is_initialized(){
 void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect ground_truth){
 	this->step_slide=(int)(max(current_frame.rows,current_frame.cols)/30.);
 	vector<Rect> sample_boxes;
-	cout << current_frame.rows << "," << current_frame.cols << endl;
 	this->img_size = current_frame.size();
 
 	normal_distribution<double> position_random_x(0.0, this->theta_x.at(0)(0));
@@ -168,10 +167,12 @@ void BernoulliParticleFilter::predict(){
 			float _x, _y, _width, _height;
 			float _dx = position_random_x(this->generator);
 			float _dy = position_random_y(this->generator);
+			float _dw = scale_random_width(this->generator);
+			float _dh = scale_random_width(this->generator);
 			_x = MIN(MAX(cvRound(state.x + _dx), 0), this->img_size.width);
 			_y = MIN(MAX(cvRound(state.y + _dy), 0), this->img_size.height);
-			_width = MIN(MAX(cvRound(state.width), 0), this->img_size.width);
-			_height = MIN(MAX(cvRound(state.height), 0), this->img_size.height);					
+			_width = MIN(MAX(cvRound(state.width+_dw), 0), this->img_size.width);
+			_height = MIN(MAX(cvRound(state.height+_dh), 0), this->img_size.height);					
 			if(((_x + _width) < this->img_size.width)
 				&& (_x > 0)
 				&& ((_y + _height) < this->img_size.height)
@@ -288,7 +289,7 @@ void BernoulliParticleFilter::update(const Mat& image){
 		}
 	}
 	
-   	this->local_binary_pattern.init(grayImg, this->preDetections);
+   	this->local_binary_pattern.getFeatureValue(grayImg, this->preDetections);
    	this->featureValues = MatrixXd(this->preDetections.size(), this->local_binary_pattern.sampleFeatureValue.cols());
    	this->featureValues << this->local_binary_pattern.sampleFeatureValue;
 	VectorXd bc(this->preDetections.size());

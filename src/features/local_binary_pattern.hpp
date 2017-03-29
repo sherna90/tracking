@@ -33,6 +33,7 @@ class LocalBinaryPattern{
 		void init(Mat& _image, vector<Rect> _sampleBox, bool _resize = false, bool _complete_image = false, bool _equalized = false);
 		MatrixXd sampleFeatureValue, negativeFeatureValue;
 	private:
+		Size initial_size;
 		bool initialized;
 		int numBlocks;
 		int numSupportPoints;

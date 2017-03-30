@@ -42,7 +42,7 @@ void TestBernoulliParticleFilter::run(){
 			filter.update(current_frame);
 			filter.draw_dpp(current_frame);
 			//filter.draw_particles(current_frame, Scalar(0,255,255));
-			rectangle( current_frame, ground_truth, Scalar(0,255,0), 1, LINE_AA );
+			rectangle( current_frame, ground_truth, Scalar(0,255,0), 2, LINE_AA );
 			Rect estimate = filter.estimate(current_frame, true);
 			
 			double r1 = performance.calc(ground_truth, estimate);
@@ -52,6 +52,7 @@ void TestBernoulliParticleFilter::run(){
 			}
 		}
 		imshow("Tracker", current_frame);
+		imwrite(to_string(k)+"_sequence.png", current_frame );
 		waitKey(1);
   	}
 	time(&end);

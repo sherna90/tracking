@@ -385,7 +385,7 @@ void BernoulliParticleFilter::draw_particles(Mat& image, Scalar color){
 void BernoulliParticleFilter::draw_dpp(Mat& image, Scalar color){
 	for (size_t i = 0; i < this->dppResults.size(); ++i)
    	{
-   		rectangle( image, this->dppResults.at(i), color, 1, LINE_AA );
+   		rectangle( image, this->dppResults.at(i), color, 2, LINE_AA );
    	}
 }
 

@@ -3,9 +3,102 @@
 #include "c_utils.hpp"
 
 typedef std::numeric_limits< double > dbl;
+const static IOFormat CSVFormat(StreamPrecision, DontAlignCols, ", ", "\n");
 
 C_utils::C_utils(){
   initialized=true;
+}
+
+void C_utils::writeToCSVfile(string name, MatrixXd matrix){
+    ofstream file(name.c_str());
+    if (file.is_open()){
+        file << matrix.format(CSVFormat) << '\n';
+        //file << "m" << '\n' <<  colm(matrix) << '\n';
+    }
+}
+
+float C_utils::calculateAccuracyPercent(VectorXd labels,VectorXd predicted){
+    return 100 * (float) labels.cwiseEqual(predicted).cast<double>().sum() / labels.size();
+}
+
+VectorXi C_utils::argMin(MatrixXd data, bool row){
+    VectorXi result;
+    if (row){
+        int tam = data.rows();
+        result = VectorXi::Zero(tam);
+        MatrixXf::Index   minIndex[tam];
+        for (int j =0; j< data.rows(); ++j){
+            data.row(j).minCoeff(&minIndex[j]);
+            result(j) = minIndex[j];
+        }
+    }
+    else{
+        int tam = data.cols();
+        result = VectorXi::Zero(tam);
+        MatrixXf::Index   minIndex[tam];
+        for (int j =0; j< data.cols(); ++j){
+            data.col(j).minCoeff(&minIndex[j]);
+            result(j) = minIndex[j];
+        }
+    }
+    return result;
+}
+
+VectorXi C_utils::argMax(MatrixXd data, bool row){
+    VectorXi result; 
+    if (row){
+        int tam = data.rows();
+        result = VectorXi::Zero(tam);
+        MatrixXf::Index   maxIndex[tam];
+        for (int j =0; j< data.rows(); ++j){
+            data.row(j).maxCoeff(&maxIndex[j]);
+            result(j) = maxIndex[j];
+        }
+    }
+    else{
+        int tam = data.cols();
+        result = VectorXi::Zero(tam);
+        MatrixXf::Index   maxIndex[tam];
+        for (int j =0; j< data.cols(); ++j){
+            data.col(j).maxCoeff(&maxIndex[j]);
+            result(j) = maxIndex[j];
+        }
+    }
+    return result;
+}
+
+
+VectorXd C_utils::matrixDot(MatrixXd &A, VectorXd &x){
+    VectorXd aux(A.rows());
+    for (int i = 0; i < A.rows(); ++i)
+    {
+        aux[i] = A.row(i).dot(x);
+    }
+    return aux;
+}
+
+VectorXd C_utils::sign(VectorXd &x){
+    VectorXd s(x.rows());
+    for (int i = 0; i < x.rows(); ++i){
+        if (x[i] > 0.0){
+            s[i] = 1.0;
+        }
+        else if(x[i] < 0.0){
+            s[i] = -1.0;
+        }
+        else{
+            s[i] = 0.0;
+        }
+    }
+    return s;
+}
+
+VectorXd C_utils::vecMax(double value, VectorXd &vec){
+    VectorXd vector_max(vec.rows());
+    for (int i = 0; i < vec.rows(); ++i){
+        vector_max[i] = max(value, vec[i]);
+    }
+    return vector_max;
 }
 
 void C_utils::read_Labels(const string& filename, VectorXi& labels, int rows) {
@@ -18,6 +111,23 @@ void C_utils::read_Labels(const string& filename, VectorXi& labels, int rows) {
     while (getline(file, line)) {
       if (row < rows){
         int item=atoi(line.c_str());
+        labels(row)=item;
+        row++;
+      }
+    }
+    file.close();
+}
+
+void C_utils::read_Labels(const string& filename, VectorXd& labels, int rows) {
+    ifstream file(filename.c_str());
+    if(!file)
+        throw exception();
+    string line;
+    int row = 0;
+    labels.resize(rows);
+    while (getline(file, line)) {
+      if (row < rows){
+        double item=atof(line.c_str());
         labels(row)=item;
         row++;
       }
@@ -59,7 +169,7 @@ void C_utils::classification_Report(VectorXi &test, VectorXi &predicted)
   
 }
 
-void C_utils::classification_Report_d(VectorXi &test, VectorXd &predicted)
+void C_utils::classification_Report(VectorXi &test, VectorXd &predicted)
 {
   int count=0;
   for (int i=0; i < test.size(); i++) if (int(predicted(i)) == test(i)) count++;

@@ -6,6 +6,8 @@
 #include <iomanip>  
 #include <Eigen/Dense>
 #include <Eigen/Core>
+#include <opencv2/core.hpp>
+#include <opencv2/core/eigen.hpp>
 #include <string>
 #include <fstream>
 #include <vector>
@@ -14,6 +16,7 @@
 
 using namespace std;
 using namespace Eigen;
+using namespace cv;
 
 typedef struct{
   double precision;
@@ -27,10 +30,18 @@ class C_utils
 {
 public:
 	C_utils();
+    void writeToCSVfile(string name, MatrixXd matrix);
+    static float calculateAccuracyPercent(VectorXd labels,VectorXd predicted);
+    VectorXi argMin(MatrixXd data, bool row = true);
+    VectorXi argMax(MatrixXd data, bool row = true);
+    VectorXd matrixDot(MatrixXd &A, VectorXd &x);
+    VectorXd sign(VectorXd &x);
+    VectorXd vecMax(double value, VectorXd &vec);
 	void read_Labels(const string& filename,VectorXi& labels,int rows);
+	void read_Labels(const string& filename, VectorXd& labels, int rows);
 	void read_Data(const string& filename,MatrixXd& data,int rows, int cols);
 	void print(VectorXi &test, VectorXi &predicted);
-	void classification_Report_d(VectorXi &test, VectorXd &predicted);
+	void classification_Report(VectorXi &test, VectorXd &predicted);
 	void classification_Report(VectorXd &test, VectorXi &predicted);
 	void classification_Report(VectorXi &test, VectorXi &predicted);
 	int get_Rows(const string& filename);

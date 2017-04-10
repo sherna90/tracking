@@ -8,50 +8,6 @@ C_utils::C_utils(){
   initialized=true;
 }
 
-VectorXi C_utils::argMin(MatrixXd data, bool row = true){
-    if (row){
-        int tam = data.rows();
-        VectorXi result = VectorXi::Zero(tam);
-        MatrixXf::Index   minIndex[tam];
-        for (int j =0; j< data.rows(); ++j){
-            data.row(j).minCoeff(&minIndex[j]);
-            result(j) = minIndex[j];
-        }
-    }
-    else{
-        int tam = data.cols();
-        VectorXi result = VectorXi::Zero(tam);
-        MatrixXf::Index   minIndex[tam];
-        for (int j =0; j< data.cols(); ++j){
-            data.col(j).minCoeff(&minIndex[j]);
-            result(j) = minIndex[j];
-        }
-    }
-    return result;
-}
-
-VectorXi C_utils::argMax(MatrixXd data, bool row = true){
-    if (row){
-        int tam = data.rows();
-        VectorXi result = VectorXi::Zero(tam);
-        MatrixXf::Index   maxIndex[tam];
-        for (int j =0; j< data.rows(); ++j){
-            data.row(j).maxCoeff(&maxIndex[j]);
-            result(j) = maxIndex[j];
-        }
-    }
-    else{
-        int tam = data.cols();
-        VectorXi result = VectorXi::Zero(tam);
-        MatrixXf::Index   maxIndex[tam];
-        for (int j =0; j< data.cols(); ++j){
-            data.col(j).maxCoeff(&maxIndex[j]);
-            result(j) = maxIndex[j];
-        }
-    }
-    return result;
-}
-
 void C_utils::read_Labels(const string& filename, VectorXi& labels, int rows) {
     ifstream file(filename.c_str());
     if(!file)

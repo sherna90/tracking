@@ -9,7 +9,6 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
-#include "multivariate_gaussian.hpp"
 
 
 using namespace Eigen;

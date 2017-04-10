@@ -8,28 +8,21 @@ LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda)
 	this->lambda=_lambda;
  	this->X_train = &_X;
  	this->Y_train = &_Y;
- 	/*VectorXi indices = VectorXi::LinSpaced(X_train->rows(), 0, X_train->rows());
+ 	VectorXi indices = VectorXi::LinSpaced(X_train->rows(), 0, X_train->rows());
  	srand((unsigned int) time(0));
  	std::random_shuffle(indices.data(), indices.data() + X_train->rows());
   	X_train->noalias() = indices.asPermutation() * *X_train;  
-  	Y_train->noalias() = indices.asPermutation() * *Y_train;*/
+  	Y_train->noalias() = indices.asPermutation() * *Y_train;
  	this->rows = X_train->rows();
 	this->dim = X_train->cols();
-	this->weights = RowVectorXd::Zero(dim);
-	/*featureMeans = X_train->colwise().mean();
-	X_train->rowwise()-=featureMeans.transpose();*/
-	/*X_train->conservativeResize(NoChange, dim+1);
-	VectorXd bias_vec=VectorXd::Constant(rows,1.0);
-	X_train->col(dim) = bias_vec;*/
+	this->weights = RowVectorXd::Random(dim);
+	this->featureMeans = X_train->colwise().mean();
+	X_train->rowwise()-=featureMeans.transpose();
  }
 
 VectorXd LogisticRegression::sigmoid(VectorXd &eta){
 	VectorXd phi =eta.unaryExpr([](double elem) // changed type of parameter
 	{
-		//double maxcut=log(std::numeric_limits<float>::max_exponent);
-		//double mincut=log(std::numeric_limits<float>::min_exponent);
-	    //elem=max(elem,mincut);
-	    //elem=min(elem,maxcut);
 	    double p= (elem>0) ? 1.0/(1.0+exp(-elem)) : exp(elem)/(1.0+exp(elem));
 	    return p;
 	});
@@ -39,13 +32,8 @@ VectorXd LogisticRegression::sigmoid(VectorXd &eta){
 VectorXd LogisticRegression::logSigmoid(VectorXd &eta){
 	VectorXd phi = eta.unaryExpr([](double elem) // changed type of parameter
 	{
-		//double realmin=numeric_limits<double>::min();
-		//double maxcut=log(std::numeric_limits<float>::max_exponent);
-		//double mincut=log(std::numeric_limits<float>::min_exponent);
-	    //elem=max(elem,mincut);
-	    //elem=min(elem,maxcut);
-	    double p= (elem>0) ?  elem-log(1.0+exp(elem)) : -log(1.0+exp(-elem)) ;
-	    return p;
+	   double p= (elem>0) ?  elem-log(1.0+exp(elem)) : -log(1.0+exp(-elem)) ;
+	   return p;
 	});
 	return phi;
 }
@@ -57,7 +45,7 @@ VectorXd LogisticRegression::train(int n_iter,double alpha,double tol){
 		RowVectorXd Grad=gradient(this->weights);
 		log_likelihood(i)=-logPosterior(this->weights);
 		this->weights+=alpha*Grad;
-		if(i % n_iter/10 == 0) cout << "negative log-likelihood : " << log_likelihood(i) << endl;
+		if(i % (n_iter/10) == 0) cout << "negative log-likelihood : " << log_likelihood(i) << endl;
 	}
 	return log_likelihood;
 }
@@ -107,7 +95,7 @@ MatrixXd LogisticRegression::computeHessian(MatrixXd &_X, VectorXd &_Y, RowVecto
 
 VectorXd LogisticRegression::predict(MatrixXd &_X,bool log_prob){
 	MatrixXd *X_test=&_X;
-	//X_test->rowwise()-=featureMeans.transpose();
+	X_test->rowwise()-=this->featureMeans.transpose();
 	VectorXd phi=VectorXd::Zero(X_test->rows());
 	VectorXd eta = (*X_test)*this->weights.transpose();
 	if(log_prob){

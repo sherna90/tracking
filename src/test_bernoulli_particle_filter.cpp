@@ -46,13 +46,13 @@ void TestBernoulliParticleFilter::run(){
 			Rect estimate = filter.estimate(current_frame, true);
 			
 			double r1 = performance.calc(ground_truth, estimate);
-			if(r1 < 0.1) {
+			/*if(r1 < 0.1) {
 				filter.reinitialize();
 				reinit_rate+=1.0;
-			}
+			}*/
 		}
 		imshow("Tracker", current_frame);
-		imwrite(to_string(k)+"_sequence.png", current_frame );
+		imwrite(to_string(k)+".png", current_frame );
 		waitKey(1);
   	}
 	time(&end);

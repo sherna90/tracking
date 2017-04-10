@@ -27,6 +27,8 @@ class C_utils
 {
 public:
 	C_utils();
+    VectorXi argMin(MatrixXd data, bool row = true);
+    VectorXi argMax(MatrixXd data, bool row = true);
 	void read_Labels(const string& filename,VectorXi& labels,int rows);
 	void read_Data(const string& filename,MatrixXd& data,int rows, int cols);
 	void print(VectorXi &test, VectorXi &predicted);

@@ -9,13 +9,14 @@ LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda)
  	this->X_train = &_X;
  	this->Y_train = &_Y;
  	VectorXi indices = VectorXi::LinSpaced(X_train->rows(), 0, X_train->rows());
- 	srand((unsigned int) time(0));
  	std::random_shuffle(indices.data(), indices.data() + X_train->rows());
   	X_train->noalias() = indices.asPermutation() * *X_train;  
   	Y_train->noalias() = indices.asPermutation() * *Y_train;
  	this->rows = X_train->rows();
 	this->dim = X_train->cols();
 	this->weights = RowVectorXd::Random(dim);
+	this->eta = VectorXd::Zero(this->rows);
+	this->phi = VectorXd::Zero(this->rows);
 	this->featureMeans = X_train->colwise().mean();
 	X_train->rowwise()-=featureMeans.transpose();
  }
@@ -42,6 +43,8 @@ VectorXd LogisticRegression::logSigmoid(VectorXd &eta){
 VectorXd LogisticRegression::train(int n_iter,double alpha,double tol){
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	for(int i=0;i<n_iter;i++){
+		this->eta = (*X_train*this->weights.transpose());
+		this->phi=sigmoid(this->eta);
 		RowVectorXd Grad=gradient(this->weights);
 		log_likelihood(i)=-logPosterior(this->weights);
 		this->weights+=alpha*Grad;
@@ -52,11 +55,9 @@ VectorXd LogisticRegression::train(int n_iter,double alpha,double tol){
 
 
 RowVectorXd LogisticRegression::computeGradient(MatrixXd &_X, VectorXd &_Y, RowVectorXd &_W){
-	VectorXd eta = (_X*_W.transpose());
-	VectorXd Phi=sigmoid(eta);
 	RowVectorXd E_d=RowVectorXd::Zero(this->dim);
 	for(int i=0;i<this->rows;i++){
-		double sg=Phi[i];
+		double sg=this->phi[i];
 		if(_Y[i]>0){
 			E_d+=(1.0-sg)*_X.row(i);
 		}
@@ -67,15 +68,6 @@ RowVectorXd LogisticRegression::computeGradient(MatrixXd &_X, VectorXd &_Y, RowV
 	RowVectorXd E_w=-(-2.0*this->lambda/(double)this->dim)*_W;
 	RowVectorXd grad=(E_d+E_w);
 	return grad;
-}
-
-VectorXd LogisticRegression::computeDataGradient(MatrixXd &_X, VectorXd &_Y, RowVectorXd &_W){
-	VectorXd eta = (_X*_W.transpose());
-	VectorXd YZ=_Y.cwiseProduct(eta);
-	VectorXd Phi=sigmoid(YZ);
-	Phi.noalias()=_Y.cwiseProduct((Phi.array()-1).matrix());
-	VectorXd E_d=_X.transpose()*Phi;
-	return E_d;
 }
 
 
@@ -93,30 +85,23 @@ MatrixXd LogisticRegression::computeHessian(MatrixXd &_X, VectorXd &_Y, RowVecto
 	return H.inverse();
 }
 
-VectorXd LogisticRegression::predict(MatrixXd &_X,bool log_prob){
-	MatrixXd *X_test=&_X;
-	X_test->rowwise()-=this->featureMeans.transpose();
-	VectorXd phi=VectorXd::Zero(X_test->rows());
-	VectorXd eta = (*X_test)*this->weights.transpose();
-	if(log_prob){
-		phi=logSigmoid(eta);		
-	}
-	else{
-		phi=sigmoid(eta);
-		phi.noalias() = phi.unaryExpr([](double elem){
+VectorXd LogisticRegression::predict(MatrixXd &_X,bool prob){
+	_X.rowwise()-=this->featureMeans.transpose();
+	VectorXd eta_test = (_X)*this->weights.transpose();
+	VectorXd phi_test=sigmoid(eta_test);
+	if(!prob){
+		phi_test.noalias() = phi_test.unaryExpr([](double elem){
 	    	return (elem > 0.5) ? 1.0 : 0.0;
-		});
+		});		
 	}
-	return phi;
+	return phi_test;
 }
 
 double LogisticRegression::logLikelihood(MatrixXd &_X,VectorXd &_Y,RowVectorXd &_W){
 	double realmin=numeric_limits<double>::min();
-	VectorXd eta = (_X*_W.transpose());
-	VectorXd Phi=sigmoid(eta);
 	double ll=0.0;
 	for(int i=0;i<this->rows;i++){
-		double sg=Phi[i]+realmin;
+		double sg=this->phi[i]+realmin;
 		if(_Y[i]>0){
 			ll+=log(sg);
 		}

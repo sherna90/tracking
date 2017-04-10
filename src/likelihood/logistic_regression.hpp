@@ -20,13 +20,12 @@ class LogisticRegression
 	LogisticRegression();
 	LogisticRegression(MatrixXd &_X,VectorXd &_Y,double lambda=1.0);
  	VectorXd train(int n_iter,double alpha=0.01,double tol=0.001);
- 	VectorXd predict(MatrixXd &_X, bool log_prob=true);
+ 	VectorXd predict(MatrixXd &_X, bool prob=false);
  	double logPosterior(RowVectorXd& _weights);
  	RowVectorXd gradient(RowVectorXd& _weights);
-    RowVectorXd computeGradient(MatrixXd &_X, VectorXd &_Y,RowVectorXd &_W);
-    VectorXd computeDataGradient(MatrixXd &_X, VectorXd &_Y,RowVectorXd &_W);
+        RowVectorXd computeGradient(MatrixXd &_X, VectorXd &_Y,RowVectorXd &_W);
  	void setWeights(VectorXd &_W);
-    void setData(MatrixXd &_X,VectorXd &_Y);
+        void setData(MatrixXd &_X,VectorXd &_Y);
  	VectorXd getWeights();
 
 
@@ -34,6 +33,7 @@ class LogisticRegression
  	RowVectorXd weights;
  	MatrixXd *X_train;
  	VectorXd *Y_train;
+	VectorXd eta,phi;
  	int rows,dim;
  	double lambda;
  	VectorXd featureMeans;

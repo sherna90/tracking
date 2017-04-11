@@ -22,16 +22,16 @@ class LogisticRegression
 	void preCompute();
  	VectorXd train(int n_iter,double alpha=0.01,double tol=0.001);
  	VectorXd predict(MatrixXd &_X_test, bool prob=false);
- 	double logPosterior(RowVectorXd& _weights);
- 	RowVectorXd gradient(RowVectorXd& _weights);
-    RowVectorXd computeGradient(MatrixXd &_X, VectorXd &_Y,RowVectorXd &_W);
- 	void setWeights(RowVectorXd &_W);
+ 	double logPosterior(VectorXd& _weights);
+ 	VectorXd gradient(VectorXd& _weights);
+    VectorXd computeGradient(MatrixXd &_X, VectorXd &_Y,VectorXd &_W);
+ 	void setWeights(VectorXd &_W);
     void setData(MatrixXd &_X,VectorXd &_Y);
- 	RowVectorXd getWeights();
+ 	VectorXd getWeights();
 
 
  private:
- 	RowVectorXd weights;
+ 	VectorXd weights;
  	MatrixXd *X_train;
  	VectorXd *Y_train;
 	VectorXd eta,phi;
@@ -40,9 +40,9 @@ class LogisticRegression
  	VectorXd featureMeans;
  	VectorXd sigmoid(VectorXd &_eta);
  	VectorXd logSigmoid(VectorXd &_eta);
- 	MatrixXd computeHessian(MatrixXd &_X, VectorXd &_Y, RowVectorXd &_W);
+ 	MatrixXd computeHessian(MatrixXd &_X, VectorXd &_Y, VectorXd &_W);
     //MatrixXd computeHessian(MatrixXd &_X, VectorXd &_Y, RowVectorXd &_W);
- 	double logPrior(RowVectorXd &_W);
+ 	double logPrior(VectorXd &_W);
  	double logLikelihood(MatrixXd &_X,VectorXd &_Y);
  	MatrixXd Hessian;
     //MVNGaussian posterior;

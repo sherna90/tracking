@@ -30,11 +30,11 @@ Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, MatrixXd &_data){
 
 }
 
-VectorXd Hamiltonian_MC::gradient(VectorXd &_W, MatrixXd &_data){
+VectorXd Hamiltonian_MC::gradient(VectorXd &W, MatrixXd &_data){
 	VectorXd grad;
 	if (init_2)
 	{	
-		grad = -this->logistic_regression.gradient(_W);
+		grad = -this->logistic_regression.gradient(W);
 		return grad;
 	}
 	else{
@@ -42,11 +42,11 @@ VectorXd Hamiltonian_MC::gradient(VectorXd &_W, MatrixXd &_data){
 	}
 
 }
-double Hamiltonian_MC::logPosterior(VectorXd &_W, MatrixXd &_data){
+double Hamiltonian_MC::logPosterior(VectorXd &W, MatrixXd &_data){
 	double logPost = 0.0;
 	if (init_2)
 	{
-		logPost = -this->logistic_regression.logPosterior(_W);
+		logPost = -this->logistic_regression.logPosterior(W);
 		return logPost;
 	}
 	else{
@@ -55,13 +55,13 @@ double Hamiltonian_MC::logPosterior(VectorXd &_W, MatrixXd &_data){
 
 }
 
-VectorXd Hamiltonian_MC::gradient(VectorXd &_W){
+VectorXd Hamiltonian_MC::gradient(VectorXd &W){
 	VectorXd grad;
 	if (init)
 	{	
-		this->logistic_regression.setWeights(_W);
+		this->logistic_regression.setWeights(W);
 		this->logistic_regression.preCompute();
-		grad = -this->logistic_regression.gradient(_W);
+		grad = -this->logistic_regression.gradient(W);
 		return grad;
 	}
 	else{
@@ -69,13 +69,13 @@ VectorXd Hamiltonian_MC::gradient(VectorXd &_W){
 	}
 
 }
-double Hamiltonian_MC::logPosterior(VectorXd &_W){
+double Hamiltonian_MC::logPosterior(VectorXd &W){
 	double logPost = 0.0;
 	if (init)
 	{
-		this->logistic_regression.setWeights(_W);
+		this->logistic_regression.setWeights(W);
 		this->logistic_regression.preCompute();
-		logPost = -this->logistic_regression.logPosterior(_W);
+		logPost = -this->logistic_regression.logPosterior(W);
 		return logPost;
 	}
 	else{
@@ -90,100 +90,68 @@ void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
 		step_size = _step_size;
 		num_step = _num_step;
 		weights.resize(_iterations, dim);
-
 		VectorXd initial_x = VectorXd::Random(dim);
-
-		VectorXd old_x = initial_x;
-		for (int i = 0; i < _iterations; ++i)
-		{	
-			weights.row(i) = this->simulation(initial_x, old_x);
-			old_x = weights.row(i);
-			initial_x = weights.row(i);
+		for (int i = 0; i < _iterations; ++i){	
 			
+			VectorXd initial_v  = VectorXd::Random(dim);
+			initial_x = this->simulation(initial_x, initial_v);
+			weights.row(i) = initial_x;
+
 		}
 
 		int partition = (int)_iterations*0.5; 
 		mean_weights = (weights.block(partition,0 ,weights.rows()-partition, dim)).colwise().mean();
+		//mean_weights = weights.colwise().mean();
+		//mean_weights = weights.row(weights.rows()-1);
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
 	}
 }
 
-VectorXd Hamiltonian_MC::predict(MatrixXd &_X_test, bool prob){
-	VectorXd predict;
-	if (init)
-	{	
-
-		this->logistic_regression.setWeights(mean_weights);
-		predict = this->logistic_regression.predict(_X_test, prob);
-		return predict;
-		
-	}
-	else{
-		cout << "Error: No initialized function"<< endl;
-		return predict;
-	}
-}
-
-MatrixXd Hamiltonian_MC::get_weights(){
-	MatrixXd predict;
-	if (init){	
-		return weights;	
-	}
-	else{
-		cout << "Error: No initialized function"<< endl;
-		return predict;
-	}
-}
 
 
-VectorXd Hamiltonian_MC::simulation(VectorXd &_initial_x, VectorXd &_old_x){
 
+VectorXd Hamiltonian_MC::simulation(VectorXd &initial_x, VectorXd &initial_v){
 	if (init)
 	{
-
-  		VectorXd v0  = VectorXd::Random(dim);
-  		VectorXd x(dim);
-  		VectorXd v(dim);
+  		VectorXd new_x = initial_x;
+  		VectorXd new_v = initial_v;
   		
-  		double orig = this->hamiltonian(_initial_x, v0); // old Data
+  		double original = this->hamiltonian(initial_x, initial_v); // old Data
   		
-  		this->leap_Frog(_initial_x, v0, x, v);
+  		this->leap_Frog(new_x, new_v);
   		
-		double current = this->hamiltonian(x, v); // new Data
+		double current = this->hamiltonian(new_x, new_v); // new Data
 
 		// Metopolis-Hasting Correction
-		double p_accept = exp(orig - current);
+		double p_accept = exp(original - current);
 
 		normal_distribution<double> dnormal(0.0,1.0);
 		if (p_accept > dnormal(generator))
 		{
-			return x;
+			return new_x;
 		}
-
-		return _old_x;
+		return initial_x;
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
-		return _initial_x;
+		return initial_x;
 	}
 }
 
-void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v){
+void Hamiltonian_MC::leap_Frog(VectorXd &x, VectorXd &v){
 	//Start by updating the velocity a half-step
 
 	VectorXd gradient;
 	if(init_2){
-		gradient = this->gradient(_x0, data);
+		gradient = this->gradient(x, data);
 	}
 	else{
-		gradient = this->gradient(_x0);	
+		gradient = this->gradient(x);	
 	}
 	
 	//Initalize x to be the first step
-	v= _v0;
-	x= _x0;
 	
 	v = v - 0.5 * step_size * gradient;
 
@@ -206,27 +174,60 @@ void Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, Vector
 
 	v = v - 0.5 * step_size * gradient;
 
-	v = -v; // not necesary
+	v = -v;
 }
 
-
-double Hamiltonian_MC::hamiltonian(VectorXd &_position, VectorXd &_velocity){
-	
+double Hamiltonian_MC::hamiltonian(VectorXd &position, VectorXd &velocity){
 	double energy_function = 0.0;
 	if(init_2){
 	 	energy_function = this->logPosterior(_position, data);
 	}
 	else{
-		energy_function = this->logPosterior(_position);
+		energy_function = this->logPosterior(position);
 	}
 
-	return energy_function + this->kinetic_energy(_velocity);
+	return energy_function + this->kinetic_energy(velocity);
 }
 
-double Hamiltonian_MC::kinetic_energy(VectorXd &_velocity){
+double Hamiltonian_MC::kinetic_energy(VectorXd &velocity){
 	/*Kinetic energy of the current velocity (assuming a standard Gaussian)
-        (x dot x) / 2
-	*/
+        (x dot x) / 2*/
 
-	return 0.5 * _velocity.adjoint()*_velocity;
+	return 0.5 * velocity.adjoint()*velocity;
+}
+
+VectorXd Hamiltonian_MC::predict(MatrixXd &X_test, bool prob){
+	VectorXd predict;
+	if (init)
+	{	
+
+		this->logistic_regression.setWeights(mean_weights);
+		predict = this->logistic_regression.predict(X_test, prob);
+		return predict;
+		
+	}
+	else{
+		cout << "Error: No initialized function"<< endl;
+		return predict;
+	}
+}
+
+MatrixXd Hamiltonian_MC::get_weights(){
+	MatrixXd predict;
+	if (init){	
+		return weights;	
+	}
+	else{
+		cout << "Error: No initialized function"<< endl;
+		return predict;
+	}
+}
+
+void Hamiltonian_MC::set_weights(VectorXd &_weights){
+	if (init){	
+		this->mean_weights = _weights;	
+	}
+	else{
+		cout << "Error: No initialized function"<< endl;
+	}
 }

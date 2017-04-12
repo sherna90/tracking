@@ -26,18 +26,19 @@ public:
 	Hamiltonian_MC( MatrixXd &_X, VectorXd &_Y, double _lamda);
 	Hamiltonian_MC( MatrixXd &_X,  MatrixXd &_data);
 	void run(int _iterations, double _step_size, int _num_step);
-	VectorXd simulation(VectorXd &_initial_x, VectorXd &_old_x);
+	VectorXd simulation(VectorXd &initial_x, VectorXd &initial_v);
+	virtual VectorXd gradient(VectorXd &W, MatrixXd &data);
+	virtual double logPosterior(VectorXd &W, MatrixXd &data);
+	virtual VectorXd gradient(VectorXd &W);
+	virtual double logPosterior(VectorXd &W);
 	VectorXd predict(MatrixXd &_X_test, bool prob = false);
 	MatrixXd get_weights();
-	virtual VectorXd gradient(VectorXd &_W, MatrixXd &);
-	virtual double logPosterior(VectorXd &_W, MatrixXd &_data);
-	virtual VectorXd gradient(VectorXd &_W);
-	virtual double logPosterior(VectorXd &_W);
+	void set_weights(VectorXd &_weights);
 
 private:
-	void leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v);
-	double hamiltonian(VectorXd &_position, VectorXd &_velocity);
-	double kinetic_energy(VectorXd &_velocity);
+	void leap_Frog(VectorXd &x, VectorXd &v);
+	double hamiltonian(VectorXd &position, VectorXd &velocity);
+	double kinetic_energy(VectorXd &velocity);
 	bool init, init_2;
 	double step_size;
 	int num_step, dim;

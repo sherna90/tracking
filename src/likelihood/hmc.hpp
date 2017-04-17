@@ -31,24 +31,25 @@ public:
 	virtual double logPosterior(VectorXd &W, MatrixXd &data);
 	virtual VectorXd gradient(VectorXd &W);
 	virtual double logPosterior(VectorXd &W);
-	VectorXd predict(MatrixXd &_X_test, bool prob = false);
+	VectorXd predict(MatrixXd &_X_test, bool prob = false, int samples = 0);
 	MatrixXd get_weights();
 	void set_weights(VectorXd &_weights);
 
 private:
 	void leap_Frog(VectorXd &x, VectorXd &v);
-	double hamiltonian(VectorXd &position, VectorXd &velocity);
 	double kinetic_energy(VectorXd &velocity);
+	double energy_function(VectorXd &position);
+	VectorXd random_generator(int dim);
+	double random_uniform();
 	bool init, init_2;
 	double step_size;
 	int num_step, dim;
  	MatrixXd weights;
- 	mt19937 generator;
- 	double lambda;
+ 	double lambda, old_energy;
  	MatrixXd *X_train;
  	MatrixXd data;
  	VectorXd *Y_train;
- 	VectorXd mean_weights;
+ 	VectorXd mean_weights, old_gradient, new_gradient;
  	LogisticRegression logistic_regression;
 };
 

@@ -2,29 +2,31 @@
 #include "sghmc.hpp"
 
 Stochastic_Gradient_Hamiltonian_MC::Stochastic_Gradient_Hamiltonian_MC(){
-	init = false;
-	init_2 = false;
-	init_sg = false;
+	this->init = false;
+	this->init_2 = false;
+	this->init_sg = false;
 }
 
 
 Stochastic_Gradient_Hamiltonian_MC::Stochastic_Gradient_Hamiltonian_MC(MatrixXd &_X, VectorXd &_Y, double _lambda){
-	lambda=_lambda;
-	X_train = &_X;
- 	Y_train = &_Y;
-	dim = _X.cols();
+	this->lambda=_lambda;
+	this->X_train = &_X;
+ 	this->Y_train = &_Y;
+	this->dim = _X.cols();
+	this->iterations = 0;
 
-    logistic_regression = LogisticRegression(_X, _Y, _lambda);
-    init = true;
+    this->logistic_regression = LogisticRegression(_X, _Y, _lambda);
+    this->init = true;
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
     generator.seed(seed1);
 
 }
 
 Stochastic_Gradient_Hamiltonian_MC::Stochastic_Gradient_Hamiltonian_MC(MatrixXd &_X, MatrixXd &_data){
-	X_train = &_X;
-	data = _data;
-	dim = _X.cols();
+	this->X_train = &_X;
+	this->data = _data;
+	this->dim = _X.cols();
+	this->iterations = 0;
 
     init_2 = true;
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
@@ -32,13 +34,34 @@ Stochastic_Gradient_Hamiltonian_MC::Stochastic_Gradient_Hamiltonian_MC(MatrixXd 
 
 }
 
-VectorXd Stochastic_Gradient_Hamiltonian_MC::gradient(VectorXd &weights, MatrixXd &_data){
+VectorXd Stochastic_Gradient_Hamiltonian_MC::random_generator(int dimension){
+	unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+  	mt19937 generator;
+  	generator.seed(seed1);
+  	normal_distribution<double> dnormal(0.0,1.0);
+	VectorXd random_vector(dimension);
+
+	for (int i = 0; i < dimension; ++i){
+		random_vector(i) = dnormal(generator);
+	}
+	return random_vector;
+}
+
+double Stochastic_Gradient_Hamiltonian_MC::random_uniform(){
+	random_device rd;
+    mt19937 gen(rd());
+    uniform_real_distribution<> dis(0, 1);
+    return dis(gen);
+}
+
+
+VectorXd Stochastic_Gradient_Hamiltonian_MC::stochastic_gradient(VectorXd &W){
 	VectorXd grad;
-	if (init_2)
+	if (this->init)
 	{	
-		RowVectorXd rowX(dim);
-		rowX << weights.transpose();
-		grad = logistic_regression.gradient(rowX);
+		this->logistic_regression.setWeights(W);
+		this->logistic_regression.preCompute();
+		grad = -this->logistic_regression.gradient(W) + random_generator(W.rows());
 		return grad;
 	}
 	else{
@@ -46,14 +69,13 @@ VectorXd Stochastic_Gradient_Hamiltonian_MC::gradient(VectorXd &weights, MatrixX
 	}
 
 }
-
-double Stochastic_Gradient_Hamiltonian_MC::logPosterior(VectorXd &weights, MatrixXd &_data){
+double Stochastic_Gradient_Hamiltonian_MC::logPosterior(VectorXd &W){
 	double logPost = 0.0;
-	if (init_2)
+	if (this->init)
 	{
-		RowVectorXd rowPosition(dim);
-		rowPosition << weights.transpose();
-		logPost = -logistic_regression.logPosterior(rowPosition);
+		this->logistic_regression.setWeights(W);
+		this->logistic_regression.preCompute();
+		logPost = -this->logistic_regression.logPosterior(W);
 		return logPost;
 	}
 	else{
@@ -61,70 +83,55 @@ double Stochastic_Gradient_Hamiltonian_MC::logPosterior(VectorXd &weights, Matri
 	}
 
 }
+////////////////////////////////
 
-VectorXd Stochastic_Gradient_Hamiltonian_MC::stochastic_gradient(VectorXd &weights){
-	VectorXd grad;
-	if (init)
-	{	
-		RowVectorXd rowX(dim);
-		rowX << weights.transpose();
-		grad = logistic_regression.gradient(rowX) + VectorXd::Random(dim);
-		return grad;
-	}
-	else{
-		return grad;
-	}
-
-}
-
-double Stochastic_Gradient_Hamiltonian_MC::logPosterior(VectorXd &weights){
-	double logPost = 0.0;
-	if (init)
-	{
-		RowVectorXd rowPosition(dim);
-		rowPosition << weights.transpose();
-		logPost = -logistic_regression.logPosterior(rowPosition);
-		return logPost;
-	}
-	else{
-		return logPost;
-	}
-
-}
-
-void Stochastic_Gradient_Hamiltonian_MC::run(double _eta, double _alpha, int _num_step, int _V){
+void Stochastic_Gradient_Hamiltonian_MC::run(int _iterations, double _m, double _dt, int _num_step, double _C, int _V){
 	init_sg = true;
-	if (init)
-	{	
-		eta = _eta;
-		alpha = _alpha;
-		V = _V;
-		num_step = _num_step;
+	if (this->init){
+		
+		this->m = _m;
+		this->dt = _dt;
+		this->V = _V;
+		this->C = _C;
+		this->num_step = _num_step;
+		this->iterations = _iterations;
+		this->weights.resize(iterations, this->dim);
 
-		VectorXd initial_x = VectorXd::Random(dim);
-			
-		MatrixXd _weights = this->simulation(initial_x);
-			
-		weights = _weights;
-		mean_weights = weights.colwise().mean();
+		VectorXd initial_x = random_generator(this->dim);
+		
+		for (int i = 0; i < iterations; ++i){
+			initial_x.noalias() = this->simulation(initial_x);
+			this->weights.row(i) = initial_x;
+		}
+
+		int partition = (int)iterations*0.5; 
+		this->mean_weights = (this->weights.block(partition,0 ,this->weights.rows()-partition, this->dim)).colwise().mean();
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
 	}
 }
 
-void Stochastic_Gradient_Hamiltonian_MC::partial_run(MatrixXd &_X, VectorXd &_Y){
-	if (init_sg and init)
+void Stochastic_Gradient_Hamiltonian_MC::partial_run(int new_iterations, MatrixXd &_X, VectorXd &_Y){
+	if (this->init_sg and this->init)
 	{	
-		X_train = &_X;
- 		Y_train = &_Y;
- 		logistic_regression = LogisticRegression(_X, _Y, lambda);
- 		if (_X.cols() == dim)
- 		{
-			MatrixXd _weights = this->simulation(mean_weights);
-				
-			weights = _weights;
-			mean_weights = weights.colwise().mean();
+ 		if (_X.cols() == this->dim){
+
+			this->X_train = &_X;
+ 			this->Y_train = &_Y;
+ 			this->logistic_regression = LogisticRegression(_X, _Y, this->lambda);
+ 			int old_iterations = this->iterations;
+ 			this->iterations += new_iterations;
+ 			this->weights.conservativeResize(this->iterations, NoChange);
+ 			VectorXd initial_x = this->mean_weights;
+
+ 			for (int i = 0; i < new_iterations; ++i){
+				initial_x.noalias() = this->simulation(initial_x);
+				this->weights.row(i+old_iterations) = initial_x;
+			}
+
+			int partition = (int)this->iterations*0.5;
+			this->mean_weights = (this->weights.block(partition,0 ,this->weights.rows()-partition, this->dim)).colwise().mean();
  		}
  		else{
  			cout << "Error: Data dimensions are different"<< endl;
@@ -136,49 +143,79 @@ void Stochastic_Gradient_Hamiltonian_MC::partial_run(MatrixXd &_X, VectorXd &_Y)
 	}
 }
 
-/*void Stochastic_Gradient_Hamiltonian_MC::partial_run(MatrixXd &_X, MatrixXd &_data){
-	if (init_sg and init_2)
-	{	
-		X_train = &_X;
-		data = _data;
-		//logistic_regression = LogisticRegression(_X, _Y, lambda);
- 		if (_X.cols() == dim)
- 		{
-			MatrixXd _weights = this->simulation(mean_weights);
-				
-			weights = _weights;
-			mean_weights = weights.colwise().mean();
- 		}
- 		else{
- 			cout << "Error: Data dimensions are different"<< endl;
- 		}
+VectorXd Stochastic_Gradient_Hamiltonian_MC::simulation(VectorXd &initial_x){
+	VectorXd new_x;
+	if (this->init)
+	{
 
+  		VectorXd v0  = random_generator(initial_x.rows()) * sqrt(this->m);
+  		double B = 0.5*this->V*this->dt;
+  		double D = sqrt(2*(this->C-B)*this->dt);
+
+  		new_x = this->leap_Frog(initial_x, v0, D);
+
+		return new_x;
 	}
 	else{
-		cout << "Error: No initialized run Stochastic_Gradient_Hamiltonian_MC or Generic mode constructor"<< endl;
+		cout << "Error: No initialized function"<< endl;
+		return new_x;
 	}
-}*/
+}
 
+VectorXd Stochastic_Gradient_Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, double D){
+	VectorXd gradient;	
+	VectorXd x = _x0;
+	VectorXd v = _v0;
 
-VectorXd Stochastic_Gradient_Hamiltonian_MC::predict(MatrixXd &_X_test, bool prob){
+	for (int i = 0; i < this->num_step; ++i){
+		gradient = this->stochastic_gradient(x);	
+
+		v.noalias() = v - gradient*this->dt - v*this->C*this->dt + random_generator(this->dim)*D;
+		x.noalias() = x + (v/this->m)*this->dt;
+
+	}
+	return x;
+}
+
+VectorXd Stochastic_Gradient_Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
 	VectorXd predict;
-	if (init)
+	if (this->init)
 	{	
-		logistic_regression.setWeights(mean_weights);
-		predict = logistic_regression.predict(_X_test, prob);
-		return predict;
+		if (samples == 0){
+			this->logistic_regression.setWeights(this->mean_weights);
+			predict = this->logistic_regression.predict(X_test, prob);
+			return predict;
+		}
+		else{
+			MatrixXd temp_predict(samples, X_test.rows());
+			for (int i = 0; i < samples; ++i){
+				int randNum = rand()%(weights.rows()-1 + 1) + 0;
+				//VectorXd W = this->weights.row(this->weights.rows()-1-i);
+				VectorXd W = this->weights.row(randNum);
+				this->logistic_regression.setWeights(W);
+				temp_predict.row(i) = this->logistic_regression.predict(X_test, prob);
+			}
+			predict = temp_predict.colwise().mean();
+			predict.noalias() = predict.unaryExpr([](double elem){
+	    					return (elem > 0.5) ? 1.0 : 0.0;
+			});	
+
+			return predict;
+		}
+		
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
 		return predict;
 	}
 }
+
 
 MatrixXd Stochastic_Gradient_Hamiltonian_MC::get_weights(){
 	MatrixXd predict;
-	if (init)
+	if (this->init)
 	{	
-		return weights;
+		return this->weights;
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
@@ -186,50 +223,3 @@ MatrixXd Stochastic_Gradient_Hamiltonian_MC::get_weights(){
 	}
 }
 
-
-MatrixXd Stochastic_Gradient_Hamiltonian_MC::simulation(VectorXd &_initial_x){
-	MatrixXd _weights(num_step, dim);
-	if (init)
-	{
-		double beta = V*eta*0.5;
-
-		if (beta > alpha)
-		{
-			cout << "too big eta" << endl;
-		}
-
-		double sigma = sqrt(2*eta*(alpha -beta));
-
-  		VectorXd v0  = VectorXd::Random(_initial_x.rows()) * sqrt(eta);
-
-  		double momentum = 1- alpha;
-
-  		this->leap_Frog(_initial_x, v0, _weights, momentum, sigma);
-
-		return _weights;
-	}
-	else{
-		cout << "Error: No initialized function"<< endl;
-		return _weights;
-	}
-}
-
-void Stochastic_Gradient_Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, MatrixXd &_weights, double momentum, double _sigma){
-
-	VectorXd gradient;	
-	for (int i = 0; i < num_step; ++i)
-	{
-		if(init_2){
-			gradient = this->gradient(_x0, data);
-		}
-		else{
-			gradient = this->stochastic_gradient(_x0);	
-		}
-
-		_v0 = _v0 * momentum - gradient * eta + VectorXd::Random(dim) * _sigma;
-		_x0 = _x0 + _v0;
-
-		_weights.row(i) = _x0;
-	}
-
-}

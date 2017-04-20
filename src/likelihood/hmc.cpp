@@ -69,8 +69,6 @@ void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
 
 		while (n < _iterations){
 
-			cout << "Simulation: " << n<< endl;
-
 			VectorXd xold = x;
 			VectorXd pold = p;
 			double Hold = Eold + 0.5 * p.adjoint()*p;
@@ -106,7 +104,6 @@ void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
 
 			if (a > random_uniform()){
 				Eold = Enew;
-				cout << "Accepted!" << endl;
 			}
 			else{
 				x = xold;

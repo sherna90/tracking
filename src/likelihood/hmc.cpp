@@ -22,43 +22,6 @@ Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, VectorXd &_Y, double _lambda){
 
 }
 
-Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, MatrixXd &_data){
-	this->X_train = &_X;
-	this->data = _data;
-	this->dim = _X.cols();
-
-    this->init_2 = true;
-    this->old_energy = 0.0;
-    this->old_gradient = VectorXd::Zero(dim);
-    this->new_gradient = VectorXd::Zero(dim);
-
-}
-
-VectorXd Hamiltonian_MC::gradient(VectorXd &W, MatrixXd &_data){
-	VectorXd grad;
-	if (this->init_2)
-	{	
-		grad = this->logistic_regression.gradient(W);
-		return grad;
-	}
-	else{
-		return grad;
-	}
-
-}
-double Hamiltonian_MC::logPosterior(VectorXd &W, MatrixXd &_data){
-	double logPost = 0.0;
-	if (this->init_2)
-	{
-		logPost = this->logistic_regression.logPosterior(W);
-		return logPost;
-	}
-	else{
-		return logPost;
-	}
-
-}
-
 VectorXd Hamiltonian_MC::gradient(VectorXd &W){
 	VectorXd grad;
 	if (this->init)
@@ -71,12 +34,12 @@ VectorXd Hamiltonian_MC::gradient(VectorXd &W){
 	else{
 		return grad;
 	}
-
 }
+
 double Hamiltonian_MC::logPosterior(VectorXd &W){
 	double logPost = 0.0;
-	if (this->init)
-	{
+
+	if (this->init){
 		this->logistic_regression.setWeights(W);
 		this->logistic_regression.preCompute();
 		logPost = -this->logistic_regression.logPosterior(W);
@@ -85,32 +48,77 @@ double Hamiltonian_MC::logPosterior(VectorXd &W){
 	else{
 		return logPost;
 	}
-
 }
 
 void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
-	if (this->init)
-	{	
+	if (this->init){	
+
 		this->step_size = _step_size;
 		this->num_step = _num_step;
 		this->weights.resize(_iterations, this->dim);
 
-		VectorXd initial_x = random_generator(this->dim);
+		VectorXd x = random_generator(this->dim);
 		
-		this->old_energy = energy_function(initial_x);
-		if(init_2){
-			this->old_gradient = this->gradient(initial_x, this->data);
-		}
-		else{
-			this->old_gradient = this->gradient(initial_x);	
-		}
+		//Hamiltonian
+		double Eold = this->logPosterior(x);
 
-		for (int i = 0; i < _iterations; ++i){
-			cout << "Simulation: "<< i << endl;
-			VectorXd initial_v = random_generator(this->dim);
+		VectorXd p = random_generator(this->dim);
 
-			initial_x.noalias() = this->simulation(initial_x, initial_v);
-			this->weights.row(i) = initial_x;
+		double lambda = 1.0;
+		int n = 0;
+
+		while (n < _iterations){
+
+			cout << "Simulation: " << n<< endl;
+
+			VectorXd xold = x;
+			VectorXd pold = p;
+			double Hold = Eold + 0.5 * p.adjoint()*p;
+
+			if(random_uniform() < 0.5){
+				lambda = -1;
+			}
+			else{
+				lambda = 1;
+			}
+
+			double epsilon = lambda*this->step_size*(1.0+0.1*random_generator(1)(0));
+
+			p.noalias() = p - 0.5*epsilon*this->gradient(x);
+			x.noalias() = x + epsilon*p;
+
+			//Leap Frogs
+			for (int i = 0; i < this->num_step; ++i){
+				p.noalias() = p - epsilon*this->gradient(x);
+				x.noalias() = x + epsilon*p;
+			}
+
+			p.noalias() = p - 0.5*epsilon*this->gradient(x);
+
+			//Hamiltonian
+			double Enew = this->logPosterior(x);
+			p.noalias() = -p;
+
+			double Hnew = Enew + 0.5 * p.adjoint()*p;
+
+			//Metropolis Hasting Correction
+			double a = exp(Hold - Hnew);
+
+			if (a > random_uniform()){
+				Eold = Enew;
+				cout << "Accepted!" << endl;
+			}
+			else{
+				x = xold;
+				p = pold;
+			}
+			if (n>=0){
+				this->weights.row(n) = x;
+			}
+
+			p = random_generator(this->dim);
+
+			n = n+1;
 
 		}
 
@@ -142,101 +150,11 @@ double Hamiltonian_MC::random_uniform(){
     return dis(gen);
 }
 
-VectorXd Hamiltonian_MC::simulation(VectorXd &initial_x, VectorXd &initial_v){
-
-	if (this->init)
-	{
-  		VectorXd new_x = initial_x;
-  		VectorXd new_v = initial_v;
-  		double hamiltonian_original = this->old_energy + this->kinetic_energy(initial_v);
-  		
-  		this->leap_Frog(new_x, new_v);
-  		
-		double new_energy = this->energy_function(new_x);
-  		double hamiltonian_current = new_energy + this->kinetic_energy(new_v);
- 
-		// Metopolis-Hasting Correction
-		double p_accept = exp(hamiltonian_original - hamiltonian_current);
-
-		if (p_accept > random_uniform()){
-			cout << "Accepted!!"<< endl;
-			this->old_energy = new_energy;
-			this->old_gradient = new_gradient;
-			return new_x;
-		}
-		return initial_x;
-	}
-	else{
-		cout << "Error: No initialized function"<< endl;
-		return initial_x;
-	}
-}
-
-void Hamiltonian_MC::leap_Frog(VectorXd &x, VectorXd &v){
-	
-	int lambda = 0;
-	if (0.5 > abs(random_generator(1)(0))){
-		lambda = -1;
-	}
-	else{
-		lambda = 1;
-	}
-
-	double epsilon = lambda*this->step_size*(1.0+0.1*random_generator(1)(0));
-	//Start by updating the velocity a half-step
-	//Initalize x to be the first step
-	
-	v.noalias() = v - 0.5 * epsilon * this->old_gradient;
-
-	for (int i = 0; i < this->num_step; ++i)
-	{
-		
-		x.noalias() = x + epsilon * v;
-
-		//Compute gradient of the log-posterior with respect to x
-		if(this->init_2){
-			this->new_gradient = this->gradient(x,this->data);		
-		}
-		else{
-			this->new_gradient = this->gradient(x);		
-		}
-		
-		//Update velocity
-		//Update x
-		if (i != (this->num_step-1)) v.noalias() = v - epsilon * this->new_gradient;
-	}
-
-	v.noalias() = v - 0.5 * epsilon * this->new_gradient;
-
-	v.noalias() = -v;
-}
-
-
-double Hamiltonian_MC::energy_function(VectorXd &position){
-	
-	double energy = 0.0;
-	if(this->init_2){
-	 	energy = this->logPosterior(position, this->data);
-	}
-	else{
-		energy = this->logPosterior(position);
-	}
-
-	return energy;
-}
-
-double Hamiltonian_MC::kinetic_energy(VectorXd &velocity){
-	/*Kinetic energy of the current velocity (assuming a standard Gaussian)
-        (x dot x) / 2
-	*/
-
-	return 0.5 * velocity.adjoint()*velocity;
-}
 
 VectorXd Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
 	VectorXd predict;
-	if (this->init)
-	{	
+	if (this->init){	
+
 		if (samples == 0){
 			this->logistic_regression.setWeights(this->mean_weights);
 			predict = this->logistic_regression.predict(X_test, prob);
@@ -268,6 +186,7 @@ VectorXd Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
 
 MatrixXd Hamiltonian_MC::get_weights(){
 	MatrixXd predict;
+
 	if (this->init){	
 		return this->weights;	
 	}

@@ -23,37 +23,28 @@ class Split_Hamiltonian_MC
 {
 public:
 	Split_Hamiltonian_MC();
-	Split_Hamiltonian_MC(MatrixXd &_X,VectorXd &_Y, double _lamda);
+	Split_Hamiltonian_MC( MatrixXd &_X, VectorXd &_Y, double _lamda);
 	void run(int _iterations, double _step_size, int _num_step);
-	void split_run(MatrixXd &_SX, VectorXd &_SY, int _iterations, double _step_size, int _num_step, int _num_splits, int _M);
-	//void stochastic_gradient_run(int _iterations, double _step_size, int _num_step, double _m, double _V, double _C);
-	//void stochastic_gradient_partial_fit(MatrixXd &_X, VectorXd &_Y, double _lambda, int _iterations);
-	VectorXd simulation(VectorXd &_initial_x);
-	VectorXd predict(MatrixXd &_X_test, bool prob = true);
+	void split_run(MatrixXd &_SX, VectorXd &_SY, int new_iterations, double _step_size, int _num_step, int _num_splits, int _M);
+	VectorXd dataGradient(MatrixXd &_SX, VectorXd &_SY, VectorXd &W);
+	VectorXd gradient(VectorXd &W);
+	double logPosterior(VectorXd &W);
+	VectorXd predict(MatrixXd &_X_test, bool prob = false, int samples = 0);
 	MatrixXd get_weights();
-	void fit_map(int _numstart);
-	void setData(MatrixXd &_X,VectorXd &_Y);
-	virtual VectorXd gradient(VectorXd &weights);
-	virtual double logPosterior(VectorXd &weights);
+	void set_weights(VectorXd &_weights);
+
 private:
-	void leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v);
-	//void new_leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v);
-	void split_leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v);
-	//VectorXd stochastic_gradient_leap_frog();
-	double hamiltonian(VectorXd &_position, VectorXd &_velocity);
-	double kinetic_energy(VectorXd &_velocity);
-	bool init, split, sg;
-	//double m, V, C;
+	VectorXd random_generator(int dim);
+	double random_uniform();
+	bool init, split;
 	double step_size;
-	int num_step, dim, num_splits, M;
+	int num_step, dim, iterations;
  	MatrixXd weights;
- 	mt19937 generator;
- 	double lambda;
+ 	double lambda, old_energy;
  	MatrixXd *X_train;
+ 	MatrixXd data;
  	VectorXd *Y_train;
- 	MatrixXd *Split_X_train;
- 	VectorXd *Split_Y_train;
- 	VectorXd mean_weights;
+ 	VectorXd mean_weights, old_gradient, new_gradient;
  	LogisticRegression logistic_regression;
 };
 

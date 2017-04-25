@@ -3,96 +3,232 @@
 
 
 Split_Hamiltonian_MC::Split_Hamiltonian_MC(){
-	init = false;
-	split = false;
-    sg = false;
+	this->init = false;
+	this->split = false;
 }
 
 
 Split_Hamiltonian_MC::Split_Hamiltonian_MC(MatrixXd &_X, VectorXd &_Y, double _lambda){
-	lambda=_lambda;
-	X_train = &_X;
- 	Y_train = &_Y;
-	dim = _X.cols();
-
-    logistic_regression = LogisticRegression(_X, _Y, _lambda);
-    init = true;
-    split = false;
-    sg = false;
-    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-    generator.seed(seed1);
+	this->lambda=_lambda;
+	this->X_train = &_X;
+ 	this->Y_train = &_Y;
+	this->dim = _X.cols();
+    this->logistic_regression = LogisticRegression(*X_train, *Y_train, _lambda); // Modify Data
+    this->init = true;
+    this->split = false;
+    this->old_energy = 0.0;
+    this->old_gradient = VectorXd::Zero(dim);
+    this->new_gradient = VectorXd::Zero(dim);
+    this->iterations = 0;
 
 }
 
-VectorXd Split_Hamiltonian_MC::gradient(VectorXd &weights){
+VectorXd Split_Hamiltonian_MC::dataGradient(MatrixXd &_SX, VectorXd &_SY, VectorXd &W){
 	VectorXd grad;
-	if (init)
+	if (this->init)
 	{	
-		RowVectorXd rowX(dim);
-		rowX << weights.transpose();
-		grad = logistic_regression.gradient(rowX);
+		grad = -this->logistic_regression.computeDataGradient(_SX, _SY, W);
 		return grad;
 	}
 	else{
 		return grad;
 	}
-
 }
 
-double Split_Hamiltonian_MC::logPosterior(VectorXd &weights){
+VectorXd Split_Hamiltonian_MC::gradient(VectorXd &W){
+	VectorXd grad;
+	if (this->init)
+	{	
+		this->logistic_regression.setWeights(W);
+		this->logistic_regression.preCompute();
+		grad = -this->logistic_regression.gradient(W);
+		return grad;
+	}
+	else{
+		return grad;
+	}
+}
+
+double Split_Hamiltonian_MC::logPosterior(VectorXd &W){
 	double logPost = 0.0;
-	if (init)
-	{
-		RowVectorXd rowPosition(dim);
-		rowPosition << weights.transpose();
-		logPost = -logistic_regression.logPosterior(rowPosition);
+
+	if (this->init){
+		this->logistic_regression.setWeights(W);
+		this->logistic_regression.preCompute();
+		logPost = -this->logistic_regression.logPosterior(W);
 		return logPost;
 	}
 	else{
 		return logPost;
 	}
-
 }
 
 void Split_Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
-	if (init)
-	{	
-		step_size = _step_size;
-		num_step = _num_step;
-		MatrixXd _weights(_iterations, dim);
+	if (this->init){	
 
-		//iterations = _iterations;
-		/*std::default_random_engine generator;
-  		std::normal_distribution<double> distribution(0.0,1.0);
-  		auto normal = [&] (double) {return distribution(generator);};
-		VectorXd initial_x = VectorXd::NullaryExpr(dim, normal);*/
-		VectorXd initial_x = VectorXd::Random(dim);
-		for (int i = 0; i < _iterations; ++i)
-		{	
+		this->step_size = _step_size;
+		this->num_step = _num_step;
+		this->weights.resize(_iterations, this->dim);
 
-			_weights.row(i) = this->simulation(initial_x);
-			
+		VectorXd x = random_generator(this->dim);
+		
+		//Hamiltonian
+		double Eold = this->logPosterior(x);
+
+		VectorXd p = random_generator(this->dim);
+
+		double lambda = 1.0;
+		int n = 0;
+
+		while (n < _iterations){
+
+			VectorXd xold = x;
+			VectorXd pold = p;
+			double Hold = Eold + 0.5 * p.adjoint()*p;
+
+			if(random_uniform() < 0.5){
+				lambda = -1;
+			}
+			else{
+				lambda = 1;
+			}
+
+			double epsilon = lambda*this->step_size*(1.0+0.1*random_generator(1)(0));
+
+			p.noalias() = p - 0.5*epsilon*this->gradient(x);
+			x.noalias() = x + epsilon*p;
+
+			//Leap Frogs
+			for (int i = 0; i < this->num_step; ++i){
+				p.noalias() = p - epsilon*this->gradient(x);
+				x.noalias() = x + epsilon*p;
+			}
+
+			p.noalias() = p - 0.5*epsilon*this->gradient(x);
+
+			//Hamiltonian
+			double Enew = this->logPosterior(x);
+			p.noalias() = -p;
+
+			double Hnew = Enew + 0.5 * p.adjoint()*p;
+
+			//Metropolis Hasting Correction
+			double a = exp(Hold - Hnew);
+
+			if (a > random_uniform()){
+				Eold = Enew;
+			}
+			else{
+				x = xold;
+				p = pold;
+			}
+			if (n>=0){
+				this->weights.row(n) = x;
+			}
+
+			p = random_generator(this->dim);
+
+			n = n+1;
+
 		}
-		weights = _weights;
-		//VectorXd mean_weights;
-		mean_weights = weights.colwise().mean();
+
+		int partition = (int)_iterations*0.5; 
+		this->mean_weights = (this->weights.block(partition,0 ,this->weights.rows()-partition, this->dim)).colwise().mean();
+		this->split = true;
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
 	}
 }
 
-void Split_Hamiltonian_MC::split_run(MatrixXd &_SX, VectorXd &_SY, int _iterations, double _step_size, int _num_step, int _num_splits, int _M){
-	if (init)
-	{	
-		M = _M;
-		Split_X_train = &_SX;
- 		Split_Y_train = &_SY;
-		num_splits = _num_splits;
-		split = true;
-		logistic_regression = LogisticRegression(_SX, _SY, lambda);
-		this->run(_iterations, _step_size, _num_step);
+void Split_Hamiltonian_MC::split_run(MatrixXd &_SX, VectorXd &_SY, int new_iterations, double _step_size, int _num_step, int _num_splits, int _M){
+	if (this->init and this->split ){	
 
+		this->step_size = _step_size;
+		this->num_step = _num_step;
+		int num_splits = _num_splits;
+		int old_iterations = this->iterations;
+		int M = _M;
+		this->iterations += new_iterations;
+		this->weights.conservativeResize(this->iterations, NoChange);
+
+		//VectorXd x = random_generator(this->dim);
+		VectorXd x = this->mean_weights;
+		
+		//Hamiltonian
+		double Eold = this->logPosterior(x);
+
+		VectorXd p = random_generator(this->dim);
+
+		double lambda = 1.0;
+		int n = 0;
+
+		while (n < new_iterations){
+
+			VectorXd xold = x;
+			VectorXd pold = p;
+			double Hold = Eold + 0.5 * p.adjoint()*p;
+
+			if(random_uniform() < 0.5){
+				lambda = -1;
+			}
+			else{
+				lambda = 1;
+			}
+
+			double epsilon = lambda*this->step_size*(1.0+0.1*random_generator(1)(0));
+			//double epsilon = this->step_size;
+
+			//Leap Frogs
+
+			VectorXd grad = this->gradient(x);
+
+			for (int i = 0; i < this->num_step; ++i){
+
+				p.noalias() = p - 0.5*epsilon*this->dataGradient(_SX, _SY, x);
+				
+				for (int i = 0; i < num_splits; ++i){
+
+					p.noalias() = p - (epsilon/(2*M)) * grad;
+					x.noalias() = x + (epsilon/M) *p;	
+
+					VectorXd grad = this->gradient(x);
+
+					p.noalias() = p - (epsilon/(2*M)) * grad;
+				}
+
+				p.noalias() = p -0.5 * epsilon * this->dataGradient(_SX, _SY, x);
+
+			}
+			p.noalias() = -p;
+
+			//Hamiltonian
+			double Enew = this->logPosterior(x);
+
+			double Hnew = Enew + 0.5 * p.adjoint()*p;
+
+			//Metropolis Hasting Correction
+			double a = exp(Hold - Hnew);
+
+			if (a > random_uniform()){
+				Eold = Enew;
+			}
+			else{
+				x = xold;
+				p = pold;
+			}
+			if (n>=0){
+				this->weights.row(n + old_iterations) = x;
+			}
+
+			p = random_generator(this->dim);
+
+			n = n+1;
+
+		}
+
+		int partition = (int)this->iterations*0.5;
+		this->mean_weights = (this->weights.block(partition,0 ,this->weights.rows()-partition, this->dim)).colwise().mean();
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
@@ -100,20 +236,52 @@ void Split_Hamiltonian_MC::split_run(MatrixXd &_SX, VectorXd &_SY, int _iteratio
 }
 
 
-VectorXd Split_Hamiltonian_MC::predict(MatrixXd &_X_test, bool prob){
+VectorXd Split_Hamiltonian_MC::random_generator(int dimension){
+	unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+  	mt19937 generator;
+  	generator.seed(seed1);
+  	normal_distribution<double> dnormal(0.0,1.0);
+	VectorXd random_vector(dimension);
+
+	for (int i = 0; i < dimension; ++i){
+		random_vector(i) = dnormal(generator);
+	}
+	return random_vector;
+}
+
+double Split_Hamiltonian_MC::random_uniform(){
+	random_device rd;
+    mt19937 gen(rd());
+    uniform_real_distribution<> dis(0, 1);
+    return dis(gen);
+}
+
+
+VectorXd Split_Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
 	VectorXd predict;
-	if (init)
-	{	
-		//VectorXd mean_weights;
-		//if(weights.rows()>0) {
-		//mean_weights = weights.colwise().mean();
-		//}
-		//else {
-		//	mean_weights = VectorXd::Random(dim);
-		//}
-		logistic_regression.setWeights(mean_weights);
-		predict = logistic_regression.predict(_X_test, prob);
-		return predict;
+	if (this->init){	
+
+		if (samples == 0){
+			this->logistic_regression.setWeights(this->mean_weights);
+			predict = this->logistic_regression.predict(X_test, prob);
+			return predict;
+		}
+		else{
+			MatrixXd temp_predict(samples, X_test.rows());
+			for (int i = 0; i < samples; ++i){
+				int randNum = rand()%(weights.rows()-1 + 1) + 0;
+				//VectorXd W = this->weights.row(this->weights.rows()-1-i);
+				VectorXd W = this->weights.row(randNum);
+				this->logistic_regression.setWeights(W);
+				temp_predict.row(i) = this->logistic_regression.predict(X_test, prob);
+			}
+			predict = temp_predict.colwise().mean();
+			predict.noalias() = predict.unaryExpr([](double elem){
+	    					return (elem > 0.5) ? 1.0 : 0.0;
+			});	
+
+			return predict;
+		}
 		
 	}
 	else{
@@ -124,11 +292,9 @@ VectorXd Split_Hamiltonian_MC::predict(MatrixXd &_X_test, bool prob){
 
 MatrixXd Split_Hamiltonian_MC::get_weights(){
 	MatrixXd predict;
-	if (init)
-	{	
 
-		return weights;
-		
+	if (this->init){	
+		return this->weights;	
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
@@ -136,255 +302,11 @@ MatrixXd Split_Hamiltonian_MC::get_weights(){
 	}
 }
 
-VectorXd Split_Hamiltonian_MC::simulation(VectorXd &_initial_x){
-	/*Summary
-    Parameters
-    ----------
-    initial_x : VectorXd
-        Initial sample x ~ p
-    step_size : double
-        Step-size in Hamiltonian simulation
-    num_steps : int
-        Number of steps to take in Hamiltonian simulation
-    log_posterior : object
-        Log posterior (unnormalized) for the target distribution
-    Returns
-    -------
-    sample : 
-        Sample ~ target distribution
-    */
-
-	if (init)
-	{
-
-  		VectorXd v0 = VectorXd::Random(_initial_x.rows());
-  		VectorXd x(_initial_x.rows());
-  		VectorXd v(_initial_x.rows());
-  		double orig = this->hamiltonian(_initial_x, v0); // old Data
-  		if (!split)
-  		{
-  			this->leap_Frog(_initial_x, v0, x, v);
-  		}
-  		else{
-  			//VectorXd v0 = VectorXd::Random(_initial_x.rows());
-  			VectorXd mean_weights;
-  			mean_weights = weights.colwise().mean();
-  			this->split_leap_Frog(mean_weights, v0, x, v);
-  		}
-  		
-		double current = this->hamiltonian(x, v); // old Data
-
-		// Metopolis-Hasting Correction
-		double p_accept = exp(orig - current);
-		//double p_accept = min(1.0, exp(orig - current));
-
-		normal_distribution<double> dnormal(0.0,1.0);
-		if (p_accept > dnormal(generator))
-		{
-			_initial_x = x;
-		}
-
-		return _initial_x;
-
-	}
-	else{
-		cout << "Error: No initialized function"<< endl;
-		return _initial_x;
-	}
-}
-
-/*void Split_Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v){
-	//Start by updating the velocity a half-step
-	// x(dim);
-	// v(dim);
-	RowVectorXd rowX(dim);
-	rowX << _x0.transpose();
-	v = _v0 - 0.5 * step_size * logistic_regression.gradient(rowX);
-	//Initalize x to be the first step
-	//RowVectorXd x= Map<RowVectorXd>(_x,dim);
-	x = _x0 + step_size * v;
-	rowX << x.transpose();
-	for (int i = 0; i < num_step; ++i)
-	{
-		//Compute gradient of the log-posterior with respect to x
-		VectorXd gradient = logistic_regression.gradient(rowX);
-		//Update velocity
-		v = v - step_size * gradient;
-		//Update x
-		x = x + step_size * v;
-		rowX << x.transpose();
-	}
-	//Do a final update of the velocity for a half step
-	//return new proposal state
-	v = v -0.5 * step_size * logistic_regression.gradient(rowX);
-
-}*/
-
-/*void Split_Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v){
-	//Start by updating the velocity a half-step
-	// x(dim);
-	// v(dim);
-	RowVectorXd rowX(dim);
-	rowX << _x0.transpose();
-	VectorXd gradient = logistic_regression.gradient(rowX);
-	
-	//Initalize x to be the first step
-	//RowVectorXd x= Map<RowVectorXd>(_x,dim);
-	v= _v0;
-	x= _x0;
-	for (int i = 0; i < num_step; ++i)
-	{
-		v = v - 0.5 * step_size * gradient;
-		x = x + step_size * v;
-		rowX << x.transpose();
-		//Compute gradient of the log-posterior with respect to x
-		gradient = logistic_regression.gradient(rowX);
-		//Update velocity
-		//v = v - step_size * gradient;
-		//Update x
-		//x = x + step_size * v;
-		//rowX << x.transpose();
-		v = v -0.5 * step_size * gradient;
-	}
-	//Do a final update of the velocity for a half step
-	//return new proposal state
-	//v = v -0.5 * step_size * logistic_regression.gradient(rowX);
-
-}*/
-
-void Split_Hamiltonian_MC::leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v){
-	//Start by updating the velocity a half-step
-	VectorXd gradient = this->gradient(_x0);
-	
-	//Initalize x to be the first step
-	v= _v0;
-	x= _x0;
-	v = v - 0.5 * step_size * gradient;
-
-	for (int i = 0; i < num_step; ++i)
-	{
-		
-		x = x + step_size * v;
-
-		//Compute gradient of the log-posterior with respect to x
-		gradient = this->gradient(x);
-
-		//Update velocity
-		//Update x
-		if (i != (num_step-1)) v = v - step_size * gradient;
-		
-	}
-	//Do a final update of the velocity for a half step
-	//return new proposal state
-	v = v -0.5 * step_size * gradient;
-	v = -v;
-	
-
-}
-
-void Split_Hamiltonian_MC::split_leap_Frog(VectorXd &_x0, VectorXd &_v0, VectorXd &x, VectorXd &v){
-	//Start by updating the velocity a half-step
-	RowVectorXd rowX(dim);
-	rowX << _x0.transpose();
-	VectorXd gradient_1 = logistic_regression.computeDataGradient(*X_train, *Y_train, rowX); 
-	
-	//Initalize x to be the first step
-	v= _v0;
-	x= _x0;
-	for (int i = 0; i < num_step; ++i)
-	{
-		v = v - 0.5 * step_size * gradient_1;
-		
-		VectorXd gradient_2 = logistic_regression.computeGradient(*Split_X_train, *Split_Y_train, rowX); 
-
-		for (int i = 0; i < num_splits; ++i)
-		{
-			v = v - (step_size/(2*M)) * gradient_2;
-			x = x + (step_size/M) *v;	
-			rowX << x.transpose();
-			VectorXd gradient_2 = logistic_regression.computeGradient(*Split_X_train, *Split_Y_train, rowX); 
-			v = v - (step_size/(2*M)) * gradient_2;
-		}
-
-		VectorXd gradient_1 = logistic_regression.computeDataGradient(*X_train, *Y_train, rowX);
-		v = v -0.5 * step_size * gradient_1;
-
-	}
-
-}
-
-double Split_Hamiltonian_MC::hamiltonian(VectorXd &_position, VectorXd &_velocity){
-	/*Computes the Hamiltonian of the current position, velocity pair
-    H = U(x) + K(v)
-    U is the potential energy and is = -log_posterior(x)
-    Parameters
-    ----------
-    position : VectoXd
-        Position or state vector x (sample from the target distribution)
-    velocity : VectorXd
-        Auxiliary velocity variable
-    energy_function
-        Function from state to position to 'energy'
-         = -log_posterior
-    Returns
-    -------
-    hamitonian : double
-    */
-
-	double energy_function = - this->logPosterior(_position);
-	return energy_function + this->kinetic_energy(_velocity);
-}
-
-double Split_Hamiltonian_MC::kinetic_energy(VectorXd &_velocity){
-	/*Kinetic energy of the current velocity (assuming a standard Gaussian)
-        (x dot x) / 2
-    Parameters
-    ----------
-    velocity : VectorXd
-        Vector of current velocity
-    Returns
-    -------
-    kinetic_energy : double
-    */
-
-	return 0.5 * _velocity.adjoint()*_velocity;
-}
-
-
-void Split_Hamiltonian_MC::fit_map(int _numstart){
-	if (init)
-	{	
-		typedef double T;
-    	typedef LogisticRegressionWrapper<T> LogRegWrapper;
-    	LogRegWrapper fun(*X_train, *Y_train,lambda);
-		MatrixXd _weights(_numstart, dim);
-		VectorXd initial_w = VectorXd::Random(dim);
-		cppoptlib::Criteria<double> crit = cppoptlib::Criteria<double>::defaults(); // Create a Criteria class to set the solver's stop conditions
-    	cppoptlib::BfgsSolver<LogRegWrapper> solver;
-    	solver.setStopCriteria(crit);
-		for (int i = 0; i < _numstart; ++i)
-		{	
-			solver.minimize(fun, initial_w);
-			_weights.row(i) = initial_w;
-			
-		}
-		weights = _weights;
+void Split_Hamiltonian_MC::set_weights(VectorXd &_weights){
+	if (this->init){	
+		this->mean_weights = _weights;	
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
 	}
-       
 }
-
-void Split_Hamiltonian_MC::setData(MatrixXd &_X,VectorXd &_Y){
-	if (init)
-	{	
-		logistic_regression.setData(_X,_Y);
-	}
-	else{
-		cout << "Error: No initialized function"<< endl;
-	}
-       
-}
-	
-	

@@ -13,7 +13,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
-#include "likelihood/logistic_regression.hpp"
+#include "logistic_regression.hpp"
 
 using namespace Eigen;
 using namespace std;

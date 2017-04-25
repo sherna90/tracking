@@ -8,17 +8,17 @@ LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda)
 	this->lambda=_lambda;
  	this->X_train = &_X;
  	this->Y_train = &_Y;
- 	VectorXi indices = VectorXi::LinSpaced(this->X_train->rows(), 0, this->X_train->rows());
+ 	/*VectorXi indices = VectorXi::LinSpaced(this->X_train->rows(), 0, this->X_train->rows());
  	std::random_shuffle(indices.data(), indices.data() + this->X_train->rows());
   	this->X_train->noalias() = indices.asPermutation() * *this->X_train;  
-  	this->Y_train->noalias() = indices.asPermutation() * *this->Y_train;
+  	this->Y_train->noalias() = indices.asPermutation() * *this->Y_train;*/
  	this->rows = this->X_train->rows();
 	this->dim = this->X_train->cols();
 	this->weights = VectorXd::Random(dim);
 	this->eta = VectorXd::Zero(this->rows);
 	this->phi = VectorXd::Zero(this->rows);
-	this->featureMeans = this->X_train->colwise().mean();
-	this->X_train->rowwise()-=this->featureMeans.transpose();
+	//this->featureMeans = this->X_train->colwise().mean();
+	//this->X_train->rowwise()-=this->featureMeans.transpose();
  }
 
 VectorXd LogisticRegression::sigmoid(VectorXd &eta){
@@ -47,13 +47,10 @@ void LogisticRegression::preCompute(){
 VectorXd LogisticRegression::train(int n_iter,double alpha,double tol){
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	for(int i=0;i<n_iter;i++){
-		//this->eta = (*X_train*this->weights.transpose());
-		//this->phi=sigmoid(this->eta);
 		preCompute();
 		log_likelihood(i)=-logPosterior(this->weights);
 		VectorXd Grad=gradient(this->weights);
 		this->weights+=alpha*Grad;
-		//if(i % (n_iter/10) == 0) cout << "negative log-likelihood : " << log_likelihood(i) << endl;
 	}
 	return log_likelihood;
 }
@@ -74,6 +71,25 @@ VectorXd LogisticRegression::computeGradient(MatrixXd &_X, VectorXd &_Y, VectorX
 	return grad;
 }
 
+VectorXd LogisticRegression::computeDataGradient(MatrixXd &_X, VectorXd &_Y, VectorXd &_W){
+	int Dim = _X.cols();
+	VectorXd Eta = (_X*_W);
+	VectorXd Phi = sigmoid(Eta);
+	VectorXd E_d=VectorXd::Zero(Dim);
+	for(int i=0;i<this->rows;i++){
+		double sg=Phi[i];
+		if(_Y[i]>0){
+			E_d+=(1.0-sg)*_X.row(i);
+		}
+		else{
+			E_d+=(0.0-sg)*_X.row(i);
+		}
+	}
+	VectorXd E_w=-(-2.0*this->lambda/(double)Dim)*_W;
+	VectorXd grad=(E_d+E_w);
+	return grad;
+}
+
 
 MatrixXd LogisticRegression::computeHessian(MatrixXd &_X, VectorXd &_Y, VectorXd &_W){
 	VectorXd eta = (_X*_W);
@@ -90,7 +106,7 @@ MatrixXd LogisticRegression::computeHessian(MatrixXd &_X, VectorXd &_Y, VectorXd
 }
 
 VectorXd LogisticRegression::predict(MatrixXd &_X_test,bool prob){
-	_X_test.rowwise()-=this->featureMeans.transpose();
+	//_X_test.rowwise()-=this->featureMeans.transpose();
 	VectorXd eta_test = (_X_test)*this->weights;
 	VectorXd phi_test=sigmoid(eta_test);
 	if(!prob){
@@ -113,7 +129,6 @@ double LogisticRegression::logLikelihood(MatrixXd &_X,VectorXd &_Y){
 			ll+=log(1-sg);
 		}
 	}
-	
 	return ll;
 }
 
@@ -122,11 +137,12 @@ double LogisticRegression::logPrior(VectorXd &_W){
 }
 
 double LogisticRegression::logPosterior(VectorXd& _weights){
-	double log_likelihood=logLikelihood(*X_train,*Y_train)+logPrior(_weights);
-    return log_likelihood;
+	double log_likelihood=logLikelihood(*X_train,*Y_train);
+	double log_prior = logPrior(_weights);
+    return log_likelihood + log_prior;
 }
 
-VectorXd LogisticRegression::gradient(VectorXd& _weights){
+VectorXd LogisticRegression::gradient(VectorXd &_weights){
 	return computeGradient(*X_train,*Y_train, _weights);
 }
 
@@ -143,12 +159,12 @@ VectorXd LogisticRegression::getWeights(){
 void LogisticRegression::setData(MatrixXd &_X,VectorXd &_Y){
 	this->X_train = &_X;
  	this->Y_train = &_Y;
- 	VectorXi indices = VectorXi::LinSpaced(this->X_train->rows(), 0, this->X_train->rows());
+ 	/*VectorXi indices = VectorXi::LinSpaced(this->X_train->rows(), 0, this->X_train->rows());
  	srand((unsigned int) time(0));
  	std::random_shuffle(indices.data(), indices.data() + this->X_train->rows());
   	this->X_train->noalias() = indices.asPermutation() * *this->X_train;  
-  	this->Y_train->noalias() = indices.asPermutation() * *this->Y_train;
+  	this->Y_train->noalias() = indices.asPermutation() * *this->Y_train;*/
  	this->rows = this->X_train->rows();
 	this->dim = this->X_train->cols();
-	this->featureMeans = this->X_train->colwise().mean();
+	//this->featureMeans = this->X_train->colwise().mean();
 }

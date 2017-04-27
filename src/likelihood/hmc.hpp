@@ -13,7 +13,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
-#include "logistic_regression.hpp"
+#include "likelihood/logistic_regression.hpp"
+#include "likelihood/multivariate_gaussian.hpp"
 
 using namespace Eigen;
 using namespace std;
@@ -32,6 +33,8 @@ public:
 	void set_weights(VectorXd &_weights);
 
 private:
+	double avsigmaGauss(double mean, double var);
+	VectorXd cumGauss(VectorXd &w, MatrixXd &phi, MatrixXd &Smat);
 	VectorXd random_generator(int dim);
 	double random_uniform();
 	bool init, init_2;

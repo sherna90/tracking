@@ -148,10 +148,11 @@ double Hamiltonian_MC::random_uniform(){
 }
 
 
-VectorXd Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
+VectorXd Stochastic_Gradient_Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
 	VectorXd predict;
-	if (this->init){	
-
+	cout << weights << endl;
+	if (this->init)
+	{	
 		if (samples == 0){
 			this->logistic_regression.setWeights(this->mean_weights);
 			predict = this->logistic_regression.predict(X_test, prob);
@@ -159,18 +160,32 @@ VectorXd Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
 		}
 		else{
 			MatrixXd temp_predict(samples, X_test.rows());
+			MatrixXd temp_weights(samples, X_test.cols());
 			for (int i = 0; i < samples; ++i){
-				int randNum = rand()%(weights.rows()-1 + 1) + 0;
-				//VectorXd W = this->weights.row(this->weights.rows()-1-i);
-				VectorXd W = this->weights.row(randNum);
+				//int randNum = rand()%(weights.rows()-1 + 1) + 0;
+				VectorXd W = this->weights.row(this->weights.rows()-1-i);
+				temp_weights.row(i) = W;
+				//VectorXd W = this->weights.row(randNum);
 				this->logistic_regression.setWeights(W);
 				temp_predict.row(i) = this->logistic_regression.predict(X_test, prob);
 			}
-			predict = temp_predict.colwise().mean();
-			predict.noalias() = predict.unaryExpr([](double elem){
-	    					return (elem > 0.5) ? 1.0 : 0.0;
-			});	
-
+			
+			if (prob){
+				//MatrixXd covariate = this->logistic_regression.computeHessian(*this->X_train, *this->Y_train, predict);
+				this->mean_weights = temp_weights.colwise().mean();
+				MVNGaussian MVG= MVNGaussian(temp_weights);
+				MatrixXd covariate = MVG.getCov();
+				this->mean_weights.noalias() = cumGauss(this->mean_weights, X_test, covariate);
+				this->logistic_regression.setWeights(this->mean_weights);
+				predict = this->logistic_regression.predict(X_test, prob);
+			}
+			else{
+				predict = temp_predict.colwise().mean();
+				predict.noalias() = predict.unaryExpr([](double elem){
+    					return (elem > 0.5) ? 1.0 : 0.0;
+				});
+			}	
+			
 			return predict;
 		}
 		
@@ -179,6 +194,30 @@ VectorXd Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
 		cout << "Error: No initialized function"<< endl;
 		return predict;
 	}
+}
+
+double Stochastic_Gradient_Hamiltonian_MC::avsigmaGauss(double mean, double var){
+  double erflambda = sqrt(M_PI)/4;
+  double out = 0.5+0.5*erf(erflambda*mean/sqrt(1+2*pow(erflambda,2)*var));
+  return out;
+}
+
+VectorXd Stochastic_Gradient_Hamiltonian_MC::cumGauss(VectorXd &w, MatrixXd &phi, MatrixXd &Smat){
+  int N = w.rows();
+  VectorXd ptrain(N);
+  if(phi.cols() == N){
+    for (int i = 0; i < N; ++i){
+		double mean = (w*phi.row(i))(0);
+		double var = (phi.row(i) *Smat * phi.row(i).transpose())(0);
+		ptrain(i) = avsigmaGauss(mean, var);
+    }
+
+    return ptrain;  
+  }
+  else{
+    cout << "Error not matching Dimension !"<< endl;
+    return ptrain; 
+  }
 }
 
 MatrixXd Hamiltonian_MC::get_weights(){

@@ -7,3 +7,4 @@ resultados/
 CMakeLists.txt
 src/vot-integration/build/
 *.old
+backups/

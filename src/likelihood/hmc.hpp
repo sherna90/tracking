@@ -13,8 +13,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
-#include "likelihood/logistic_regression.hpp"
-#include "likelihood/multivariate_gaussian.hpp"
+#include "logistic_regression.hpp"
+#include "multivariate_gaussian.hpp"
 
 using namespace Eigen;
 using namespace std;

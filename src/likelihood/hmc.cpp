@@ -148,9 +148,9 @@ double Hamiltonian_MC::random_uniform(){
 }
 
 
-VectorXd Stochastic_Gradient_Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
+VectorXd Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
 	VectorXd predict;
-	cout << weights << endl;
+	//cout << weights << endl;
 	if (this->init)
 	{	
 		if (samples == 0){
@@ -196,13 +196,13 @@ VectorXd Stochastic_Gradient_Hamiltonian_MC::predict(MatrixXd &X_test, bool prob
 	}
 }
 
-double Stochastic_Gradient_Hamiltonian_MC::avsigmaGauss(double mean, double var){
-  double erflambda = sqrt(M_PI)/4;
-  double out = 0.5+0.5*erf(erflambda*mean/sqrt(1+2*pow(erflambda,2)*var));
-  return out;
+double Hamiltonian_MC::avsigmaGauss(double mean, double var){
+  	double erflambda = sqrt(M_PI)/4;
+  	double out = 0.5+0.5*erf(erflambda*mean/sqrt(1+2*pow(erflambda,2)*var));
+  	return out;
 }
 
-VectorXd Stochastic_Gradient_Hamiltonian_MC::cumGauss(VectorXd &w, MatrixXd &phi, MatrixXd &Smat){
+VectorXd Hamiltonian_MC::cumGauss(VectorXd &w, MatrixXd &phi, MatrixXd &Smat){
   int N = w.rows();
   VectorXd ptrain(N);
   if(phi.cols() == N){

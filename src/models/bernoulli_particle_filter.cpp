@@ -73,7 +73,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
 	int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
 	this->reference_roi = Rect(left, top, right - left, bottom - top);
-	sample_boxes.push_back(this->reference_roi);
+	//sample_boxes.push_back(this->reference_roi);
 	double weight = 1.0f/this->n_particles;
 	if ( (this->reference_roi.width > 0)
 		&& ((this->reference_roi.x + this->reference_roi.width) < this->img_size.width)
@@ -129,16 +129,39 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 			//cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << "\tweight: " << weight << endl;
 			this->states.push_back(state);
 			this->weights.push_back(weight);
-			//sample_boxes.push_back(Rect(state.x,state.y,state.width,state.height));
+			sample_boxes.push_back(Rect(state.x,state.y,state.width,state.height));
 		}
+
+		for (int i = 0; i < this->n_particles;i++){
+            Rect box = reference_roi;
+            Rect intersection = (box & reference_roi);
+            while( double(intersection.area())/double(reference_roi.area()) > OVERLAP_RATIO ){
+                float _dx = negative_random_pos(generator);
+                float _dy = negative_random_pos(generator);
+                box.x = MIN(MAX(cvRound(reference_roi.x+_dx),0), this->img_size.width);
+                box.y = MIN(MAX(cvRound(reference_roi.y+_dy),0), this->img_size.height);
+                box.width = MIN(MAX(cvRound(reference_roi.width),0), this->img_size.width-box.x);
+                box.height = MIN(MAX(cvRound(reference_roi.height),0), this->img_size.height-box.y);
+                intersection = (box & reference_roi);
+            }
+            sample_boxes.push_back(box); 
+        }
 
 	}
 
 	/******************** Logistic Regression ********************/
 	Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-    this->local_binary_pattern.init(grayImg, sample_boxes,true,false,true);
-    this->reference_hist=this->local_binary_pattern.sampleFeatureValue.row(0);
+    this->local_binary_pattern.init(grayImg, sample_boxes, true, false, true);
+    this->featureValues = MatrixXd(this->local_binary_pattern.sampleFeatureValue.rows(),
+    	this->local_binary_pattern.sampleFeatureValue.cols());
+    this->featureValues = this->local_binary_pattern.sampleFeatureValue;
+    VectorXd labels(2 * this->n_particles);
+    labels << VectorXd::Ones(this->n_particles), VectorXd::Zero(this->n_particles);
+    this->hamiltonian_monte_carlo = Hamiltonian_MC();
+    double lambda = 0.1;
+    hamiltonian_monte_carlo = Hamiltonian_MC(this->featureValues, labels, lambda);
+	hamiltonian_monte_carlo.run(1e3, 1e-2, 10);            
     this->initialized = true;
     //cout << "initialized!!!" << endl;
 }
@@ -293,13 +316,16 @@ void BernoulliParticleFilter::update(const Mat& image){
 	}
 	
 	this->local_binary_pattern.init(grayImg, this->preDetections);
-   	this->featureValues = MatrixXd(this->preDetections.size(), this->local_binary_pattern.sampleFeatureValue.cols());
+   	this->featureValues = MatrixXd(this->local_binary_pattern.sampleFeatureValue.rows(),
+   		this->local_binary_pattern.sampleFeatureValue.cols());
    	this->featureValues << this->local_binary_pattern.sampleFeatureValue;
-	VectorXd bc(this->preDetections.size());
+	/*VectorXd bc(this->preDetections.size());
 	for(unsigned int i = 0; i < this->preDetections.size(); i++){
 		bc(i) = bhattarchaya(this->featureValues.row(i), this->reference_hist);
 	}
-	VectorXd phi = (-LAMBDA_BC*bc.array().square()).exp();
+	VectorXd phi = (-LAMBDA_BC*bc.array().square()).exp();*/
+	VectorXd phi = this->hamiltonian_monte_carlo.predict(this->featureValues, true);
+
    	VectorXd qualityTerm;
    	this->dppResults = this->dpp.run(this->preDetections, phi, this->intersectionArea, this->featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
 

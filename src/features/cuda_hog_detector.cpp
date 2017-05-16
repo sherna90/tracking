@@ -31,17 +31,35 @@ CUDA_HOGDetector::CUDA_HOGDetector(int group_threshold, double hit_threshold){
 
 vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 {
-    cuda::GpuMat gpu_img;
-    this->detections.clear();
-    vector<double> weights;
-    Mat img_aux;
-    cvtColor(frame, img_aux, COLOR_BGR2BGRA);
-    gpu_img.upload(img_aux);
-    this->gpu_hog->detectMultiScale(gpu_img, this->detections,&weights);
-	double* ptr = &weights[0];
-	this->weights = Eigen::Map<Eigen::VectorXd>(ptr, weights.size());
-	this->frame = frame;
+	MatrixXd feature_values=this->getFeatureValues(frame);
+	this->detections.clear();
+	this->labels.resize(0);
+	for(int row = 0; row < frame.rows - this->args.height + this->args.win_stride_height; row+=this->args.win_stride_height){
+		for(int col = 0; col < frame.cols - this->args.width + this->args.win_stride_width; col+=this->args.win_stride_width){
+			Rect current_window(col, row, this->args.width, this->args.height);
+			Rect intersection = reference_roi & current_window;
+			this->detections.push_back(current_window);
+			this->labels.conservativeResize( this->labels.size() + 1 );
+			this->labels(this->labels.size() - 1) = ((float)intersection.area()/reference_roi.area()>args.overlap_threshold) ? 1.0 : 0.0;
+		}
+	}
 	return this->detections;
+}
+
+void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
+{
+	VectorXd labels;
+	for(int row = 0; row < frame.rows - this->args.height + this->args.win_stride_height; row+=this->args.win_stride_height){
+		for(int col = 0; col < frame.cols - this->args.width + this->args.win_stride_width; col+=this->args.win_stride_width){
+			Rect current_window(col, row, this->args.width, this->args.height);
+			Rect intersection = reference_roi & current_window;
+			this->detections.push_back(current_window);
+			this->labels.conservativeResize( this->labels.size() + 1 );
+			this->labels(this->labels.size() - 1) = ((float)intersection.area()/reference_roi.area()>args.overlap_threshold) ? 1.0 : 0.0;
+		}
+	}
+	MatrixXd feature_values=this->getFeatureValues(frame);
+
 }
 
 void CUDA_HOGDetector::draw()

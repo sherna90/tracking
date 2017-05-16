@@ -34,8 +34,8 @@ class CUDA_HOGDetector
 public:
 	CUDA_HOGDetector(int group_threshold, double hit_threshold);
 	vector<Rect> detect(Mat &frame);
+	void train(Mat &frame,Rect reference_roi);
 	void draw();
-	//vector<Rect> getDetections();
 	MatrixXd getFeatureValues();
 	VectorXd getDetectionWeights();
 	Args args;
@@ -45,7 +45,7 @@ private:
 	double hit_threshold;
 	Ptr<cuda::HOG> gpu_hog;
 	vector<Rect> detections;
-	VectorXd weights;
+	VectorXd detection_weights;
 	Mat frame;
 };
 

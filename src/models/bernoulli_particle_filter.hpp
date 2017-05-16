@@ -21,6 +21,7 @@
 #include "../likelihood/hmc.hpp"
 #include "../likelihood/logistic_regression.hpp"
 #include "../features/local_binary_pattern.hpp"
+#include "../detector/cuda_hog_detector.hpp"
 #include "../DPP/dpp.hpp"
 #include "../utils/utils.hpp"
 
@@ -77,6 +78,7 @@ private:
 	PCA pca;
 	Hamiltonian_MC hamiltonian_monte_carlo;
 	LogisticRegression logistic_regression;
+	CUDA_HOGDetector detector;
 	MatrixXd featureValues;
 	VectorXd reference_hist;
 	VectorXd intersectionArea;

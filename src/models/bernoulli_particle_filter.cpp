@@ -74,7 +74,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
 	this->reference_roi = Rect(left, top, right - left, bottom - top);
 	//sample_boxes.push_back(this->reference_roi);
-	double weight = 1.0f/this->n_particles;
+	/*double weight = 1.0f/this->n_particles;
 	if ( (this->reference_roi.width > 0)
 		&& ((this->reference_roi.x + this->reference_roi.width) < this->img_size.width)
 		&& (this->reference_roi.height > 0)
@@ -148,10 +148,13 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
         }
 
 	}
-
+	*/
 	/******************** Logistic Regression ********************/
 	Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
+    detector = CUDA_HOGDetector(1, 0.5);
+    detector.train(grayImg, reference_roi);
+    /*
     this->local_binary_pattern.init(grayImg, sample_boxes, true, false, true);
     this->featureValues = MatrixXd(this->local_binary_pattern.sampleFeatureValue.rows(),
     	this->local_binary_pattern.sampleFeatureValue.cols());
@@ -161,9 +164,9 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
     this->hamiltonian_monte_carlo = Hamiltonian_MC();
     double lambda = 0.1;
     hamiltonian_monte_carlo = Hamiltonian_MC(this->featureValues, labels, lambda);
-	hamiltonian_monte_carlo.run(1e3, 1e-2, 10);            
+	hamiltonian_monte_carlo.run(1e4, 1e-2, 10);            
     this->initialized = true;
-    //cout << "initialized!!!" << endl;
+    //cout << "initialized!!!" << endl;*/
 }
 
 void BernoulliParticleFilter::reinitialize(){
@@ -296,7 +299,7 @@ void BernoulliParticleFilter::predict(){
 void BernoulliParticleFilter::update(const Mat& image){
 	Mat grayImg;
 	cvtColor(image, grayImg, CV_RGB2GRAY);
-	int left = MAX(this->reference_roi.x, 1);
+	/*int left = MAX(this->reference_roi.x, 1);
 	int top = MAX(this->reference_roi.y, 1);
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
 	int bottom = MIN(this->reference_roi.y + this->reference_roi.height, image.rows - 1);
@@ -318,13 +321,18 @@ void BernoulliParticleFilter::update(const Mat& image){
 	this->local_binary_pattern.init(grayImg, this->preDetections);
    	this->featureValues = MatrixXd(this->local_binary_pattern.sampleFeatureValue.rows(),
    		this->local_binary_pattern.sampleFeatureValue.cols());
-   	this->featureValues << this->local_binary_pattern.sampleFeatureValue;
+   	this->featureValues << this->local_binary_pattern.sampleFeatureValue;*/
 	/*VectorXd bc(this->preDetections.size());
 	for(unsigned int i = 0; i < this->preDetections.size(); i++){
 		bc(i) = bhattarchaya(this->featureValues.row(i), this->reference_hist);
 	}
 	VectorXd phi = (-LAMBDA_BC*bc.array().square()).exp();*/
-	VectorXd phi = this->hamiltonian_monte_carlo.predict(this->featureValues, true);
+
+	/***************************Update*********************************************/
+
+	//VectorXd phi = this->hamiltonian_monte_carlo.predict(this->featureValues, true);
+	this->preDetections = detector.detect(grayImg);
+	VectorXd phi = detector.getDetectionWeights();
 
    	VectorXd qualityTerm;
    	this->dppResults = this->dpp.run(this->preDetections, phi, this->intersectionArea, this->featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);

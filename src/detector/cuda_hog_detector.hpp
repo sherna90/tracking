@@ -28,6 +28,8 @@ struct Args {
     int nbins;
     bool gamma_corr;
     double overlap_threshold;
+    double lambda, epsilon, tolerance;
+    int n_iterations;
 } ;
 
 class CUDA_HOGDetector

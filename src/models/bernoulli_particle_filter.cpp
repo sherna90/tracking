@@ -18,6 +18,9 @@ const float PDF_C = 1.6e-4;
 
 const double LAMBDA_BC=20.4;
 
+const int GROUP_THRESHOLD = 1.0;
+const double HIT_THRESHOLD = 0.5;
+
 //const int this->step_slide = 20;
 #endif
 
@@ -67,6 +70,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	this->states.clear();
 	this->weights.clear();
 	//this->weights = VectorXd::Ones(this->n_particles) * log(1.0/(this->n_particles));
+	double weight = 1.0f/this->n_particles;
 
 	int left = MAX(ground_truth.x, 1);
 	int top = MAX(ground_truth.y, 1);
@@ -74,7 +78,6 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
 	this->reference_roi = Rect(left, top, right - left, bottom - top);
 	//sample_boxes.push_back(this->reference_roi);
-	/*double weight = 1.0f/this->n_particles;
 	if ( (this->reference_roi.width > 0)
 		&& ((this->reference_roi.x + this->reference_roi.width) < this->img_size.width)
 		&& (this->reference_roi.height > 0)
@@ -132,7 +135,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 			sample_boxes.push_back(Rect(state.x,state.y,state.width,state.height));
 		}
 
-		for (int i = 0; i < this->n_particles;i++){
+		/*for (int i = 0; i < this->n_particles;i++){
             Rect box = reference_roi;
             Rect intersection = (box & reference_roi);
             while( double(intersection.area())/double(reference_roi.area()) > OVERLAP_RATIO ){
@@ -145,14 +148,14 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
                 intersection = (box & reference_roi);
             }
             sample_boxes.push_back(box); 
-        }
+        }*/
 
 	}
-	*/
+	
 	/******************** Logistic Regression ********************/
 	Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-    detector = CUDA_HOGDetector(1, 0.5);
+    detector = CUDA_HOGDetector(GROUP_THRESHOLD, HIT_THRESHOLD);
     detector.train(grayImg, reference_roi);
     /*
     this->local_binary_pattern.init(grayImg, sample_boxes, true, false, true);

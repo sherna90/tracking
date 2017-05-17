@@ -22,6 +22,10 @@ CUDA_HOGDetector::CUDA_HOGDetector(int group_threshold, double hit_threshold){
     args.cell_width = 8;
     args.nbins = 9;
     args.overlap_threshold=0.5;
+    args.lambda = 1e-1;
+    args.epsilon= 1e-2;
+    args.tolerance = 1e-1;
+    args.n_iterations = 1e4;
 	Size win_stride(args.win_stride_width, args.win_stride_height);
     Size win_size(args.width, args.height);
     Size block_size(args.block_width, args.block_width);
@@ -68,8 +72,8 @@ void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 		}
 	}
 	MatrixXd feature_values=this->getFeatureValues(frame);
-	this->logistic_regression = LogisticRegression(feature_values, this->labels, 1e-2);
-	this->logistic_regression.train(1e4, 1e-2, 1e-1);
+	this->logistic_regression = LogisticRegression(feature_values, this->labels, args.lambda);
+	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
 
 }
 

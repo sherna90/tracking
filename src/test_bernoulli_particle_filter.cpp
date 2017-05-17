@@ -52,7 +52,7 @@ void TestBernoulliParticleFilter::run(){
 			}*/
 		}
 		imshow("Tracker", current_frame);
-		imwrite(to_string(k)+".png", current_frame );
+		//imwrite(to_string(k)+".png", current_frame );
 		waitKey(1);
   	}
 	time(&end);

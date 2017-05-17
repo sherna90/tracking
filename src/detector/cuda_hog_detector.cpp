@@ -5,7 +5,7 @@ CUDA_HOGDetector::CUDA_HOGDetector(){
 
 CUDA_HOGDetector::CUDA_HOGDetector(int group_threshold, double hit_threshold){
 	args.make_gray = true;
-    args.resize_src = true;
+    args.resize_src = false;
     args.width = 64;
     args.height = 128;
     args.scale = 1.0;
@@ -25,7 +25,7 @@ CUDA_HOGDetector::CUDA_HOGDetector(int group_threshold, double hit_threshold){
     args.lambda = 1e-1;
     args.epsilon= 1e-2;
     args.tolerance = 1e-1;
-    args.n_iterations = 1e4;
+    args.n_iterations = 1e2;
 	Size win_stride(args.win_stride_width, args.win_stride_height);
     Size win_size(args.width, args.height);
     Size block_size(args.block_width, args.block_width);
@@ -35,8 +35,45 @@ CUDA_HOGDetector::CUDA_HOGDetector(int group_threshold, double hit_threshold){
     gpu_hog->setWinStride(win_stride);
 }
 
+CUDA_HOGDetector::CUDA_HOGDetector(int group_threshold, double hit_threshold,Rect reference_roi){
+	args.make_gray = true;
+    args.resize_src = true;
+    args.width = 64;
+    args.height = 128;
+    cout << "Width: hog=" << args.width << ", roi=" << reference_roi.width << endl;
+    cout << "Height: hog=" << args.height << ", roi=" << reference_roi.height << endl;
+    args.scale = max(args.width/reference_roi.width,args.height/reference_roi.height);
+    args.nlevels = 13;
+    args.gr_threshold = group_threshold;
+    args.hit_threshold = hit_threshold;
+    args.hit_threshold_auto = false;
+    args.win_width = args.width ;
+    args.win_stride_width = 8;
+    args.win_stride_height = 8;
+    args.block_width = 16;
+    args.block_stride_width = 8;
+    args.block_stride_height = 8;
+    args.cell_width = 8;
+    args.nbins = 9;
+    args.overlap_threshold=0.5;
+    args.lambda = 1e-1;
+    args.epsilon= 1e-2;
+    args.tolerance = 1e-1;
+    args.n_iterations = 1e2;
+	Size win_stride(args.win_stride_width, args.win_stride_height);
+    Size win_size(args.width, args.height);
+    Size block_size(args.block_width, args.block_width);
+    Size block_stride(args.block_stride_width, args.block_stride_height);
+    Size cell_size(args.cell_width, args.cell_width);
+    gpu_hog = cuda::HOG::create(win_size, block_size, block_stride, cell_size, args.nbins);
+    gpu_hog->setWinStride(win_stride);
+}
 vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 {
+	Size image_size((int)frame.cols*args.scale,(int)frame.rows*args.scale);
+	if(args.resize_src) {
+		resize(frame,frame,image_size,0,0,INTER_CUBIC);
+	}
 	this->feature_values=this->getFeatureValues(frame);
 	VectorXd predict_prob = this->logistic_regression.predict(feature_values, true);
 	cout << feature_values.rows() << "," << feature_values.cols() << "," << predict_prob.rows() << endl;
@@ -48,6 +85,11 @@ vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 			Rect current_window(col, row, this->args.width, this->args.height);
 			if (predict_prob(idx) > args.hit_threshold)
 			{
+				if(args.resize_src) {
+					Size roi_size((int)current_window.width/args.scale,(int)current_window.height/args.scale);
+					current_window-=Point((int)args.scale,(int)args.scale);
+					current_window-=roi_size;
+				}
 				this->weights.conservativeResize( this->weights.size() + 1 );
 				this->weights(this->weights.size() - 1) = predict_prob(idx);
 				this->detections.push_back(current_window);
@@ -61,6 +103,12 @@ vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 
 void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 {
+	if(args.resize_src) {
+		Size image_size((int)frame.cols*args.scale,(int)frame.rows*args.scale);
+		resize(frame,frame,image_size,0,0,INTER_CUBIC);
+		reference_roi+=Point((int)args.scale,(int)args.scale);
+		reference_roi+=image_size;
+	}
 	this->labels.resize(0);
 	this->weights.resize(0);
 	for(int row = 0; row < frame.rows - this->args.height + this->args.win_stride_height; row+=this->args.win_stride_height){
@@ -74,7 +122,7 @@ void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 	}
 	MatrixXd feature_values=this->getFeatureValues(frame);
 	this->logistic_regression = LogisticRegression(feature_values, this->labels, args.lambda);
-		cout << feature_values.rows() << "," << feature_values.cols() << "," << labels.rows() << endl;
+	cout << feature_values.rows() << "," << feature_values.cols() << "," << labels.rows() << endl;
 	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
 }
 

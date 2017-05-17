@@ -37,6 +37,7 @@ class CUDA_HOGDetector
 public:
 	CUDA_HOGDetector();
 	CUDA_HOGDetector(int group_threshold, double hit_threshold);
+	CUDA_HOGDetector(int group_threshold, double hit_threshold, Rect reference_roi);
 	vector<Rect> detect(Mat &frame);
 	void train(Mat &frame,Rect reference_roi);
 	void draw();

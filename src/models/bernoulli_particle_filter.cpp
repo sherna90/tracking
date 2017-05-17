@@ -19,7 +19,7 @@ const float PDF_C = 1.6e-4;
 const double LAMBDA_BC=20.4;
 
 const int GROUP_THRESHOLD = 1;
-const double HIT_THRESHOLD = 0.0;
+const double HIT_THRESHOLD = 0.1;
 
 //const int this->step_slide = 20;
 #endif
@@ -155,8 +155,8 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	/******************** Logistic Regression ********************/
 	Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-    detector = CUDA_HOGDetector(GROUP_THRESHOLD, HIT_THRESHOLD);
-    detector.train(grayImg, reference_roi);
+    detector = CUDA_HOGDetector(GROUP_THRESHOLD, HIT_THRESHOLD,this->reference_roi);
+    detector.train(grayImg, this->reference_roi);
     this->initialized = true;
     /*
     this->local_binary_pattern.init(grayImg, sample_boxes, true, false, true);
@@ -340,11 +340,11 @@ void BernoulliParticleFilter::update(const Mat& image){
 	this->preDetections = detector.detect(grayImg);
 	MatrixXd featureValues = detector.getFeatureValues();
 	VectorXd phi = detector.getDetectionWeights();
-
+	cout << this->preDetections.size() << "," << phi.rows() << "," << featureValues.rows() << endl;
 	VectorXd penalty_weights=VectorXd::Zero(this->preDetections.size());
    	VectorXd qualityTerm;
    	this->dppResults = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
-	cout << this->preDetections.size() << "," << phi.rows() << "," << this->dppResults.size() << endl;
+	
 	if (this->dppResults.size() > 0)
 	{
 		vector<double> tmp_weights;

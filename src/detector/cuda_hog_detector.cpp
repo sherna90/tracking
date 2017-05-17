@@ -37,24 +37,25 @@ CUDA_HOGDetector::CUDA_HOGDetector(int group_threshold, double hit_threshold){
 
 vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 {
-	MatrixXd feature_values=this->getFeatureValues(frame);
-	this->weights.resize(0);
+	this->feature_values=this->getFeatureValues(frame);
 	VectorXd predict_prob = this->logistic_regression.predict(feature_values, true);
+	cout << feature_values.rows() << "," << feature_values.cols() << "," << predict_prob.rows() << endl;
 	this->detections.clear();
-	this->labels.resize(0);
+	this->weights.resize(0);
 	int idx=0;
 	for(int row = 0; row < frame.rows - this->args.height + this->args.win_stride_height; row+=this->args.win_stride_height){
 		for(int col = 0; col < frame.cols - this->args.width + this->args.win_stride_width; col+=this->args.win_stride_width){
 			Rect current_window(col, row, this->args.width, this->args.height);
-			if (predict_prob(idx) > args.overlap_threshold)
+			if (predict_prob(idx) > args.hit_threshold)
 			{
 				this->weights.conservativeResize( this->weights.size() + 1 );
-				this->weights(this->labels.size() - 1) = predict_prob(idx);
+				this->weights(this->weights.size() - 1) = predict_prob(idx);
 				this->detections.push_back(current_window);
 			}
 			idx++;
 		}
 	}
+	cout << "end detect!" << endl;
 	return this->detections;
 }
 
@@ -73,8 +74,8 @@ void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 	}
 	MatrixXd feature_values=this->getFeatureValues(frame);
 	this->logistic_regression = LogisticRegression(feature_values, this->labels, args.lambda);
+		cout << feature_values.rows() << "," << feature_values.cols() << "," << labels.rows() << endl;
 	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
-
 }
 
 void CUDA_HOGDetector::draw()
@@ -104,6 +105,11 @@ MatrixXd CUDA_HOGDetector::getFeatureValues(Mat &frame)
 	hog_img.download(hog_descriptors);
 	cv2eigen(hog_descriptors,hogFeatures);
 	return hogFeatures;
+}
+
+MatrixXd CUDA_HOGDetector::getFeatureValues()
+{
+	return this->feature_values;
 }
 
 VectorXd CUDA_HOGDetector::getDetectionWeights(){

@@ -22,7 +22,6 @@ void TestBernoulliParticleFilter::run(){
 	time(&start);
 	Performance performance;
 	namedWindow("Tracker");
-
 	/*VectorXd weights;
 	MatrixXd featureValues;
 	vector<Rect> dppResults, preDetections;*/
@@ -45,7 +44,7 @@ void TestBernoulliParticleFilter::run(){
 			rectangle( current_frame, ground_truth, Scalar(0,255,0), 2, LINE_AA );
 			Rect estimate = filter.estimate(current_frame, true);
 			
-			double r1 = performance.calc(ground_truth, estimate);
+			performance.calc(ground_truth, estimate);
 			/*if(r1 < 0.1) {
 				filter.reinitialize();
 				reinit_rate+=1.0;

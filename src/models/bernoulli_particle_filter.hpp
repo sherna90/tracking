@@ -79,9 +79,7 @@ private:
 	Hamiltonian_MC hamiltonian_monte_carlo;
 	LogisticRegression logistic_regression;
 	CUDA_HOGDetector detector;
-	MatrixXd featureValues;
 	VectorXd reference_hist;
-	VectorXd intersectionArea;
 	vector<Rect> dppResults, preDetections;
 };
 

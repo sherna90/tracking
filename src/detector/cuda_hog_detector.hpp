@@ -41,10 +41,12 @@ public:
 	void train(Mat &frame,Rect reference_roi);
 	void draw();
 	MatrixXd getFeatureValues(Mat &frame);
+	MatrixXd getFeatureValues();
 	VectorXd getDetectionWeights();
 	Args args;
 	MatrixXd compute(Mat &frame);
 private:
+	MatrixXd feature_values;
 	int group_threshold;
 	double hit_threshold;
 	Ptr<cuda::HOG> gpu_hog;

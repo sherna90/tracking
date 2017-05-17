@@ -18,8 +18,8 @@ const float PDF_C = 1.6e-4;
 
 const double LAMBDA_BC=20.4;
 
-const int GROUP_THRESHOLD = 1.0;
-const double HIT_THRESHOLD = 0.5;
+const int GROUP_THRESHOLD = 1;
+const double HIT_THRESHOLD = 0.0;
 
 //const int this->step_slide = 20;
 #endif
@@ -157,6 +157,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
     detector = CUDA_HOGDetector(GROUP_THRESHOLD, HIT_THRESHOLD);
     detector.train(grayImg, reference_roi);
+    this->initialized = true;
     /*
     this->local_binary_pattern.init(grayImg, sample_boxes, true, false, true);
     this->featureValues = MatrixXd(this->local_binary_pattern.sampleFeatureValue.rows(),
@@ -302,6 +303,8 @@ void BernoulliParticleFilter::predict(){
 void BernoulliParticleFilter::update(const Mat& image){
 	Mat grayImg;
 	cvtColor(image, grayImg, CV_RGB2GRAY);
+	this->preDetections.clear();
+	this->dppResults.clear();
 	/*int left = MAX(this->reference_roi.x, 1);
 	int top = MAX(this->reference_roi.y, 1);
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
@@ -335,11 +338,13 @@ void BernoulliParticleFilter::update(const Mat& image){
 
 	//VectorXd phi = this->hamiltonian_monte_carlo.predict(this->featureValues, true);
 	this->preDetections = detector.detect(grayImg);
+	MatrixXd featureValues = detector.getFeatureValues();
 	VectorXd phi = detector.getDetectionWeights();
 
+	VectorXd penalty_weights=VectorXd::Zero(this->preDetections.size());
    	VectorXd qualityTerm;
-   	this->dppResults = this->dpp.run(this->preDetections, phi, this->intersectionArea, this->featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
-
+   	this->dppResults = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
+	cout << this->preDetections.size() << "," << phi.rows() << "," << this->dppResults.size() << endl;
 	if (this->dppResults.size() > 0)
 	{
 		vector<double> tmp_weights;

@@ -9,6 +9,7 @@ SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
 find_package( OpenCV REQUIRED)
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
+include_directories( "src/detector/" )
 include_directories( "src/likelihood/" )
 include_directories( "src/models/" )
 include_directories( "src/features/" )

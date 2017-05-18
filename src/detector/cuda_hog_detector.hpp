@@ -4,7 +4,10 @@
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/cudaobjdetect.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/opencv.hpp>
 #include <iostream>
+#include <random>
+#include <chrono>
 #include "../likelihood/logistic_regression.hpp"
 
 using namespace cv;
@@ -57,6 +60,7 @@ private:
 	VectorXd weights;
 	Mat frame;
 	LogisticRegression logistic_regression;
+	mt19937 generator;
 };
 
 #endif

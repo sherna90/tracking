@@ -19,7 +19,7 @@ const float PDF_C = 1.6e-4;
 const double LAMBDA_BC=20.4;
 
 const int GROUP_THRESHOLD = 1;
-const double HIT_THRESHOLD = 0.1;
+const double HIT_THRESHOLD = 0.8;
 
 //const int this->step_slide = 20;
 #endif
@@ -340,11 +340,11 @@ void BernoulliParticleFilter::update(const Mat& image){
 	this->preDetections = detector.detect(grayImg);
 	MatrixXd featureValues = detector.getFeatureValues();
 	VectorXd phi = detector.getDetectionWeights();
-	cout << this->preDetections.size() << "," << phi.rows() << "," << featureValues.rows() << endl;
+	
 	VectorXd penalty_weights=VectorXd::Zero(this->preDetections.size());
    	VectorXd qualityTerm;
    	this->dppResults = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
-	
+	cout << this->dppResults.size()  << endl;
 	if (this->dppResults.size() > 0)
 	{
 		vector<double> tmp_weights;
@@ -425,9 +425,9 @@ void BernoulliParticleFilter::draw_particles(Mat& image, Scalar color){
 }
 
 void BernoulliParticleFilter::draw_dpp(Mat& image, Scalar color){
-	for (size_t i = 0; i < this->dppResults.size(); ++i)
+	for (size_t i = 0; i < this->preDetections.size(); ++i)
    	{
-   		rectangle( image, this->dppResults.at(i), color, 2, LINE_AA );
+   		rectangle( image, this->preDetections.at(i), color, 2, LINE_AA );
    	}
 }
 

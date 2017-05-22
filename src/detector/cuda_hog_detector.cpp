@@ -57,7 +57,7 @@ CUDA_HOGDetector::CUDA_HOGDetector(int group_threshold, double hit_threshold,Rec
     args.nbins = 9;
     args.overlap_threshold=0.5;
     args.lambda = 1e-2;
-    args.epsilon= 1e-2;
+    args.epsilon= 1e-4;
     args.tolerance = 1e-1;
     args.n_iterations = 1e4;
 	Size win_stride(args.win_stride_width, args.win_stride_height);
@@ -75,7 +75,7 @@ vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 	Mat current_frame;
 	frame.copyTo(current_frame);
 	if(args.resize_src) {
-		Size image_size((int)current_frame.cols*args.scale,(int)current_frame.rows*args.scale);
+		Size image_size(cvRound(current_frame.cols*args.scale),cvRound(current_frame.rows*args.scale));
 		resize(current_frame,current_frame,image_size,0,0,INTER_CUBIC);
 	}
 	MatrixXd features=this->getFeatureValues(current_frame);
@@ -90,18 +90,16 @@ vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 			if (predict_prob(idx) > args.hit_threshold)
 			{
 				rectangle( current_frame, current_window, Scalar(0,255,0), 2, LINE_AA );
-				if(args.resize_src) {			
-					//current_window-=Point((int)current_window.width*args.scale,(int)current_window.height*args.scale);
-					current_window.width=(int)current_window.width/args.scale;
-					current_window.height=(int)current_window.height/args.scale;
-					current_window.x-=(int)current_window.width*args.scale;
-					current_window.y-=(int)current_window.height*args.scale;
+				if(args.resize_src) {
+					Size image_size(cvRound(current_window.width/args.scale),cvRound(current_window.height/args.scale));			
+					current_window=Rect(Point2d(current_window.x,current_window.y) / args.scale,image_size );
 				}
 				this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
 				this->feature_values.row(this->feature_values.rows() - 1)=features.row(idx);
 				this->weights.conservativeResize( this->weights.size() + 1 );
 				this->weights(this->weights.size() - 1) = predict_prob(idx);
 				this->detections.push_back(current_window);
+				rectangle(frame, current_window, Scalar(0,255,0), 2, LINE_AA );
 			}
 			idx++;
 		}
@@ -132,7 +130,7 @@ void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 			Rect intersection = reference_roi & current_window;
 			float overlap=(float)intersection.area()/reference_roi.area();
 			double uni_rand = (overlap > args.overlap_threshold) ? 1.0 : unif(this->generator);
-			if(uni_rand>0.99){ 
+			if(uni_rand>0.9){ 
 				this->detections.push_back(current_window);
 				this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
 				this->feature_values.row(this->feature_values.rows() - 1)=features.row(idx);

@@ -14,7 +14,7 @@ LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda)
   	this->Y_train->noalias() = indices.asPermutation() * *this->Y_train;*/
  	this->rows = this->X_train->rows();
 	this->dim = this->X_train->cols();
-	this->weights = VectorXd::Random(dim);
+	this->weights = VectorXd::Ones(dim);
 	this->eta = VectorXd::Zero(this->rows);
 	this->phi = VectorXd::Zero(this->rows);
 	//this->featureMeans = this->X_train->colwise().mean();
@@ -108,8 +108,12 @@ void LogisticRegression::GPU_blasMatrixMatrixMul(const float *A, const float *B,
 }
 
 void LogisticRegression::preCompute(){
-		this->eta = (*X_train*this->weights);
+		//this->eta = (*X_train*this->weights);
+		this->eta=(*X_train*this->weights);
 		//this->eta = GPU_computeMatrixMul(*X_train, this->weights);
+		//cout << "CPU : " << cpu_dot.head(10).transpose() << endl;
+		//cout << "GPU : " << this->eta.head(10).transpose() << endl;
+		//cout << "-----------------------------------" << endl;
 		this->phi = sigmoid(this->eta);
 }
 
@@ -117,7 +121,7 @@ VectorXd LogisticRegression::train(int n_iter,double alpha,double tol){
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	for(int i=0;i<n_iter;i++){
 		preCompute();
-		log_likelihood(i)=-logPosterior(this->weights);
+		//log_likelihood(i)=-logPosterior(this->weights);
 		VectorXd Grad=gradient(this->weights);
 		this->weights+=alpha*Grad;
 	}

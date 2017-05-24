@@ -29,37 +29,40 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ve
 	VectorXd &qualityTermResults, double lambda, double mu, double epsilon)
 {
 	//cout << "lambda:" << lambda << " mu:" << mu << " epsilon:" << epsilon << endl;
-	VectorXd area(preDetections.size());
-	MatrixXd intersectionArea(preDetections.size(), preDetections.size());
+	vector<Rect> respDPP;
+	if(preDetections.size()>0){
+		VectorXd area(preDetections.size());
+		MatrixXd intersectionArea(preDetections.size(), preDetections.size());
 
-	for (size_t i = 0; i < preDetections.size(); ++i)
-	{
-		Rect bbox = preDetections.at(i);
-		area(i) = bbox.width * bbox.height;
-
-		for (size_t j = 0; j < preDetections.size(); ++j)
+		for (size_t i = 0; i < preDetections.size(); ++i)
 		{
-			Rect bbox2 = preDetections.at(j);
-			intersectionArea(i,j) = intersectionArea(i,j) = double((bbox & bbox2).area());
+			Rect bbox = preDetections.at(i);
+			area(i) = bbox.width * bbox.height;
+
+			for (size_t j = 0; j < preDetections.size(); ++j)
+			{
+				Rect bbox2 = preDetections.at(j);
+				intersectionArea(i,j) = intersectionArea(i,j) = double((bbox & bbox2).area());
+			}
+		}
+
+		MatrixXd sqrtArea = area.cwiseSqrt() * area.cwiseSqrt().adjoint();
+
+		VectorXd qualityTerm = get_quality_term(detectionWeights, penaltyWeights, lambda);
+		MatrixXd similarityTerm = get_similarity_term(featureValues, intersectionArea, sqrtArea, mu);
+
+		vector<int> top = solve(qualityTerm, similarityTerm, epsilon);	
+		qualityTermResults.conservativeResize(0);
+		for (size_t i = 0; i < top.size(); ++i)
+		{
+			respDPP.push_back(preDetections.at(top.at(i)));
+			qualityTermResults.conservativeResize(qualityTermResults.size() + 1);
+			qualityTermResults(i) = qualityTerm(top.at(i));
 		}
 	}
-
-	MatrixXd sqrtArea = area.cwiseSqrt() * area.cwiseSqrt().adjoint();
-
-	VectorXd qualityTerm = get_quality_term(detectionWeights, penaltyWeights, lambda);
-	MatrixXd similarityTerm = get_similarity_term(featureValues, intersectionArea, sqrtArea, mu);
-
-	vector<int> top = solve(qualityTerm, similarityTerm, epsilon);	
-	
-	vector<Rect> respDPP;
-	qualityTermResults.conservativeResize(0);
-	for (size_t i = 0; i < top.size(); ++i)
-	{
-		respDPP.push_back(preDetections.at(top.at(i)));
-		qualityTermResults.conservativeResize(qualityTermResults.size() + 1);
-		qualityTermResults(i) = qualityTerm(top.at(i));
+	else{
+		respDPP=preDetections;
 	}
-	
 	return respDPP;
 }
 
@@ -115,8 +118,8 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 			newS.block(0, newS.cols() - 1, newS.rows() - 1, 1) << tmp;
 			newS.block(newS.rows() - 1, 0, 1, newS.cols() - 1) << tmp.transpose();
 
-			//double obj_ = qualityTerm(remained(i)) * newS.determinant();
-			double obj_ = qualityTerm(remained(i));
+			double obj_ = qualityTerm(remained(i)) * newS.determinant();
+			//double obj_ = qualityTerm(remained(i));
 			//cout << newS.determinant()   << "," << obj_  << ","<< maxObj_ << endl;
 			if (obj_ > maxObj_)
 			{

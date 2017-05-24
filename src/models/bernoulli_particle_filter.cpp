@@ -19,7 +19,7 @@ const float PDF_C = 1.6e-4;
 const double LAMBDA_BC=20.4;
 
 const int GROUP_THRESHOLD = 1;
-const double HIT_THRESHOLD = 0.5;
+const double HIT_THRESHOLD = 0.99;
 
 //const int this->step_slide = 20;
 #endif
@@ -158,6 +158,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
     detector = CUDA_HOGDetector(GROUP_THRESHOLD, HIT_THRESHOLD,this->reference_roi);
     detector.train(grayImg, this->reference_roi);
     this->initialized = true;
+    cout << "initialized!!!" << endl;
     /*
     this->local_binary_pattern.init(grayImg, sample_boxes, true, false, true);
     this->featureValues = MatrixXd(this->local_binary_pattern.sampleFeatureValue.rows(),

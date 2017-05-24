@@ -40,9 +40,9 @@ CUDA_HOGDetector::CUDA_HOGDetector(int group_threshold, double hit_threshold,Rec
     args.resize_src = true;
     args.width = 64;
     args.height = 128;
-    cout << "Width: hog=" << args.width << ", roi=" << reference_roi.width << endl;
-    cout << "Height: hog=" << args.height << ", roi=" << reference_roi.height << endl;
-    args.scale = max(args.width/reference_roi.width,args.height/reference_roi.height);
+    //cout << "Width: hog=" << args.width << ", roi=" << reference_roi.width << endl;
+    //cout << "Height: hog=" << args.height << ", roi=" << reference_roi.height << endl;
+    args.scale = cvRound(max((float)args.width/reference_roi.width,(float)args.height/reference_roi.height));
     args.nlevels = 13;
     args.gr_threshold = group_threshold;
     args.hit_threshold = hit_threshold;
@@ -56,7 +56,7 @@ CUDA_HOGDetector::CUDA_HOGDetector(int group_threshold, double hit_threshold,Rec
     args.cell_width = 8;
     args.nbins = 9;
     args.overlap_threshold=0.5;
-    args.lambda = 1e-2;
+    args.lambda = 10;
     args.epsilon= 1e-4;
     args.tolerance = 1e-1;
     args.n_iterations = 1e4;
@@ -84,15 +84,15 @@ vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 	this->detections.clear();
 	this->weights.resize(0);
 	int idx=0;
-	for(int row = 0; row < current_frame.rows - this->args.height + this->args.win_stride_height; row+=this->args.win_stride_height){
-		for(int col = 0; col < current_frame.cols - this->args.width + this->args.win_stride_width; col+=this->args.win_stride_width){
+	for(int row = 0; row < (current_frame.rows - this->args.height + this->args.win_stride_height); row+=this->args.win_stride_height){
+		for(int col = 0; col < (current_frame.cols - this->args.width + this->args.win_stride_width); col+=this->args.win_stride_width){
 			Rect current_window(col, row, this->args.width, this->args.height);
 			if (predict_prob(idx) > args.hit_threshold)
 			{
-				rectangle( current_frame, current_window, Scalar(0,255,0), 2, LINE_AA );
+				//rectangle( current_frame, current_window, Scalar(0,255,0), 2, LINE_AA );
 				if(args.resize_src) {
 					Size image_size(cvRound(current_window.width/args.scale),cvRound(current_window.height/args.scale));			
-					current_window=Rect(Point2d(current_window.x,current_window.y) / args.scale,image_size );
+					current_window=Rect(Point(current_window.x,current_window.y) / args.scale,image_size );
 				}
 				this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
 				this->feature_values.row(this->feature_values.rows() - 1)=features.row(idx);
@@ -104,19 +104,20 @@ vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 			idx++;
 		}
 	}
-	imwrite("resized_image.png", current_frame);
+	//imwrite("resized_image.png", current_frame);
 	return this->detections;
 }
 
 void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 {
 	Mat current_frame;
+	cout << frame.size() << args.scale << endl;
 	frame.copyTo(current_frame);
-	if(args.resize_src) {
-		Size image_size((int)current_frame.cols*args.scale,(int)current_frame.rows*args.scale);
+	if(args.resize_src && args.scale>1) {
+		Size image_size(cvRound(current_frame.cols*args.scale),cvRound(current_frame.rows*args.scale));
 		resize(current_frame,current_frame,image_size,0,0,INTER_CUBIC);
-		reference_roi+=Point((int)reference_roi.width*args.scale,(int)reference_roi.height*args.scale);
-		reference_roi+=Size((int)reference_roi.width*args.scale,(int)reference_roi.height*args.scale);
+		Size roi_size(cvRound(reference_roi.width*args.scale),cvRound(reference_roi.height*args.scale));
+		reference_roi=Rect(Point(reference_roi.x,reference_roi.y) * args.scale,roi_size );
 	}
 	MatrixXd features=this->getFeatureValues(current_frame);
 	this->feature_values=MatrixXd::Zero(0,features.cols());
@@ -124,8 +125,8 @@ void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 	this->weights.resize(0);
 	int idx=0;
 	uniform_real_distribution<double> unif(0.0,1.0);
-	for(int row = 0; row < current_frame.rows - this->args.height + this->args.win_stride_height; row+=this->args.win_stride_height){
-		for(int col = 0; col < current_frame.cols - this->args.width + this->args.win_stride_width; col+=this->args.win_stride_width){
+	for(int row = 0; row < (current_frame.rows - this->args.height + this->args.win_stride_height); row+=this->args.win_stride_height){
+		for(int col = 0; col < (current_frame.cols - this->args.width + this->args.win_stride_width); col+=this->args.win_stride_width){
 			Rect current_window(col, row, this->args.width, this->args.height);
 			Rect intersection = reference_roi & current_window;
 			float overlap=(float)intersection.area()/reference_roi.area();
@@ -136,7 +137,7 @@ void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 				this->feature_values.row(this->feature_values.rows() - 1)=features.row(idx);
 				this->labels.conservativeResize(this->labels.size() + 1 );
 				this->labels(this->labels.size() - 1) = (overlap > args.overlap_threshold) ? 1.0 : 0.0;
-				rectangle( current_frame, current_window, Scalar(255,255,255), 2, LINE_8  );
+				//rectangle( current_frame, current_window, Scalar(255,255,255), 2, LINE_8  );
 			}
 			idx++;
 		}
@@ -166,8 +167,8 @@ void CUDA_HOGDetector::draw()
 
 MatrixXd CUDA_HOGDetector::getFeatureValues(Mat &frame)
 {
-	int num_rows=frame.rows - this->args.height + this->args.win_stride_height;
-	int num_cols=frame.cols - this->args.width + this->args.win_stride_width;
+	int num_rows=(frame.rows - this->args.height + this->args.win_stride_height)/this->args.win_stride_height;
+	int num_cols=(frame.cols - this->args.width + this->args.win_stride_width)/this->args.win_stride_width;
 	MatrixXd hogFeatures(num_rows*num_cols, this->gpu_hog->getDescriptorSize());
 	Mat subImage,hog_descriptors;
 	vector<float> features;
@@ -176,6 +177,7 @@ MatrixXd CUDA_HOGDetector::getFeatureValues(Mat &frame)
 	gpu_hog->compute(gpu_img,hog_img);
 	hog_img.download(hog_descriptors);
 	cv2eigen(hog_descriptors,hogFeatures);
+	//cout << frame.size() << "," << num_rows*num_cols << "," << hog_descriptors.rows << endl;
 	return hogFeatures;
 }
 

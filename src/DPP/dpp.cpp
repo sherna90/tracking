@@ -73,9 +73,9 @@ MatrixXd DPP::get_similarity_term(MatrixXd &featureValues, MatrixXd &intersectio
 	 ****	S = w * S^c + (1 - w) * S^s
 	 ****/
 
-	//MatrixXd Sc = squared_exponential_kernel(featureValues, 0, 0);
+	MatrixXd Sc = squared_exponential_kernel(featureValues, 0, 0);
 	MatrixXd Ss = intersectionArea.array() / sqrtArea.array();
-	MatrixXd Sc = featureValues * featureValues.adjoint();
+	//MatrixXd Sc = featureValues * featureValues.adjoint();
 	MatrixXd S = mu * Ss.array() + (1 - mu) * Sc.array();
 	//MatrixXd S = featureValues * featureValues.adjoint();
 	return S;
@@ -115,8 +115,8 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 			newS.block(0, newS.cols() - 1, newS.rows() - 1, 1) << tmp;
 			newS.block(newS.rows() - 1, 0, 1, newS.cols() - 1) << tmp.transpose();
 
-			double obj_ = qualityTerm(remained(i)) * newS.determinant();
-			//double obj_ = qualityTerm(remained(i));
+			//double obj_ = qualityTerm(remained(i)) * newS.determinant();
+			double obj_ = qualityTerm(remained(i));
 			//cout << newS.determinant()   << "," << obj_  << ","<< maxObj_ << endl;
 			if (obj_ > maxObj_)
 			{

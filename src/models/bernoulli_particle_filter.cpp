@@ -19,7 +19,7 @@ const float PDF_C = 1.6e-4;
 const double LAMBDA_BC=20.4;
 
 const int GROUP_THRESHOLD = 1;
-const double HIT_THRESHOLD = 0.99;
+const double HIT_THRESHOLD = 0.5;
 
 //const int this->step_slide = 20;
 #endif
@@ -305,12 +305,12 @@ void BernoulliParticleFilter::update(const Mat& image){
 	cvtColor(image, grayImg, CV_RGB2GRAY);
 	this->preDetections.clear();
 	this->dppResults.clear();
-	/*int left = MAX(this->reference_roi.x, 1);
+	int left = MAX(this->reference_roi.x, 1);
 	int top = MAX(this->reference_roi.y, 1);
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
 	int bottom = MIN(this->reference_roi.y + this->reference_roi.height, image.rows - 1);
 	Rect update_roi = Rect(left, top, right - left, bottom - top);
-	this->preDetections.push_back(update_roi);
+	/*this->preDetections.push_back(update_roi);
 	this->intersectionArea.resize(0);
 	this->preDetections.clear();
 	this->dppResults.clear();
@@ -340,11 +340,15 @@ void BernoulliParticleFilter::update(const Mat& image){
 	this->preDetections = detector.detect(grayImg);
 	MatrixXd featureValues = detector.getFeatureValues();
 	VectorXd phi = detector.getDetectionWeights();
-	
+	//cout << phi.rows() << "," << featureValues.rows() << endl;
 	VectorXd penalty_weights=VectorXd::Zero(this->preDetections.size());
+	for(unsigned int i = 0; i<this->preDetections.size();i++){
+		Rect intersection = update_roi & this->preDetections[i];
+		penalty_weights(i) = (double)intersection.area()/update_roi.area();
+	}
    	VectorXd qualityTerm;
    	this->dppResults = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
-	cout << this->dppResults.size()  << endl;
+	//cout << this->dppResults.size()  << endl;
 	if (this->dppResults.size() > 0)
 	{
 		vector<double> tmp_weights;
@@ -366,7 +370,7 @@ void BernoulliParticleFilter::update(const Mat& image){
             MVNGaussian gaussian(mean, cov);
             //double weight = this->weights[i];
 
-            psi.row(i) = gaussian.log_likelihood(observations).array().exp() * qualityTerm.array();
+            psi.row(i) = gaussian.log_likelihood(observations).array().exp();
         }
 
         /*cout << "\nPSI" << endl;
@@ -425,9 +429,9 @@ void BernoulliParticleFilter::draw_particles(Mat& image, Scalar color){
 }
 
 void BernoulliParticleFilter::draw_dpp(Mat& image, Scalar color){
-	for (size_t i = 0; i < this->preDetections.size(); ++i)
+	for (size_t i = 0; i < this->dppResults.size(); ++i)
    	{
-   		rectangle( image, this->preDetections.at(i), color, 2, LINE_AA );
+   		rectangle( image, this->dppResults.at(i), color, 2, LINE_AA );
    	}
 }
 

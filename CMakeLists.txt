@@ -17,7 +17,7 @@ include_directories( "src/utils/" )
 include_directories( "src/DPP/" )
 include_directories( "libs/LBP/" )
 include_directories( "/usr/include/eigen3/" )
-include_directories( "/usr/local/cuda/include/" )
+include_directories( "/usr/local/cuda-7.5/include/" )
 #include_directories( "/usr/local/include/eigen3/" )
 
 #add_executable( tracker src/test_particle_filter.cpp src/models/particle_filter.cpp  src/utils/utils.cpp src/likelihood/gaussian.cpp src/utils/image_generator.cpp src/features/haar.cpp src/likelihood/logistic_regression.cpp src/likelihood/hamiltonian_monte_carlo.cpp src/likelihood/incremental_gaussiannaivebayes.cpp src/likelihood/multivariate_gaussian.cpp src/features/local_binary_pattern.cpp src/likelihood/multinomial.cpp src/likelihood/multinomialnaivebayes.cpp src/features/hog.cpp src/features/mb_lbp.cpp  src/libs/LBP/LBP.cpp) 

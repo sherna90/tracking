@@ -39,8 +39,77 @@ VectorXd LogisticRegression::logSigmoid(VectorXd &eta){
 	return phi;
 }
 
+VectorXd LogisticRegression::GPU_computeMatrixMul(MatrixXd &m, VectorXd &v){
+	int m_cols = m.cols();
+	int m_rows = m.rows();
+	int v_cols = v.size();
+
+	float *h_m = (float *)malloc(m_cols * m_rows * sizeof(float));
+	float *h_v = (float *)malloc(v_cols * sizeof(float));
+	float *h_o = (float *)malloc(m_rows * sizeof(float));
+
+	Map<MatrixXf>(h_m, m_rows, m_cols) = m.cast<float>();
+	Map<VectorXf>(h_v, v_cols) = v.cast<float>();
+
+	float *d_m, *d_v, *d_o;
+
+	cudaMalloc((void**)&d_m, m_cols * m_rows * sizeof(float));
+	cudaMalloc((void**)&d_v, v_cols * sizeof(float));
+	cudaMalloc((void**)&d_o, m_rows * sizeof(float));
+
+	cudaMemcpy(d_m, h_m, m_cols * m_rows * sizeof(float),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_v, h_v, v_cols * sizeof(float),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_o, h_o, m_rows * sizeof(float),cudaMemcpyHostToDevice);
+
+	this->GPU_blasMatrixVectorMul(d_m, d_v, d_o, m_rows, v_cols);
+
+	cudaMemcpy(h_o, d_o, m_rows * sizeof(float),cudaMemcpyDeviceToHost);
+
+	Map<VectorXf> output(h_o, m_rows);
+
+	cudaFree(d_m);
+	cudaFree(d_v);
+	cudaFree(d_o);
+
+	free(h_m);
+	free(h_v);
+	free(h_o);
+
+	return output.cast<double>();
+}	
+
+void LogisticRegression::GPU_blasMatrixVectorMul(const float *A, const float *B, float *C, const int m, const int n) {
+	 int lda=m,ldb=1,ldc=1;
+	 const float alf = 1.0;
+	 const float bet = 1.0;
+	 const float *alpha = &alf;
+	 const float *beta = &bet;
+
+	 cublasHandle_t handle;
+	 cublasCreate(&handle);
+
+	 cublasSgemv(handle, CUBLAS_OP_N, m, n, alpha, A, lda, B, ldb, beta, C, ldc);
+
+	 cublasDestroy(handle);
+}
+
+void LogisticRegression::GPU_blasMatrixMatrixMul(const float *A, const float *B, float *C, const int m, const int k, const int n) {
+	 int lda=m,ldb=k,ldc=m;
+	 const float alf = 1.0;
+	 const float bet = 1.0;
+	 const float *alpha = &alf;
+	 const float *beta = &bet;
+
+	 cublasHandle_t handle;
+	 cublasCreate(&handle);
+
+	 cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc);
+	cublasDestroy(handle);
+}
+
 void LogisticRegression::preCompute(){
 		this->eta = (*X_train*this->weights);
+		//this->eta = GPU_computeMatrixMul(*X_train, this->weights);
 		this->phi = sigmoid(this->eta);
 }
 
@@ -57,6 +126,7 @@ VectorXd LogisticRegression::train(int n_iter,double alpha,double tol){
 
 VectorXd LogisticRegression::computeGradient(MatrixXd &_X, VectorXd &_Y, VectorXd &_W){
 	VectorXd E_d=VectorXd::Zero(this->dim);
+	#pragma omp parallel for schedule(static)
 	for(int i=0;i<this->rows;i++){
 		double sg=this->phi[i];
 		if(_Y[i]>0){
@@ -76,6 +146,7 @@ VectorXd LogisticRegression::computeDataGradient(MatrixXd &_X, VectorXd &_Y, Vec
 	VectorXd Eta = (_X*_W);
 	VectorXd Phi = sigmoid(Eta);
 	VectorXd E_d=VectorXd::Zero(Dim);
+	#pragma omp parallel for schedule(static)
 	for(int i=0;i<this->rows;i++){
 		double sg=Phi[i];
 		if(_Y[i]>0){
@@ -108,6 +179,7 @@ MatrixXd LogisticRegression::computeHessian(MatrixXd &_X, VectorXd &_Y, VectorXd
 VectorXd LogisticRegression::predict(MatrixXd &_X_test,bool prob){
 	//_X_test.rowwise()-=this->featureMeans.transpose();
 	VectorXd eta_test = (_X_test)*this->weights;
+	//VectorXd eta_test = GPU_computeMatrixMul(_X_test, this->weights);
 	VectorXd phi_test=sigmoid(eta_test);
 	if(!prob){
 		phi_test.noalias() = phi_test.unaryExpr([](double elem){
@@ -120,6 +192,7 @@ VectorXd LogisticRegression::predict(MatrixXd &_X_test,bool prob){
 double LogisticRegression::logLikelihood(MatrixXd &_X,VectorXd &_Y){
 	double realmin=numeric_limits<double>::min();
 	double ll=0.0;
+	#pragma omp parallel for schedule(static)
 	for(int i=0;i<this->rows;i++){
 		double sg=this->phi[i]+realmin;
 		if(_Y[i]>0){

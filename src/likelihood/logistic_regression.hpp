@@ -4,15 +4,19 @@
 #include <stdlib.h>
 #include <cfloat>
 #include <cmath>
-#include <algorithm>    // std::max
+#include <algorithm>
 #include <vector>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
+#include <cuda_runtime_api.h>
+#include <cuda.h>
+#include <cublas_v2.h>
 
 
 using namespace Eigen;
 using namespace std;
+
 
 class LogisticRegression
 {
@@ -42,6 +46,9 @@ class LogisticRegression
  	VectorXd sigmoid(VectorXd &_eta);
  	VectorXd logSigmoid(VectorXd &_eta);
  	MatrixXd computeHessian(MatrixXd &_X, VectorXd &_Y, VectorXd &_W);
+ 	VectorXd GPU_computeMatrixMul(MatrixXd &m, VectorXd &v);
+ 	void GPU_blasMatrixVectorMul(const float *A, const float *B, float *C, const int m, const int n);
+ 	void GPU_blasMatrixMatrixMul(const float *A, const float *B, float *C, const int m, const int k, const int n);
     //MatrixXd computeHessian(MatrixXd &_X, VectorXd &_Y, RowVectorXd &_W);
  	double logPrior(VectorXd &_W);
  	double logLikelihood(MatrixXd &_X,VectorXd &_Y);

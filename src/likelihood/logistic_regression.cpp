@@ -110,11 +110,7 @@ void LogisticRegression::GPU_blasMatrixMatrixMul(const float *A, const float *B,
 
 void LogisticRegression::preCompute(){
 		//this->eta = (*X_train*this->weights);
-		this->eta=(*X_train*this->weights);
-		//this->eta = GPU_computeMatrixMul(*X_train, this->weights);
-		//cout << "CPU : " << cpu_dot.head(10).transpose() << endl;
-		//cout << "GPU : " << this->eta.head(10).transpose() << endl;
-		//cout << "-----------------------------------" << endl;
+		this->eta = GPU_computeMatrixMul(*X_train, this->weights);
 		this->phi = sigmoid(this->eta);
 }
 
@@ -183,8 +179,8 @@ MatrixXd LogisticRegression::computeHessian(MatrixXd &_X, VectorXd &_Y, VectorXd
 
 VectorXd LogisticRegression::predict(MatrixXd &_X_test,bool prob){
 	//_X_test.rowwise()-=this->featureMeans.transpose();
-	VectorXd eta_test = (_X_test)*this->weights;
-	//VectorXd eta_test = GPU_computeMatrixMul(_X_test, this->weights);
+	//VectorXd eta_test = (_X_test)*this->weights;
+	VectorXd eta_test = GPU_computeMatrixMul(_X_test, this->weights);
 	VectorXd phi_test=sigmoid(eta_test);
 	if(!prob){
 		phi_test.noalias() = phi_test.unaryExpr([](double elem){

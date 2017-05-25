@@ -22,7 +22,7 @@ class LogisticRegression
 {
  public:
 	LogisticRegression();
-	LogisticRegression(MatrixXd &_X,VectorXd &_Y,double lambda=1.0);
+	LogisticRegression(MatrixXd &_X,VectorXd &_Y,double lambda=1.0, bool _gpu = false);
 	void preCompute();
  	VectorXd train(int n_iter,double alpha=0.01,double tol=0.001);
  	VectorXd predict(MatrixXd &_X_test, bool prob=false);
@@ -43,6 +43,7 @@ class LogisticRegression
 	VectorXd eta,phi;
  	int rows,dim;
  	double lambda;
+ 	bool gpu;
  	VectorXd featureMeans;
  	VectorXd sigmoid(VectorXd &_eta);
  	VectorXd logSigmoid(VectorXd &_eta);

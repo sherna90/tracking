@@ -1,13 +1,15 @@
 #include "logistic_regression.hpp"
 
 LogisticRegression::LogisticRegression(){
+	this->gpu = false;
 }
 
-LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda){
+LogisticRegression::LogisticRegression(MatrixXd &_X,VectorXd &_Y,double _lambda, bool _gpu){
 	srand((unsigned int) time(0));
 	this->lambda=_lambda;
  	this->X_train = &_X;
  	this->Y_train = &_Y;
+ 	this->gpu = _gpu;
  	/*VectorXi indices = VectorXi::LinSpaced(this->X_train->rows(), 0, this->X_train->rows());
  	std::random_shuffle(indices.data(), indices.data() + this->X_train->rows());
   	this->X_train->noalias() = indices.asPermutation() * *this->X_train;  
@@ -109,9 +111,14 @@ void LogisticRegression::GPU_blasMatrixMatrixMul(const float *A, const float *B,
 }
 
 void LogisticRegression::preCompute(){
-		//this->eta = (*X_train*this->weights);
+	if(!this->gpu){
+		this->eta = (*X_train*this->weights);
+	}
+	else{
 		this->eta = GPU_computeMatrixMul(*X_train, this->weights);
-		this->phi = sigmoid(this->eta);
+	}
+
+	this->phi = sigmoid(this->eta);
 }
 
 VectorXd LogisticRegression::train(int n_iter,double alpha,double tol){
@@ -179,8 +186,15 @@ MatrixXd LogisticRegression::computeHessian(MatrixXd &_X, VectorXd &_Y, VectorXd
 
 VectorXd LogisticRegression::predict(MatrixXd &_X_test,bool prob){
 	//_X_test.rowwise()-=this->featureMeans.transpose();
-	//VectorXd eta_test = (_X_test)*this->weights;
-	VectorXd eta_test = GPU_computeMatrixMul(_X_test, this->weights);
+	VectorXd eta_test;
+
+	if(!this->gpu){
+		eta_test = (_X_test)*this->weights;
+	}
+	else{
+		eta_test = GPU_computeMatrixMul(_X_test, this->weights);
+	}
+
 	VectorXd phi_test=sigmoid(eta_test);
 	if(!prob){
 		phi_test.noalias() = phi_test.unaryExpr([](double elem){

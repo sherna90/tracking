@@ -65,8 +65,9 @@ VectorXd LogisticRegression::GPU_computeMatrixMul(MatrixXd &m, VectorXd &v){
 
 	cudaMemcpy(h_o, d_o, m_rows * sizeof(float),cudaMemcpyDeviceToHost);
 
-	Map<VectorXf> output(h_o, m_rows);
-
+	Map<VectorXf> outputf(h_o, m_rows);
+	VectorXd outputd = outputf.cast<double>();
+	
 	cudaFree(d_m);
 	cudaFree(d_v);
 	cudaFree(d_o);
@@ -75,13 +76,13 @@ VectorXd LogisticRegression::GPU_computeMatrixMul(MatrixXd &m, VectorXd &v){
 	free(h_v);
 	free(h_o);
 
-	return output.cast<double>();
+	return outputd;
 }	
 
 void LogisticRegression::GPU_blasMatrixVectorMul(const float *A, const float *B, float *C, const int m, const int n) {
 	 int lda=m,ldb=1,ldc=1;
 	 const float alf = 1.0;
-	 const float bet = 1.0;
+	 const float bet = 0.0;
 	 const float *alpha = &alf;
 	 const float *beta = &bet;
 

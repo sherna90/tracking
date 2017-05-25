@@ -33,6 +33,7 @@ class LogisticRegression
  	void setWeights(VectorXd &_W);
     void setData(MatrixXd &_X,VectorXd &_Y);
  	VectorXd getWeights();
+ 	VectorXd GPU_computeMatrixMul(MatrixXd &m, VectorXd &v);
 
 
  private:
@@ -46,7 +47,6 @@ class LogisticRegression
  	VectorXd sigmoid(VectorXd &_eta);
  	VectorXd logSigmoid(VectorXd &_eta);
  	MatrixXd computeHessian(MatrixXd &_X, VectorXd &_Y, VectorXd &_W);
- 	VectorXd GPU_computeMatrixMul(MatrixXd &m, VectorXd &v);
  	void GPU_blasMatrixVectorMul(const float *A, const float *B, float *C, const int m, const int n);
  	void GPU_blasMatrixMatrixMul(const float *A, const float *B, float *C, const int m, const int k, const int n);
     //MatrixXd computeHessian(MatrixXd &_X, VectorXd &_Y, RowVectorXd &_W);

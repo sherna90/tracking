@@ -1,19 +1,17 @@
-#ifndef CUDA_HOG_DETECTOR_H
-#define CUDA_HOG_DETECTOR_H
+#ifndef CPU_HOG_DETECTOR_H
+#define CPU_HOG_DETECTOR_H
 #include <Eigen/Core>
 #include <opencv2/core/eigen.hpp>
-#include <opencv2/cudaobjdetect.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <random>
 #include <chrono>
-//#include "../likelihood/GPU_hmc.hpp"
-#include "../likelihood/GPU_logistic_regression.hpp"
-//#include "../likelihood/logistic_regression.hpp"
+#include <string>
+#include "../likelihood/logistic_regression.hpp"
 #include "../utils/c_utils.hpp"
 #include "../DPP/nms.hpp"
-#include "../DPP/dpp.hpp"
+
 using namespace cv;
 using namespace std;
 using namespace Eigen;
@@ -38,40 +36,40 @@ struct Args {
     double p_accept;
     double lambda, epsilon, tolerance;
     int n_iterations;
-    double padding;
+    int padding;
 } ;
 
-class CUDA_HOGDetector
+class CPU_HOGDetector
 {
 public:
-	CUDA_HOGDetector();
-	CUDA_HOGDetector(double group_threshold, double hit_threshold);
-	CUDA_HOGDetector(double group_threshold, double hit_threshold, Rect reference_roi);
+	CPU_HOGDetector();
+	CPU_HOGDetector(double group_threshold, double hit_threshold);
+	CPU_HOGDetector(double group_threshold, double hit_threshold, Rect reference_roi);
 	vector<Rect> detect(Mat &frame);
 	void train(Mat &frame,Rect reference_roi);
-	void draw();
-	MatrixXd getFeatureValues(Mat &frame);
-	MatrixXd getFeatureValues();
-	VectorXd getDetectionWeights();
-	void generateFeatures(Mat &frame, double label);
-	void generateFeature(Mat &frame, double label);
-	void dataClean();
 	void train();
 	VectorXd predict(MatrixXd data);
-	void saveToCSV(string name, bool append = true);
-	void loadFeatures(MatrixXd features, VectorXd labels);
+	void draw();
+	void generateFeatures(Mat &frame, double label);
+	void generateFeature(Mat &frame, double label);
+	MatrixXd getFeatureValues(Mat &current_frame);
+	MatrixXd getFeatures();
+	VectorXd getDetectionWeights();
+	void dataClean();
 	Args args;
 	MatrixXd compute(Mat &frame);
+	void saveToCSV(string name, bool append = true);
+	void loadFeatures(MatrixXd features, VectorXd labels);
 	void loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias);
 private:
-	int n_descriptors, n_data;
 	MatrixXd feature_values;
 	int group_threshold;
 	double hit_threshold;
-	Ptr<cuda::HOG> gpu_hog;
+	HOGDescriptor hog;
+	int n_descriptors, n_data;
 	vector<Rect> detections;
 	VectorXd labels;
-	VectorXd weights,penalty_weights;
+	VectorXd weights;
 	Mat frame;
 	C_utils tools;
 	LogisticRegression logistic_regression;

@@ -21,7 +21,7 @@
 #include "../likelihood/hmc.hpp"
 #include "../likelihood/logistic_regression.hpp"
 #include "../features/local_binary_pattern.hpp"
-#include "../detector/cuda_hog_detector.hpp"
+#include "../detector/cpu_hog_detector.hpp"
 #include "../DPP/dpp.hpp"
 #include "../utils/utils.hpp"
 
@@ -74,11 +74,8 @@ private:
 	double lambda, mu, epsilon;
 	int step_slide;
 	DPP dpp;
-	LocalBinaryPattern local_binary_pattern;
-	PCA pca;
-	Hamiltonian_MC hamiltonian_monte_carlo;
 	LogisticRegression logistic_regression;
-	CUDA_HOGDetector detector;
+	CPU_HOGDetector detector;
 	VectorXd reference_hist;
 	vector<Rect> dppResults, preDetections;
 };

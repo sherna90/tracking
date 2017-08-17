@@ -18,17 +18,9 @@ include_directories( "src/utils/" )
 include_directories( "src/DPP/" )
 include_directories( "libs/LBP/" )
 include_directories( "/usr/include/eigen3/" )
-include_directories( "/usr/local/cuda-7.5/include/" )
+#include_directories( "/usr/local/cuda-8.0/include/" )
 #include_directories( "/usr/local/include/eigen3/" )
 
-#add_executable( tracker src/test_particle_filter.cpp src/models/particle_filter.cpp  src/utils/utils.cpp src/likelihood/gaussian.cpp src/utils/image_generator.cpp src/features/haar.cpp src/likelihood/logistic_regression.cpp src/likelihood/hamiltonian_monte_carlo.cpp src/likelihood/incremental_gaussiannaivebayes.cpp src/likelihood/multivariate_gaussian.cpp src/features/local_binary_pattern.cpp src/likelihood/multinomial.cpp src/likelihood/multinomialnaivebayes.cpp src/features/hog.cpp src/features/mb_lbp.cpp  src/libs/LBP/LBP.cpp) 
-#target_link_libraries( tracker ${OpenCV_LIBS} )
 
-#add_executable( smc_squared src/test_smcsquared.cpp  src/models/smc_squared.cpp src/models/pmmh.cpp src/models/particle_filter.cpp  src/utils/utils.cpp src/likelihood/gaussian.cpp src/utils/image_generator.cpp src/features/haar.cpp src/likelihood/logistic_regression.cpp src/likelihood/hamiltonian_monte_carlo.cpp src/likelihood/incremental_gaussiannaivebayes.cpp src/likelihood/multivariate_gaussian.cpp src/features/local_binary_pattern.cpp src/likelihood/multinomial.cpp src/likelihood/multinomialnaivebayes.cpp  src/features/hog.cpp src/features/mb_lbp.cpp src/libs/LBP/LBP.cpp) 
-#target_link_libraries( smc_squared ${OpenCV_LIBS} ${FFTW_LIBRARY} )
-
-#add_executable( dpp src/test_dpp.cpp  src/DPP/dpp_tracker.cpp src/DPP/dpp.cpp src/utils/utils.cpp src/utils/c_utils.cpp src/likelihood/gaussian.cpp src/utils/image_generator.cpp src/features/haar.cpp src/likelihood/logistic_regression.cpp src/likelihood/hamiltonian_monte_carlo.cpp src/likelihood/incremental_gaussiannaivebayes.cpp src/likelihood/multivariate_gaussian.cpp src/features/local_binary_pattern.cpp src/likelihood/multinomial.cpp src/likelihood/multinomialnaivebayes.cpp src/features/hog.cpp src/features/mb_lbp.cpp src/libs/LBP/LBP.cpp) 
-#target_link_libraries( dpp ${OpenCV_LIBS} )
-
-add_executable( bernoulli_pf src/test_bernoulli_particle_filter.cpp src/models/bernoulli_particle_filter.cpp src/DPP/dpp.cpp src/utils/utils.cpp src/likelihood/gaussian.cpp src/utils/image_generator.cpp src/features/haar.cpp src/features/local_binary_pattern.cpp src/likelihood/logistic_regression.cpp src/likelihood/hmc.cpp src/likelihood/incremental_gaussiannaivebayes.cpp src/likelihood/multivariate_gaussian.cpp src/likelihood/multinomial.cpp  src/libs/LBP/LBP.cpp src/detector/cuda_hog_detector.cpp) 
-target_link_libraries( bernoulli_pf ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CUDA_cublas_LIBRARY})
+add_executable( bernoulli_pf src/test_bernoulli_particle_filter.cpp src/models/bernoulli_particle_filter.cpp src/DPP/dpp.cpp src/utils/utils.cpp src/likelihood/gaussian.cpp src/utils/image_generator.cpp src/features/haar.cpp src/features/local_binary_pattern.cpp src/likelihood/logistic_regression.cpp src/likelihood/hmc.cpp src/likelihood/incremental_gaussiannaivebayes.cpp src/likelihood/multivariate_gaussian.cpp src/likelihood/multinomial.cpp  src/libs/LBP/LBP.cpp src/detector/cpu_hog_detector.cpp) 
+target_link_libraries( bernoulli_pf ${OpenCV_LIBS})

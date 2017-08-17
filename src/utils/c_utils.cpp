@@ -9,16 +9,128 @@ C_utils::C_utils(){
   initialized=true;
 }
 
-void C_utils::writeToCSVfile(string name, MatrixXd matrix){
-    ofstream file(name.c_str());
-    if (file.is_open()){
-        file << matrix.format(CSVFormat) << '\n';
-        //file << "m" << '\n' <<  colm(matrix) << '\n';
+double C_utils::unif(double min, double max){
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<> dis(min, max);
+  return dis(gen);
+}
+
+VectorXd C_utils::random_generator(int dimension){
+  unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+  mt19937 generator;
+  generator.seed(seed1);
+  normal_distribution<double> dnormal(0.0,1.0);
+  VectorXd random_vector(dimension);
+
+  for (int i = 0; i < dimension; ++i){
+    random_vector(i) = dnormal(generator);
+  }
+  return random_vector;
+}
+
+double C_utils::random_uniform(){
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<> dis(0, 1);
+  return dis(gen);
+}
+
+VectorXd C_utils::random_binomial(int n, VectorXd prob, int dim){
+  unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+  mt19937 generator;
+  generator.seed(seed1);
+  VectorXd random_vector(dim);
+
+  for (int i = 0; i < dim; ++i){
+    binomial_distribution<int> dbinomial(n,prob(i));
+    random_vector(i) = dbinomial(generator);
+  }
+  return random_vector;
+}
+
+void C_utils::writeToCSVfile(string name, MatrixXd matrix, bool append){
+    if (append)
+    {
+        ofstream file(name.c_str(), fstream::app);
+        if (file.is_open()){
+          file << matrix.format(CSVFormat) << '\n';
+          //file << "m" << '\n' <<  colm(matrix) << '\n';
+        }
+    }
+    else{
+        ofstream file(name.c_str()); 
+        if (file.is_open()){
+          file << matrix.format(CSVFormat) << '\n';
+          //file << "m" << '\n' <<  colm(matrix) << '\n';
+        }
     }
 }
 
-float C_utils::calculateAccuracyPercent(VectorXd labels,VectorXd predicted){
-    return 100 * (float) labels.cwiseEqual(predicted).cast<double>().sum() / labels.size();
+void C_utils::calculateAccuracyPercent(VectorXd labels,VectorXd predicted){
+    cout << "Accuracy Score:" << endl;
+    cout << 100 * (float) labels.cwiseEqual(predicted).cast<double>().sum() / labels.size() << endl;
+}
+
+void C_utils::printProgBar( int value, int max ) {
+  int percent = (value / (float) max) * (float) 100;
+  string bar;
+
+  for(int i = 0; i < 50; i++){
+    if( i < (percent/2)){
+      bar.replace(i,1,"=");
+    }else if( i == (percent/2)){
+      bar.replace(i,1,">");
+    }else{
+      bar.replace(i,1," ");
+    }
+  }
+
+  cout<< "\r" "[" << bar << "] ";
+  cout.width( 3 );
+  cout<< percent << "%     " << std::flush;
+}
+
+void C_utils::dataPermutation(MatrixXd& X_train,VectorXd& Y_train){
+  VectorXi indices = VectorXi::LinSpaced(X_train.rows(), 0, X_train.rows());
+  std::random_shuffle(indices.data(), indices.data() + X_train.rows());
+  X_train.noalias() = indices.asPermutation() * X_train;  
+  Y_train.noalias() = indices.asPermutation() * Y_train;
+}
+
+/*void C_utils::dataNormalization(MatrixXd& data){
+  RowVectorXd mean = data.colwise().mean();
+  RowVectorXd var = (data.rowwise() - mean).array().square().colwise().mean();
+  data = (data.rowwise() - mean).array().rowwise() / var.array();
+}*/
+
+void C_utils::dataNormalization(MatrixXd& data , RowVectorXd& max, RowVectorXd& min){
+  max = data.colwise().maxCoeff();
+  min =  data.colwise().minCoeff();
+  data = (data.rowwise() - min).array().rowwise() / (max-min).array();
+}
+
+void C_utils::dataStandardization(MatrixXd& data,RowVectorXd& mean, RowVectorXd& std){
+  mean = data.colwise().mean();
+  std = ((data.rowwise() - mean).array().square().colwise().sum() / (data.rows())).sqrt();
+  if( (std.array() > 0 ).all())
+    data = (data.rowwise() - mean).array().rowwise() / std.array();
+}
+
+void C_utils::testNormalization(MatrixXd& data , RowVectorXd max, RowVectorXd min){
+  data = (data.rowwise() - min).array().rowwise() / (max-min).array();
+}
+
+void C_utils::testStandardization(MatrixXd& data,RowVectorXd mean, RowVectorXd std){
+  if( (std.array() > 0 ).all())
+    data = (data.rowwise() - mean).array().rowwise() / std.array();
+}
+
+void C_utils::dataPartition(MatrixXd& data,VectorXd& labels, MatrixXd& X_train, MatrixXd& X_test, VectorXd& Y_train, VectorXd& Y_test, int partition){
+  X_train =  data.block(0,0 ,partition, data.cols());
+  X_test =  data.block(partition,0 ,data.rows()-partition, data.cols());
+  Y_train =  labels.head(partition);
+  Y_test =  labels.tail(labels.rows()-partition);
 }
 
 VectorXi C_utils::argMin(MatrixXd data, bool row){
@@ -101,6 +213,46 @@ VectorXd C_utils::vecMax(double value, VectorXd &vec){
     return vector_max;
 }
 
+void C_utils::read_Labels(const string& filename, VectorXi& labels) {
+    int rows = this->get_Rows(filename);
+    ifstream file(filename.c_str());
+    if(!file)
+        throw exception();
+    string line;
+    int row = 0;
+    labels.resize(rows);
+    while (getline(file, line)) {
+      if (row < rows){
+        this->printProgBar(row, rows);
+        int item=atoi(line.c_str());
+        labels(row)=item;
+        row++;
+      }
+    }
+    file.close();
+    cout << endl;
+}
+
+void C_utils::read_Labels(const string& filename, VectorXd& labels) {
+    int rows = this->get_Rows(filename);
+    ifstream file(filename.c_str());
+    if(!file)
+        throw exception();
+    string line;
+    int row = 0;
+    labels.resize(rows);
+    while (getline(file, line)) {
+      if (row < rows){
+        this->printProgBar(row, rows);
+        double item=atof(line.c_str());
+        labels(row)=item;
+        row++;
+      }
+    }
+    file.close();
+    cout << endl;
+}
+
 void C_utils::read_Labels(const string& filename, VectorXi& labels, int rows) {
     ifstream file(filename.c_str());
     if(!file)
@@ -110,12 +262,14 @@ void C_utils::read_Labels(const string& filename, VectorXi& labels, int rows) {
     labels.resize(rows);
     while (getline(file, line)) {
       if (row < rows){
+        this->printProgBar(row, rows);
         int item=atoi(line.c_str());
         labels(row)=item;
         row++;
       }
     }
     file.close();
+    cout << endl;
 }
 
 void C_utils::read_Labels(const string& filename, VectorXd& labels, int rows) {
@@ -127,12 +281,42 @@ void C_utils::read_Labels(const string& filename, VectorXd& labels, int rows) {
     labels.resize(rows);
     while (getline(file, line)) {
       if (row < rows){
+        this->printProgBar(row, rows);
         double item=atof(line.c_str());
         labels(row)=item;
         row++;
       }
     }
     file.close();
+    cout << endl;
+}
+
+void C_utils::read_Data(const string& filename, MatrixXd& data) {
+    int rows = this->get_Rows(filename);
+    int cols = this->get_Cols(filename, ',');
+    ifstream file(filename.c_str());
+    if(!file)
+        throw exception();
+    string line, cell;
+    int row = 0,col;
+    data.resize(rows, cols);
+    while (getline(file, line)) {
+      col=0;
+      stringstream csv_line(line);
+      if (row < rows){
+        this->printProgBar(row, rows);
+        while (getline(csv_line, cell, ',')){
+          if (col<cols){
+            double item=atof(cell.c_str());
+            data(row,col)=item;
+            col++;
+          }
+        }
+      row++;
+      }
+    }
+    file.close();
+    cout << endl;
 }
 
 void C_utils::read_Data(const string& filename, MatrixXd& data, int rows, int cols) {
@@ -146,6 +330,7 @@ void C_utils::read_Data(const string& filename, MatrixXd& data, int rows, int co
       col=0;
       stringstream csv_line(line);
       if (row < rows){
+        this->printProgBar(row, rows);
         while (getline(csv_line, cell, ',')){
           if (col<cols){
             double item=atof(cell.c_str());
@@ -157,6 +342,7 @@ void C_utils::read_Data(const string& filename, MatrixXd& data, int rows, int co
       }
     }
     file.close();
+    cout << endl;
 }
 
 void C_utils::classification_Report(VectorXi &test, VectorXi &predicted)

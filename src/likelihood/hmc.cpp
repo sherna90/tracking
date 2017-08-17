@@ -3,128 +3,44 @@
 
 
 Hamiltonian_MC::Hamiltonian_MC(){
-	this->init = false;
-	this->init_2 = false;
+	this->init_hmc = true;
 }
 
-
-Hamiltonian_MC::Hamiltonian_MC(MatrixXd &_X, VectorXd &_Y, double _lambda){
-	this->lambda=_lambda;
-	this->X_train = &_X;
- 	this->Y_train = &_Y;
-	this->dim = _X.cols();
-
-    this->logistic_regression = LogisticRegression(*X_train, *Y_train, _lambda); // Modify Data
-    this->init = true;
-    this->old_energy = 0.0;
-    this->old_gradient = VectorXd::Zero(dim);
-    this->new_gradient = VectorXd::Zero(dim);
-
-}
-
-VectorXd Hamiltonian_MC::gradient(VectorXd &W){
-	VectorXd grad;
-	if (this->init)
-	{	
-		this->logistic_regression.setWeights(W);
-		this->logistic_regression.preCompute();
-		grad = -this->logistic_regression.gradient(W);
-		return grad;
-	}
-	else{
-		return grad;
-	}
-}
-
-double Hamiltonian_MC::logPosterior(VectorXd &W){
-	double logPost = 0.0;
-
-	if (this->init){
-		this->logistic_regression.setWeights(W);
-		this->logistic_regression.preCompute();
-		logPost = -this->logistic_regression.logPosterior(W);
-		return logPost;
-	}
-	else{
-		return logPost;
-	}
-}
-
-void Hamiltonian_MC::run(int _iterations, double _step_size, int _num_step){
-	if (this->init){	
-
-		this->step_size = _step_size;
-		this->num_step = _num_step;
-		this->weights.resize(_iterations, this->dim);
-
-		VectorXd x = random_generator(this->dim);
-		
-		//Hamiltonian
-		double Eold = this->logPosterior(x);
-
-		VectorXd p = random_generator(this->dim);
-
-		double lambda = 1.0;
-		int n = 0;
-
-		while (n < _iterations){
-
-			VectorXd xold = x;
-			VectorXd pold = p;
-			double Hold = Eold + 0.5 * p.adjoint()*p;
-
-			if(random_uniform() < 0.5){
-				lambda = -1;
-			}
-			else{
-				lambda = 1;
-			}
-
-			double epsilon = lambda*this->step_size*(1.0+0.1*random_generator(1)(0));
-
-			p.noalias() = p - 0.5*epsilon*this->gradient(x);
-			x.noalias() = x + epsilon*p;
-
-			//Leap Frogs
-			for (int i = 0; i < this->num_step; ++i){
-				p.noalias() = p - epsilon*this->gradient(x);
-				x.noalias() = x + epsilon*p;
-			}
-
-			p.noalias() = p - 0.5*epsilon*this->gradient(x);
-
-			//Hamiltonian
-			double Enew = this->logPosterior(x);
-			p.noalias() = -p;
-
-			double Hnew = Enew + 0.5 * p.adjoint()*p;
-
-			//Metropolis Hasting Correction
-			double a = exp(Hold - Hnew);
-
-			if (a > random_uniform()){
-				Eold = Enew;
-			}
-			else{
-				x = xold;
-				p = pold;
-			}
-			if (n>=0){
-				this->weights.row(n) = x;
-			}
-
-			p = random_generator(this->dim);
-
-			n = n+1;
-
-		}
-
-		int partition = (int)_iterations*0.5; 
+void Hamiltonian_MC::warmup(){
+	if (this->init_hmc){
+		cout << "WarMup" << endl;
+		this->iterations = this->warmup_iterations;
+		this->run(true);
+		this->sampled = 0.0;
+	    this->accepted = 0.0;
+	    VectorXd mu = VectorXd::Zero(dim);
+	    MatrixXd temp_weights = this->weights.block(int(this->weights.rows()/10),0,this->weights.rows()- int(this->weights.rows()/10),this->weights.cols());
+	    MVNGaussian MVG= MVNGaussian(temp_weights);
+		MatrixXd cov = MVG.getCov();
+		//MatrixXd centered = temp_weights.rowwise() - temp_weights.colwise().mean();
+		//MatrixXd cov = (centered.adjoint() * centered) / double(temp_weights.rows() - 1);
+		this->multivariate_gaussian = MVNGaussian(mu, cov);
+		this->inv_cov = cov.inverse();
+		int partition = (int)this->warmup_iterations*0.5;
 		this->mean_weights = (this->weights.block(partition,0 ,this->weights.rows()-partition, this->dim)).colwise().mean();
+		//this->mean_weights = this->weights.colwise().mean();
 	}
-	else{
-		cout << "Error: No initialized function"<< endl;
-	}
+}
+
+void Hamiltonian_MC::acceptace_rate(){
+	cout << "Acceptace Rate: "<< 100 * (float) this->accepted/this->sampled <<" %" <<endl;
+}
+
+
+VectorXd Hamiltonian_MC::initial_momentum(){
+	return this->multivariate_gaussian.sample();
+}
+
+double Hamiltonian_MC::unif(double step_size){
+	random_device rd;
+    mt19937 gen(rd());
+    uniform_real_distribution<> dis(0.9, 1.1);
+    return step_size * dis(gen);
 }
 
 VectorXd Hamiltonian_MC::random_generator(int dimension){
@@ -147,96 +63,67 @@ double Hamiltonian_MC::random_uniform(){
     return dis(gen);
 }
 
-
-VectorXd Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
-	VectorXd predict;
-	//cout << weights << endl;
-	if (this->init)
-	{	
-		if (samples == 0){
-			this->logistic_regression.setWeights(this->mean_weights);
-			predict = this->logistic_regression.predict(X_test, prob);
-			return predict;
-		}
-		else{
-			MatrixXd temp_predict(samples, X_test.rows());
-			MatrixXd temp_weights(samples, X_test.cols());
-			for (int i = 0; i < samples; ++i){
-				//int randNum = rand()%(weights.rows()-1 + 1) + 0;
-				VectorXd W = this->weights.row(this->weights.rows()-1-i);
-				temp_weights.row(i) = W;
-				//VectorXd W = this->weights.row(randNum);
-				this->logistic_regression.setWeights(W);
-				temp_predict.row(i) = this->logistic_regression.predict(X_test, prob);
-			}
-			
-			if (prob){
-				//MatrixXd covariate = this->logistic_regression.computeHessian(*this->X_train, *this->Y_train, predict);
-				this->mean_weights = temp_weights.colwise().mean();
-				MVNGaussian MVG= MVNGaussian(temp_weights);
-				MatrixXd covariate = MVG.getCov();
-				this->mean_weights.noalias() = cumGauss(this->mean_weights, X_test, covariate);
-				this->logistic_regression.setWeights(this->mean_weights);
-				predict = this->logistic_regression.predict(X_test, prob);
-			}
-			else{
-				predict = temp_predict.colwise().mean();
-				predict.noalias() = predict.unaryExpr([](double elem){
-    					return (elem > 0.5) ? 1.0 : 0.0;
-				});
-			}	
-			
-			return predict;
-		}
-		
+VectorXd Hamiltonian_MC::random_binomial(int n, VectorXd prob, int dim){
+	unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+  	mt19937 generator;
+  	generator.seed(seed1);
+	VectorXd random_vector(dim);
+	for (int i = 0; i < dim; ++i){
+		binomial_distribution<int> dbinomial(n,prob(i));
+		random_vector(i) = dbinomial(generator);
 	}
-	else{
-		cout << "Error: No initialized function"<< endl;
-		return predict;
-	}
+	return random_vector;
 }
 
+
 double Hamiltonian_MC::avsigmaGauss(double mean, double var){
-  	double erflambda = sqrt(M_PI)/4;
-  	double out = 0.5+0.5*erf(erflambda*mean/sqrt(1+2*pow(erflambda,2)*var));
-  	return out;
+  double erflambda = sqrt(M_PI)/4;
+  double out = 0.5+0.5*erf(erflambda*mean/sqrt(1+2*pow(erflambda,2)*var));
+  return out;
 }
 
 VectorXd Hamiltonian_MC::cumGauss(VectorXd &w, MatrixXd &phi, MatrixXd &Smat){
-  int N = w.rows();
-  VectorXd ptrain(N);
-  if(phi.cols() == N){
-    for (int i = 0; i < N; ++i){
-		double mean = (w*phi.row(i))(0);
-		double var = (phi.row(i) *Smat * phi.row(i).transpose())(0);
-		ptrain(i) = avsigmaGauss(mean, var);
-    }
-
-    return ptrain;  
-  }
-  else{
-    cout << "Error not matching Dimension !"<< endl;
-    return ptrain; 
-  }
+  	int M = phi.rows();
+  	VectorXd ptrain(M);
+  	//VectorXd weights = w.tail(w.rows()-1);
+  	//double bias = w(0);
+  	//#pragma omp parallel for schedule(static)
+	for (int i = 0; i < M; ++i){
+	  double mean = w.dot(phi.row(i));
+	  double var = (phi.row(i) * Smat * phi.row(i).transpose())(0);
+	  ptrain(i) = avsigmaGauss(mean, var);
+	}
+    return ptrain;
 }
 
 MatrixXd Hamiltonian_MC::get_weights(){
-	MatrixXd predict;
+	MatrixXd weights;
 
-	if (this->init){	
+	if (this->init_hmc){	
 		return this->weights;	
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
-		return predict;
+		return weights;
 	}
 }
 
 void Hamiltonian_MC::set_weights(VectorXd &_weights){
-	if (this->init){	
+	if (this->init_hmc){	
 		this->mean_weights = _weights;	
 	}
 	else{
 		cout << "Error: No initialized function"<< endl;
 	}
 }
+
+void Hamiltonian_MC::set_weightsMatrix(MatrixXd &_weights){
+	if (this->init_hmc){	
+		this->weights = _weights;	
+	}
+	else{
+		cout << "Error: No initialized function"<< endl;
+	}
+}
+
+

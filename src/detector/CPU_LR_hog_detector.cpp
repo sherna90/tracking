@@ -1,14 +1,11 @@
-#include "cuda_hog_detector.hpp"
-CUDA_HOGDetector::CUDA_HOGDetector(){
-	
-}
+#include "CPU_LR_hog_detector.hpp"
 
-CUDA_HOGDetector::CUDA_HOGDetector(double group_threshold, double hit_threshold){
+void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold){
 	args.make_gray = true;
     args.resize_src = false;
     args.width = 64;
     args.height = 128;
-    args.scale = 2.0;
+    args.scale = 2;
     args.nlevels = 13;
     args.gr_threshold = group_threshold;
     args.hit_threshold = hit_threshold;
@@ -23,25 +20,30 @@ CUDA_HOGDetector::CUDA_HOGDetector(double group_threshold, double hit_threshold)
     args.nbins = 9;
     args.overlap_threshold=0.5;
     args.p_accept = 0.99;
-    args.lambda = 10;
+    args.lambda = 100;
     args.epsilon= 1e-2;
     args.tolerance = 1e-1;
-    args.n_iterations = 2e4;
+    args.n_iterations = 1e4;
     args.padding = 16;
     //this->n_descriptors = (pow((int)(args.block_width/args.cell_width),2)* args.nbins) * (int)((args.width/args.block_width)-1) * (int)((args.height/args.block_width)-1);
     this->n_descriptors = 3780;
+   	int num_rows=frame.rows - this->args.height + this->args.win_stride_height;
+	int num_cols=frame.cols - this->args.width + this->args.win_stride_width;
+	this->n_data = num_cols*num_rows;
 	Size win_stride(args.win_stride_width, args.win_stride_height);
     Size win_size(args.width, args.height);
     Size block_size(args.block_width, args.block_width);
     Size block_stride(args.block_stride_width, args.block_stride_height);
     Size cell_size(args.cell_width, args.cell_width);
-    gpu_hog = cuda::HOG::create(win_size, block_size, block_stride, cell_size, args.nbins);
-    gpu_hog->setWinStride(win_stride);
+    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    this->generator.seed(seed1);
+    this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
+	this->labels.resize(0);
 }
 
-CUDA_HOGDetector::CUDA_HOGDetector(double group_threshold, double hit_threshold,Rect reference_roi){
+void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
 	args.make_gray = true;
-    args.resize_src = true;
+    args.resize_src = false;
     args.width = 64;
     args.height = 128;
     cout << "Width: hog=" << args.width << ", roi=" << reference_roi.width << endl;
@@ -61,27 +63,33 @@ CUDA_HOGDetector::CUDA_HOGDetector(double group_threshold, double hit_threshold,
     args.nbins = 9;
     args.overlap_threshold=0.5;
     args.p_accept = 0.99;
-    args.lambda = 10;
+    args.lambda = 100;
     args.epsilon= 1e-2;
     args.tolerance = 1e-1;
     args.n_iterations = 1e4;
-	args.padding = 16;
+    args.padding = 16;
+    //this->n_descriptors = (pow((int)(args.block_width/args.cell_width),2)* args.nbins) * (int)((args.width/args.block_width)-1) * (int)((args.height/args.block_width)-1);
+    this->n_descriptors = 3780;
+   	int num_rows=frame.rows - this->args.height + this->args.win_stride_height;
+	int num_cols=frame.cols - this->args.width + this->args.win_stride_width;
+	this->n_data = num_cols*num_rows;
 	Size win_stride(args.win_stride_width, args.win_stride_height);
     Size win_size(args.width, args.height);
     Size block_size(args.block_width, args.block_width);
     Size block_stride(args.block_stride_width, args.block_stride_height);
     Size cell_size(args.cell_width, args.cell_width);
-    gpu_hog = cuda::HOG::create(win_size, block_size, block_stride, cell_size, args.nbins);
-    gpu_hog->setWinStride(win_stride);
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
     this->generator.seed(seed1);
+    this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
+	this->labels.resize(0);
 }
-vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
+
+vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame)
 {
 	Mat current_frame;
+	frame.copyTo(current_frame);
 	vector<Rect> raw_detections;
 	vector<double> detection_weights;
-	frame.copyTo(current_frame);
 	copyMakeBorder( current_frame, current_frame, args.padding, args.padding,args.padding,args.padding,BORDER_REPLICATE);
 	this->detections.clear();
 	this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
@@ -96,7 +104,6 @@ vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 		cvtColor(resized_frame, resized_frame, COLOR_GRAY2BGR);
 		MatrixXd features=this->getFeatureValues(current_frame);
 		VectorXd predict_prob = this->logistic_regression.predict(features, true);
-		//VectorXd predict_prob = this->hmc.predict(features, true);
 		cout << "frame : " << current_frame.rows << "," << current_frame.cols << endl;
 		cout << "num windows : " << num_rows << "," << num_cols << endl;
 		cout << "features : " << features.rows() << "," << features.cols() << ", prob : " << predict_prob.rows() << endl;
@@ -113,6 +120,7 @@ vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 				Rect current_window(Point(x1,y1),Point(x2,y2));
 				if (predict_prob(idx)>args.hit_threshold) {
 					Rect current_resized_window(col,row,this->args.width,this->args.height);
+					cout << current_resized_window << endl;
 					stringstream ss;
         			ss << predict_prob(idx);
         			this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
@@ -140,18 +148,18 @@ vector<Rect> CUDA_HOGDetector::detect(Mat &frame)
 		DPP dpp = DPP();
 		VectorXd qualityTerm;
 		this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 1.0, 0.5);
-	}
+ 	}
 	else {
 		for (int i = 0; i < raw_detections.size(); ++i)
 		{
 			this->detections.push_back(raw_detections[i]);	
 		}
 	} 
-	cout << "detections: " << this->detections.size() << endl;
+	cout << "detections: " << detections.size() << endl;
 	return this->detections;
 }
 
-void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
+void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 {
 	Mat current_frame;
 	frame.copyTo(current_frame);
@@ -161,8 +169,7 @@ void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 		reference_roi+=Point((int)reference_roi.width*args.scale,(int)reference_roi.height*args.scale);
 		reference_roi+=Size((int)reference_roi.width*args.scale,(int)reference_roi.height*args.scale);
 	}
-	MatrixXd features=this->getFeatureValues(current_frame);
-	this->feature_values=MatrixXd::Zero(0,features.cols());
+	this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
 	this->labels.resize(0);
 	this->weights.resize(0);
 	int idx=0;
@@ -176,7 +183,8 @@ void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 			if(uni_rand>args.p_accept){ 
 				this->detections.push_back(current_window);
 				this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
-				this->feature_values.row(this->feature_values.rows() - 1)=features.row(idx);
+				Mat subImage = current_frame(current_window);
+				this->feature_values.row(this->feature_values.rows() - 1)= this->getFeatureValues(subImage).row(0);
 				this->labels.conservativeResize(this->labels.size() + 1 );
 				this->labels(this->labels.size() - 1) = (overlap > args.overlap_threshold) ? 1.0 : 0.0;
 				rectangle( current_frame, current_window, Scalar(255,255,255), 2, LINE_8  );
@@ -188,80 +196,15 @@ void CUDA_HOGDetector::train(Mat &frame,Rect reference_roi)
 	cout << "negative examples : " << (this->labels.array() <= 0).count() << endl;
 	rectangle( current_frame, reference_roi, Scalar(0,255,0), 2, LINE_AA );
 	imwrite("resized_image.png", current_frame);
-	this->logistic_regression = LogisticRegression(this->feature_values, this->labels, args.lambda,false,true,true, true);
-	//this->hmc = Hamiltonian_MC(this->feature_values, this->labels, args.lambda, 100, args.n_iterations, 0.01, 100 ,0.0, false);
+	this->logistic_regression.init(this->feature_values, this->labels, args.lambda,false,true,true);
 	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
 	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
-	//this->hmc.run();
 }
 
-void CUDA_HOGDetector::draw()
+void CPU_LR_HOGDetector::train()
 {
-	for (size_t i = 0; i < this->detections.size(); i++)
-    {
-        Rect r = this->detections[i];
-        r.x += cvRound(r.width*0.1);
-        r.width = cvRound(r.width*0.8);
-        r.y += cvRound(r.height*0.07);
-        r.height = cvRound(r.height*0.8);
-        rectangle(this->frame, r.tl(), r.br(), cv::Scalar(255,0,0), 3);
-    }
-    //cout << "detections size: " << this->detections.size() << endl;
-}
-
-MatrixXd CUDA_HOGDetector::getFeatureValues(Mat &frame)
-{
-	int num_rows=frame.rows - this->args.height + this->args.win_stride_height;
-	int num_cols=frame.cols - this->args.width + this->args.win_stride_width;
-	MatrixXd hogFeatures(num_rows*num_cols, this->gpu_hog->getDescriptorSize());
-	Mat subImage,hog_descriptors;
-	vector<float> features;
-	cuda::GpuMat gpu_img,hog_img;
-	gpu_img.upload(frame);
-	gpu_hog->compute(gpu_img,hog_img);
-	hog_img.download(hog_descriptors);
-	cv2eigen(hog_descriptors,hogFeatures);
-	return hogFeatures;
-}
-
-MatrixXd CUDA_HOGDetector::getFeatureValues()
-{
-	return this->feature_values;
-}
-
-VectorXd CUDA_HOGDetector::getDetectionWeights(){
-	return this->weights;
-}
-
-void CUDA_HOGDetector::generateFeatures(Mat &frame, double label)
-{	
-	MatrixXd hogFeatures = this->getFeatureValues(frame);
-	MatrixXd oldhogFeatures = this->feature_values;
-	this->feature_values.conservativeResize(this->feature_values.rows() + hogFeatures.rows(), NoChange);
-	this->feature_values << oldhogFeatures, hogFeatures;
-	VectorXd hogLabels = VectorXd::Ones(feature_values.rows())*label;
-	VectorXd oldhogLabels = this->labels;
-	this->labels.conservativeResize(this->labels.rows() + hogLabels.size());
-	this->labels << oldhogLabels, hogLabels;
-}
-
-void CUDA_HOGDetector::generateFeature(Mat &frame, double label)
-{
-	this->feature_values= this->getFeatureValues(frame);
-	this->labels = VectorXd::Ones(feature_values.rows())*label;
-}
-
-void CUDA_HOGDetector::dataClean(){
-	this->feature_values.resize(0,0);
-	this->labels.resize(0);
-}
-
-void CUDA_HOGDetector::train()
-{
-	this->logistic_regression = LogisticRegression(this->feature_values, this->labels, args.lambda, false,true,true, true);
-	//this->hmc = Hamiltonian_MC(this->feature_values, this->labels, args.lambda, 100, args.n_iterations, 0.01, 100 ,0.0, false);
+	this->logistic_regression.init(this->feature_values, this->labels, args.lambda, false,true,true);
 	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
-	//this->hmc.run();
 	VectorXd weights = this->logistic_regression.getWeights();
 	VectorXd bias(1);
 	bias << this->logistic_regression.getBias();
@@ -271,43 +214,28 @@ void CUDA_HOGDetector::train()
 	tools.writeToCSVfile("INRIA_Model_maxs.csv", this->logistic_regression.featureMax.transpose());
 	tools.writeToCSVfile("INRIA_Model_mins.csv", this->logistic_regression.featureMin.transpose());
 	tools.writeToCSVfile("INRIA_Model_bias.csv", bias);
-
-	/*VectorXd weights, featureMean, featureStd, featureMax, featureMin;
-	double bias;
-	this->hmc.getModel(weights, featureMean, featureStd, featureMax, featureMin, bias);
-	VectorXd v_bias(1);
-	v_bias << bias;
-	
-	tools.writeToCSVfile("INRIA_Model_weights.csv", weights);
-	tools.writeToCSVfile("INRIA_Model_means.csv", featureMean);
-	tools.writeToCSVfile("INRIA_Model_stds.csv", featureStd);
-	tools.writeToCSVfile("INRIA_Model_maxs.csv", featureMax);
-	tools.writeToCSVfile("INRIA_Model_mins.csv", featureMin);
-	tools.writeToCSVfile("INRIA_Model_bias.csv", v_bias);*/
 }
 
-VectorXd CUDA_HOGDetector::predict(MatrixXd data)
+VectorXd CPU_LR_HOGDetector::predict(MatrixXd data)
 {
 	return this->logistic_regression.predict(data, false);
-	//return this->hmc.predict(data, false);
 }
 
 
-void CUDA_HOGDetector::saveToCSV(string name, bool append){
-	C_utils tools;
-	tools.writeToCSVfile(name+"_values.csv", this->feature_values, append);
-	tools.writeToCSVfile(name+"_labels.csv", this->labels, append);
+MatrixXd CPU_LR_HOGDetector::getFeatureValues(Mat &current_frame)
+{
+	vector<float> temp_features;
+	Size win_stride(args.win_stride_width, args.win_stride_height);
+	this->hog.compute(current_frame, temp_features, win_stride);
+	vector<double> features(temp_features.begin(), temp_features.end());
+	double* ptr = &features[0];
+	int rows = (int)(features.size()/this->hog.getDescriptorSize());
+	Map<MatrixXd> hogFeatures(ptr, rows, this->hog.getDescriptorSize());
+	return hogFeatures;
 }
 
-void CUDA_HOGDetector::loadFeatures(MatrixXd features, VectorXd labels){
-	this->dataClean();
-	this->feature_values = features;
-	this->labels = labels;
-}
-
-void CUDA_HOGDetector::loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias){
-	//this->hmc.loadModel(weights, featureMean, featureStd, featureMax, featureMin, bias);
-	this->logistic_regression = LogisticRegression(false, true, true, true);
+void CPU_LR_HOGDetector::loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias){
+	this->logistic_regression.init(false, true, true);
 	this->logistic_regression.setWeights(weights);
 	this->logistic_regression.setBias(bias);
 	this->logistic_regression.featureMean = featureMean;

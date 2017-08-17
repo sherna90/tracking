@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <iomanip>  
+#include <cstdlib>
 #include <Eigen/Dense>
 #include <Eigen/Core>
 #include <opencv2/core.hpp>
@@ -13,6 +14,8 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <chrono>
+#include <random>
 
 using namespace std;
 using namespace Eigen;
@@ -30,16 +33,30 @@ class C_utils
 {
 public:
 	C_utils();
-    void writeToCSVfile(string name, MatrixXd matrix);
-    static float calculateAccuracyPercent(VectorXd labels,VectorXd predicted);
+	double unif(double min, double max);
+	VectorXd random_generator(int dimension);
+	double random_uniform();
+	VectorXd random_binomial(int n, VectorXd prob, int dim);
+    void writeToCSVfile(string name, MatrixXd matrix, bool append = false);
+    static void calculateAccuracyPercent(VectorXd labels,VectorXd predicted);
+    void printProgBar( int value, int max );
+    void dataPermutation(MatrixXd& X_train,VectorXd& Y_train);
+    void dataNormalization(MatrixXd& data,RowVectorXd& mean, RowVectorXd& std);
+    void dataStandardization(MatrixXd& data,RowVectorXd& max, RowVectorXd& min);
+    void testNormalization(MatrixXd& data,RowVectorXd mean, RowVectorXd std);
+    void testStandardization(MatrixXd& data,RowVectorXd max, RowVectorXd min);
+    void dataPartition(MatrixXd& data,VectorXd& labels, MatrixXd& X_train, MatrixXd& X_test, VectorXd& Y_train, VectorXd& Y_test, int partition);
     VectorXi argMin(MatrixXd data, bool row = true);
     VectorXi argMax(MatrixXd data, bool row = true);
     VectorXd matrixDot(MatrixXd &A, VectorXd &x);
     VectorXd sign(VectorXd &x);
     VectorXd vecMax(double value, VectorXd &vec);
-	void read_Labels(const string& filename,VectorXi& labels,int rows);
+    void read_Labels(const string& filename, VectorXi& labels);
+    void read_Labels(const string& filename, VectorXd& labels);
+	void read_Labels(const string& filename, VectorXi& labels,int rows);
 	void read_Labels(const string& filename, VectorXd& labels, int rows);
-	void read_Data(const string& filename,MatrixXd& data,int rows, int cols);
+	void read_Data(const string& filename, MatrixXd& data);
+	void read_Data(const string& filename, MatrixXd& data,int rows, int cols);
 	void print(VectorXi &test, VectorXi &predicted);
 	void classification_Report(VectorXi &test, VectorXd &predicted);
 	void classification_Report(VectorXd &test, VectorXi &predicted);

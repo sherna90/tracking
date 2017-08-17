@@ -46,11 +46,6 @@ BernoulliParticleFilter::BernoulliParticleFilter(int n_particles, double lambda,
 	this->theta_x.push_back(theta_x_scale);
 
 	this->existence_prob = INITIAL_EXISTENCE_PROB;
-
-	this->lambda = lambda;
-	this->mu = mu;
-	this->epsilon = epsilon;
-	this->step_slide=10;
 }
 
 bool BernoulliParticleFilter::is_initialized(){
@@ -58,7 +53,6 @@ bool BernoulliParticleFilter::is_initialized(){
 }
 
 void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect ground_truth){
-	this->step_slide=(int)(max(current_frame.rows,current_frame.cols)/30.);
 	vector<Rect> sample_boxes;
 	this->img_size = current_frame.size();
 
@@ -273,24 +267,22 @@ void BernoulliParticleFilter::predict(){
 void BernoulliParticleFilter::update(const Mat& image){
 	Mat grayImg;
 	cvtColor(image, grayImg, CV_RGB2GRAY);
-	this->preDetections.clear();
-	this->dppResults.clear();
 	int left = MAX(this->reference_roi.x, 1);
 	int top = MAX(this->reference_roi.y, 1);
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
 	int bottom = MIN(this->reference_roi.y + this->reference_roi.height, image.rows - 1);
 	Rect update_roi = Rect(left, top, right - left, bottom - top);
-	this->preDetections = detector.detect(grayImg);
+	this->dppResults = detector.detect(grayImg);
 	MatrixXd featureValues = detector.getFeatureValues();
 	VectorXd phi = detector.getDetectionWeights();
 	//cout << phi.rows() << "," << featureValues.rows() << endl;
-	VectorXd penalty_weights=VectorXd::Zero(this->preDetections.size());
-	for(unsigned int i = 0; i<this->preDetections.size();i++){
-		Rect intersection = update_roi & this->preDetections[i];
-		penalty_weights(i) = (double)intersection.area()/update_roi.area();
-	}
-   	VectorXd qualityTerm;
-   	this->dppResults = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
+	//VectorXd penalty_weights=VectorXd::Zero(this->preDetections.size());
+	//for(unsigned int i = 0; i<this->preDetections.size();i++){
+	//	Rect intersection = update_roi & this->preDetections[i];
+	//	penalty_weights(i) = (double)intersection.area()/update_roi.area();
+	//}
+   	//VectorXd qualityTerm;
+   	//this->dppResults = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
 	//cout << this->dppResults.size()  << endl;
 	if (this->dppResults.size() > 0)
 	{
@@ -327,13 +319,7 @@ void BernoulliParticleFilter::update(const Mat& image){
         	cout << psi.row(i).sum() << ",";
         }*/
         VectorXd tau = VectorXd::Zero(this->dppResults.size());
-        tau = psi.colwise().sum();
-        
-        //for (size_t i = 0; i < this->dppResults.size(); ++i)
-        //{
-        //    psi.col(i) = psi.col(i).array() / (tau(i) + CLUTTER_RATE);
-        //}
-
+        tau = psi.colwise().sum();     
         VectorXd eta = psi.colwise().sum();
 
         for (size_t i = 0; i < this->weights.size(); ++i)
@@ -371,12 +357,6 @@ void BernoulliParticleFilter::draw_particles(Mat& image, Scalar color){
     }
 }
 
-void BernoulliParticleFilter::draw_dpp(Mat& image, Scalar color){
-	for (size_t i = 0; i < this->dppResults.size(); ++i)
-   	{
-   		rectangle( image, this->dppResults.at(i), color, 2, LINE_AA );
-   	}
-}
 
 void BernoulliParticleFilter::resample(){
 	uniform_real_distribution<double> unif_rnd(0.0,1.0);

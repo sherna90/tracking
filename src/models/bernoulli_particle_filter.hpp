@@ -18,12 +18,8 @@
 
 #include "../likelihood/gaussian.hpp"
 #include "../likelihood/multivariate_gaussian.hpp"
-#include "../likelihood/hmc.hpp"
-#include "../likelihood/logistic_regression.hpp"
-#include "../features/local_binary_pattern.hpp"
-#include "../detector/cpu_hog_detector.hpp"
-#include "../DPP/dpp.hpp"
 #include "../utils/utils.hpp"
+#include "../detector/CPU_LR_hog_detector.cpp"
 
 using namespace cv;
 using namespace std;
@@ -54,7 +50,6 @@ public:
 	void predict();
 	void update(const Mat& image);
 	void draw_particles(Mat& image, Scalar color = Scalar(0, 255, 255));
-	void draw_dpp(Mat& image, Scalar color = Scalar(255,0,0));
 	void resample();
 	Rect estimate(const Mat& image, bool draw = false);
 
@@ -69,15 +64,10 @@ private:
 	Size img_size;
 	mt19937 generator;
 	float ESS;
-	//vector<Rect> sampleBox;
+	//vector<Rect> sampleBox; 
+	vector<Rect> dppResults;
 	double existence_prob, new_existence_prob;
-	double lambda, mu, epsilon;
-	int step_slide;
-	DPP dpp;
-	LogisticRegression logistic_regression;
 	CPU_HOGDetector detector;
-	VectorXd reference_hist;
-	vector<Rect> dppResults, preDetections;
 };
 
 #endif

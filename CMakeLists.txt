@@ -22,5 +22,5 @@ include_directories( "/usr/include/eigen3/" )
 #include_directories( "/usr/local/include/eigen3/" )
 
 
-add_executable( bernoulli_pf src/test_bernoulli_particle_filter.cpp src/models/bernoulli_particle_filter.cpp src/DPP/dpp.cpp src/utils/utils.cpp src/utils/image_generator.cpp  src/likelihood/logistic_regression.hpp src/likelihood/CPU_logistic_regression.cpp  src/detector/hog_detector.hpp src/detector/cpu_hog_detector.cpp) 
+add_executable( bernoulli_pf src/test_bernoulli_particle_filter.cpp src/models/bernoulli_particle_filter.cpp src/utils/image_generator.cpp src/likelihood/logistic_regression.cpp src/likelihood/CPU_logistic_regression.cpp src/likelihood/hmc.cpp src/likelihood/CPU_hmc.cpp  src/likelihood/multivariate_gaussian.cpp src/detector/CPU_LR_hog_detector.cpp src/detector/CPU_HMC_hog_detector.cpp src/detector/hog_detector.cpp src/DPP/dpp.cpp) 
 target_link_libraries( bernoulli_pf ${OpenCV_LIBS})

@@ -67,7 +67,7 @@ private:
 	//vector<Rect> sampleBox; 
 	vector<Rect> dppResults;
 	double existence_prob, new_existence_prob;
-	CPU_HOGDetector detector;
+	CPU_LR_HOGDetector detector;
 };
 
 #endif

@@ -234,6 +234,7 @@ MatrixXd CPU_LR_HOGDetector::getFeatureValues(Mat &current_frame)
 	return hogFeatures;
 }
 
+
 void CPU_LR_HOGDetector::loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias){
 	this->logistic_regression.init(false, true, true);
 	this->logistic_regression.setWeights(weights);

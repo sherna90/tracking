@@ -28,8 +28,9 @@ CPU_HOGDetector::CPU_HOGDetector(double group_threshold, double hit_threshold){
     args.tolerance = 1e-1;
     args.n_iterations = 1e4;
     args.padding = 16;
+    this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
     //this->n_descriptors = (pow((int)(args.block_width/args.cell_width),2)* args.nbins) * (int)((args.width/args.block_width)-1) * (int)((args.height/args.block_width)-1);
-    this->n_descriptors = 3780;
+    //this->n_descriptors = 3780;
    	int num_rows=frame.rows - this->args.height + this->args.win_stride_height;
 	int num_cols=frame.cols - this->args.width + this->args.win_stride_width;
 	this->n_data = num_cols*num_rows;

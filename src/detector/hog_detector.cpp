@@ -44,6 +44,7 @@ MatrixXd HOGDetector::getFeatures()
 	return this->feature_values;
 }
 
+
 VectorXd HOGDetector::getDetectionWeights(){
 	return this->weights;
 }

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project( tracker )
 SET (CMAKE_CXX_COMPILER             "/usr/bin/g++")
-SET (CMAKE_CXX_FLAGS                "-Wall -g -O3 -std=c++11 -fopenmp")
+SET (CMAKE_CXX_FLAGS                "-Wall -g -O3 -w -std=c++11 -fopenmp")
 SET (CMAKE_CXX_FLAGS_DEBUG          "-g")
 SET (CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
 SET (CMAKE_CXX_FLAGS_RELEASE        "-O4 -DNDEBUG")
@@ -22,5 +22,5 @@ include_directories( "/usr/include/eigen3/" )
 #include_directories( "/usr/local/include/eigen3/" )
 
 
-add_executable( bernoulli_pf src/test_bernoulli_particle_filter.cpp src/models/bernoulli_particle_filter.cpp src/utils/image_generator.cpp src/likelihood/logistic_regression.cpp src/likelihood/CPU_logistic_regression.cpp src/likelihood/hmc.cpp src/likelihood/CPU_hmc.cpp  src/likelihood/multivariate_gaussian.cpp src/detector/CPU_LR_hog_detector.cpp src/detector/CPU_HMC_hog_detector.cpp src/detector/hog_detector.cpp src/DPP/dpp.cpp) 
+add_executable( bernoulli_pf src/test_bernoulli_particle_filter.cpp src/models/bernoulli_particle_filter.cpp  src/utils/utils.cpp src/utils/c_utils.cpp src/utils/image_generator.cpp src/likelihood/logistic_regression.cpp src/likelihood/CPU_logistic_regression.cpp  src/likelihood/multivariate_gaussian.cpp  src/detector/hog_detector.cpp src/DPP/dpp.cpp) 
 target_link_libraries( bernoulli_pf ${OpenCV_LIBS})

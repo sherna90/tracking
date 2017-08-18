@@ -19,7 +19,7 @@
 #include "../likelihood/gaussian.hpp"
 #include "../likelihood/multivariate_gaussian.hpp"
 #include "../utils/utils.hpp"
-#include "../detector/CPU_LR_hog_detector.cpp"
+//#include "../detector/CPU_LR_hog_detector.cpp"
 
 using namespace cv;
 using namespace std;
@@ -67,7 +67,7 @@ private:
 	//vector<Rect> sampleBox; 
 	vector<Rect> dppResults;
 	double existence_prob, new_existence_prob;
-	CPU_LR_HOGDetector detector;
+	//CPU_LR_HOGDetector detector;
 };
 
 #endif

@@ -150,7 +150,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame)
 		this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 1.0, 0.5);
  	}
 	else {
-		for (int i = 0; i < raw_detections.size(); ++i)
+		for (unsigned int i = 0; i < raw_detections.size(); ++i)
 		{
 			this->detections.push_back(raw_detections[i]);	
 		}

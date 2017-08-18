@@ -131,10 +131,11 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 
 	Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-    this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD);
-    this->detector.train(grayImg, this->reference_roi);
+    //this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD);
+    //this->detector.train(grayImg, this->reference_roi);
     this->initialized = true;
     cout << "initialized!!!" << endl;
+	}
 }
 
 void BernoulliParticleFilter::reinitialize(){
@@ -272,9 +273,9 @@ void BernoulliParticleFilter::update(const Mat& image){
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
 	int bottom = MIN(this->reference_roi.y + this->reference_roi.height, image.rows - 1);
 	Rect update_roi = Rect(left, top, right - left, bottom - top);
-	this->dppResults = this->detector.detect(grayImg);
+	/*this->dppResults = this->detector.detect(grayImg);
 	//MatrixXd featureValues = this->detector.getFeatureValues();
-	VectorXd phi = this->detector.getDetectionWeights();
+	//VectorXd phi = this->detector.getDetectionWeights();
 	//cout << phi.rows() << "," << featureValues.rows() << endl;
 	//VectorXd penalty_weights=VectorXd::Zero(this->preDetections.size());
 	//for(unsigned int i = 0; i<this->preDetections.size();i++){
@@ -308,16 +309,7 @@ void BernoulliParticleFilter::update(const Mat& image){
             psi.row(i) = gaussian.log_likelihood(observations).array().exp();
         }
 
-        /*cout << "\nPSI" << endl;
-        for (int i = 0; i < this->n_particles; ++i)
-        {
-        	cout << psi.row(i).sum() << ",";
-        }
-        cout << endl << "\nNEWBORN_PARTICLES" << endl;
-        for (int i = this->n_particles; i < this->n_particles+NEWBORN_PARTICLES; ++i)
-        {
-        	cout << psi.row(i).sum() << ",";
-        }*/
+        
         VectorXd tau = VectorXd::Zero(this->dppResults.size());
         tau = psi.colwise().sum();     
         VectorXd eta = psi.colwise().sum();
@@ -329,19 +321,14 @@ void BernoulliParticleFilter::update(const Mat& image){
         }
 
         this->weights.swap(tmp_weights);
-    	
-        /************** update existence probability **************/
-        Scalar sum_weights = sum(this->weights);
+    	Scalar sum_weights = sum(this->weights);
         this->existence_prob =  (this->new_existence_prob * sum_weights[0]) / ( ( (LAMBDA_C * PDF_C) * (1 - this->new_existence_prob) ) + ( this->new_existence_prob + sum_weights[0]) );
-	    /****************** limit range ******************/
-		if(this->existence_prob > 0.999) this->existence_prob = 0.999;
+	    if(this->existence_prob > 0.999) this->existence_prob = 0.999;
 		if(this->existence_prob < 0.001) this->existence_prob = 0.001;
-		/*************************************************/
-
-        /**********************************************************/
         resample();
         tmp_weights.clear();
 	}
+	*/
 	//this->reference_hist=float(1-1./8.)*this->reference_hist.array()+float(1./8.)*this->featureValues.row(0).array();   
 }
 

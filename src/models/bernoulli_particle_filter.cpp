@@ -132,7 +132,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
     this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD);
-    //this->detector.train(grayImg, this->reference_roi);
+    this->detector.train(grayImg, this->reference_roi);
     this->initialized = true;
     cout << "initialized!!!" << endl;
 	}

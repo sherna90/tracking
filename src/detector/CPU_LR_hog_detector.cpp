@@ -11,8 +11,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold){
     args.hit_threshold = hit_threshold;
     args.hit_threshold_auto = false;
     args.win_width = args.width ;
-    args.win_stride_width = 16;
-    args.win_stride_height = 16;
+    args.win_stride_width = 1;
+    args.win_stride_height = 1;
     args.block_width = 16;
     args.block_stride_width = 8;
     args.block_stride_height = 8;
@@ -23,9 +23,9 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold){
     args.lambda = 100;
     args.epsilon= 1e-2;
     args.tolerance = 1e-1;
-    args.n_iterations = 1e4;
+    args.n_iterations = 1e3;
     args.padding = 16;
-    this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
+    //this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
     //this->n_descriptors = 3780;
    	int num_rows=frame.rows - this->args.height + this->args.win_stride_height;
 	int num_cols=frame.cols - this->args.width + this->args.win_stride_width;
@@ -36,6 +36,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold){
     Size block_stride(args.block_stride_width, args.block_stride_height);
     Size cell_size(args.cell_width, args.cell_width);
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+    this->hog = HOGDescriptor(win_size, block_size, block_stride, cell_size, args.nbins);
+    this->n_descriptors = this->hog.getDescriptorSize();
     this->generator.seed(seed1);
     this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
 	this->labels.resize(0);
@@ -120,43 +122,44 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame)
 
 void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 {
-	int num_rows=(current_frame.rows- this->args.height + this->args.win_stride_height)/this->args.win_stride_height;
-	int num_cols=(current_frame.cols- this->args.width + this->args.win_stride_width)/this->args.win_stride_width;
-	if (num_rows*num_cols<=0) break;
-	Mat resized_frame;
-	current_frame.copyTo(resized_frame);
-	cvtColor(resized_frame, resized_frame, COLOR_GRAY2BGR);
+	Mat current_frame;
+	frame.copyTo(current_frame);
+	int num_rows=(frame.rows- this->args.height + this->args.win_stride_height)/this->args.win_stride_height;
+	int num_cols=(frame.cols- this->args.width + this->args.win_stride_width)/this->args.win_stride_width;
+	//if (num_rows*num_cols<=0) break;
 	MatrixXd features=this->getFeatureValues(current_frame);
+	int idx=0;
+	this->detections.clear();
+	this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
+	this->labels.resize(0);
+	uniform_real_distribution<double> unif(0.0,1.0);
 	for(int i=0;i<num_rows;i++){
 		for(int j=0;j<num_cols;j++){
 			int row=i*this->args.win_stride_height;
 			int col=j*this->args.win_stride_width;
-			int x1 = (k>0) ? int(scaleMult  * col)  : col-this->args.padding;
-        	int y1 = (k>0) ? int(scaleMult  * row)  : row-this->args.padding;
-        	int x2 = (k>0) ? int(x1 + scaleMult*(this->args.width))-2*this->args.padding : int(x1 + this->args.width);
-        	int y2 = (k>0) ? int(y1 + scaleMult*(this->args.height))-2*this->args.padding : int(y1 + this->args.height);
-			Rect current_window(Point(x1,y1),Point(x2,y2));
-			if (predict_prob(idx)>args.hit_threshold) {
-				Rect current_resized_window(col,row,this->args.width,this->args.height);
-				cout << current_resized_window << endl;
-				stringstream ss;
-    			ss << predict_prob(idx);
-    			this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
+			Rect current_window(col,row,this->args.width,this->args.height);
+			Rect intersection = reference_roi & current_window;
+			double overlap=(double)intersection.area()/(double)reference_roi.area();
+			double uni_rand = (overlap > args.overlap_threshold) ? 1.0 : unif(this->generator);
+			if(uni_rand>args.p_accept){ 
+				this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
 				this->feature_values.row(this->feature_values.rows() - 1)=features.row(idx);
-				this->weights.conservativeResize(this->weights.size() + 1 );
-				this->weights(this->weights.size() - 1) = predict_prob(idx);
-				this->penalty_weights.conservativeResize(this->penalty_weights.size() + 1 );
-				this->penalty_weights(this->penalty_weights.size() - 1) = predict_prob(idx);
-    			string disp = ss.str().substr(0,4);
-    			putText(resized_frame, disp, Point(col+5, row+10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 2);
-				rectangle( resized_frame, current_resized_window, Scalar(0,0,255), 2, LINE_8  );
-				raw_detections.push_back(current_window);
-				detection_weights.push_back(predict_prob(idx));
+				this->labels.conservativeResize(this->labels.size() + 1 );
+				this->labels(this->labels.size() - 1) = (overlap > args.overlap_threshold) ? 1.0 : 0.0;
 			}
 			idx++;
 		}
 	}
-	this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
+	cout << features.rows() << ","<< features.cols() << "," << num_rows << "," << num_cols << endl;
+	cout << "positive examples : " << (this->labels.array() > 0).count() << endl;
+	cout << "negative examples : " << (this->labels.array() <= 0).count() << endl;
+	cvtColor(current_frame, current_frame, COLOR_GRAY2BGR);
+	rectangle( current_frame, reference_roi, Scalar(0,255,0), 2, LINE_AA );
+	imwrite("resized_image.png", current_frame);
+	this->logistic_regression.init(this->feature_values, this->labels, args.lambda,false,true,true);
+	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
+	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
+	/*this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
 	this->labels.resize(0);
 	this->weights.resize(0);
 	int idx=0;
@@ -185,7 +188,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	imwrite("resized_image.png", current_frame);
 	this->logistic_regression.init(this->feature_values, this->labels, args.lambda,false,true,true);
 	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
-	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
+	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);*/
 }
 
 void CPU_LR_HOGDetector::train()

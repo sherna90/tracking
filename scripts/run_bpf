@@ -1,1 +1,1 @@
-./bernoulli_pf -img ../../../data/vot2014/surfing/00000001.jpg -gt ../../../data/vot2014/surfing/groundtruth.txt -npart 100 -lambda 1.0 -mu 0.0 -epsilon 0.7
+./bernoulli_pf -img $1/$2/00000001.jpg -gt $1/$2/groundtruth.txt -npart 100 -lambda 1.0 -mu 0.0 -epsilon 0.7

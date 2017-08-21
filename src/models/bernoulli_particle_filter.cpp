@@ -131,7 +131,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 
 	Mat grayImg;
     cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-    this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD);
+    this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD, this->reference_roi);
     this->detector.train(grayImg, this->reference_roi);
     this->initialized = true;
     cout << "initialized!!!" << endl;
@@ -273,8 +273,8 @@ void BernoulliParticleFilter::update(const Mat& image){
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
 	int bottom = MIN(this->reference_roi.y + this->reference_roi.height, image.rows - 1);
 	Rect update_roi = Rect(left, top, right - left, bottom - top);
-	/*this->dppResults = this->detector.detect(grayImg);
-	//MatrixXd featureValues = this->detector.getFeatureValues();
+	this->dppResults = this->detector.detect(grayImg);
+	/*//MatrixXd featureValues = this->detector.getFeatureValues();
 	//VectorXd phi = this->detector.getDetectionWeights();
 	//cout << phi.rows() << "," << featureValues.rows() << endl;
 	//VectorXd penalty_weights=VectorXd::Zero(this->preDetections.size());

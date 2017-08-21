@@ -7,7 +7,7 @@
 class CPU_LR_HOGDetector : public HOGDetector
 {
 public:
-	void init(double group_threshold, double hit_threshold);
+	void init(double group_threshold, double hit_threshold,Rect reference_roi);
 	vector<Rect> detect(Mat &frame);
 	void train(Mat &frame,Rect reference_roi);
 	void train();
@@ -17,6 +17,7 @@ public:
 protected:
 	HOGDescriptor hog;
 	CPU_LogisticRegression logistic_regression;
+	int interpolation;
 };
 
 #endif

@@ -1,18 +1,20 @@
 #include "CPU_LR_hog_detector.hpp"
 
-void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold){
+void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
 	args.make_gray = true;
     args.resize_src = false;
-    args.width = 32;
-    args.height = 32;
+    args.width = reference_roi.width;
+    args.height = reference_roi.height;
+    args.hog_width = 32;
+    args.hog_height = 32;
     args.scale = 2;
-    args.nlevels = 13;
+    args.nlevels = 1;
     args.gr_threshold = group_threshold;
     args.hit_threshold = hit_threshold;
     args.hit_threshold_auto = false;
     args.win_width = args.width ;
-    args.win_stride_width = 1;
-    args.win_stride_height = 1;
+    args.win_stride_width = 5;
+    args.win_stride_height = 5;
     args.block_width = 16;
     args.block_stride_width = 8;
     args.block_stride_height = 8;
@@ -31,7 +33,7 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold){
 	int num_cols=frame.cols - this->args.width + this->args.win_stride_width;
 	this->n_data = num_cols*num_rows;
 	Size win_stride(args.win_stride_width, args.win_stride_height);
-    Size win_size(args.width, args.height);
+    Size win_size(args.hog_width, args.hog_height);
     Size block_size(args.block_width, args.block_width);
     Size block_stride(args.block_stride_width, args.block_stride_height);
     Size cell_size(args.cell_width, args.cell_width);
@@ -41,6 +43,12 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold){
     this->generator.seed(seed1);
     this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
 	this->labels.resize(0);
+	if(args.width > args.height){
+        interpolation = INTER_LINEAR;
+    }
+    else{
+    	interpolation = INTER_AREA;
+    }
 }
 
 
@@ -63,40 +71,41 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame)
 		Mat resized_frame;
 		current_frame.copyTo(resized_frame);
 		cvtColor(resized_frame, resized_frame, COLOR_GRAY2BGR);
-		MatrixXd features=this->getFeatureValues(current_frame);
-		VectorXd predict_prob = this->logistic_regression.predict(features, true);
 		cout << "frame : " << current_frame.rows << "," << current_frame.cols << endl;
 		cout << "num windows : " << num_rows << "," << num_cols << endl;
-		cout << "features : " << features.rows() << "," << features.cols() << ", prob : " << predict_prob.rows() << endl;
-		int idx=0;
+		cout << "HOG size : " << this->n_descriptors << endl;
 		double scaleMult=pow(args.scale,k);
 		for(int i=0;i<num_rows;i++){
 			for(int j=0;j<num_cols;j++){
 				int row=i*this->args.win_stride_height;
 				int col=j*this->args.win_stride_width;
-				int x1 = (k>0) ? int(scaleMult  * col)  : col-this->args.padding;
-            	int y1 = (k>0) ? int(scaleMult  * row)  : row-this->args.padding;
-            	int x2 = (k>0) ? int(x1 + scaleMult*(this->args.width))-2*this->args.padding : int(x1 + this->args.width);
-            	int y2 = (k>0) ? int(y1 + scaleMult*(this->args.height))-2*this->args.padding : int(y1 + this->args.height);
-				Rect current_window(Point(x1,y1),Point(x2,y2));
-				if (predict_prob(idx)>args.hit_threshold) {
-					Rect current_resized_window(col,row,this->args.width,this->args.height);
-					cout << current_resized_window << endl;
+				Rect current_window(col,row, this->args.width,this->args.height);
+				Mat subImage = current_frame(current_window);
+				resize(subImage,subImage,Size(args.hog_width, args.hog_height),0,0,interpolation); 
+				vector<float> temp_features;
+				this->hog.compute(subImage,temp_features);
+				vector<double> features(temp_features.begin(), temp_features.end());
+				double* ptr = &features[0];
+				int rows = (int)(features.size()/this->n_descriptors);
+				Map<VectorXd> hogFeatures(ptr,this->n_descriptors);
+				MatrixXd temp_features_matrix=MatrixXd::Zero(1,this->n_descriptors);
+				temp_features_matrix.row(0)=hogFeatures.normalized();
+				VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
+				if (predict_prob(0)>args.hit_threshold) {
 					stringstream ss;
-        			ss << predict_prob(idx);
+        			ss << predict_prob(0);
         			this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
-					this->feature_values.row(this->feature_values.rows() - 1)=features.row(idx);
+					this->feature_values.row(this->feature_values.rows() - 1)=temp_features_matrix.row(0);
 					this->weights.conservativeResize(this->weights.size() + 1 );
-					this->weights(this->weights.size() - 1) = predict_prob(idx);
+					this->weights(this->weights.size() - 1) = predict_prob(0);
 					this->penalty_weights.conservativeResize(this->penalty_weights.size() + 1 );
-					this->penalty_weights(this->penalty_weights.size() - 1) = predict_prob(idx);
+					this->penalty_weights(this->penalty_weights.size() - 1) = predict_prob(0);
         			string disp = ss.str().substr(0,4);
         			putText(resized_frame, disp, Point(col+5, row+10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 2);
-					rectangle( resized_frame, current_resized_window, Scalar(0,0,255), 2, LINE_8  );
+					rectangle( resized_frame, current_window, Scalar(0,0,255), 2, LINE_8  );
 					raw_detections.push_back(current_window);
-					detection_weights.push_back(predict_prob(idx));
+					detection_weights.push_back(predict_prob(0));
 				}
-				idx++;
 			}	
 		}
 		cout << "-----------------------" << endl;
@@ -127,7 +136,6 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	int num_rows=(frame.rows- this->args.height + this->args.win_stride_height)/this->args.win_stride_height;
 	int num_cols=(frame.cols- this->args.width + this->args.win_stride_width)/this->args.win_stride_width;
 	//if (num_rows*num_cols<=0) break;
-	MatrixXd features=this->getFeatureValues(current_frame);
 	int idx=0;
 	this->detections.clear();
 	this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
@@ -141,16 +149,22 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 			Rect intersection = reference_roi & current_window;
 			double overlap=(double)intersection.area()/(double)reference_roi.area();
 			double uni_rand = (overlap > args.overlap_threshold) ? 1.0 : unif(this->generator);
-			if(uni_rand>args.p_accept){ 
+			if(uni_rand>args.p_accept){
+				Mat subImage = current_frame(current_window);
+				resize(subImage,subImage,Size(args.hog_width, args.hog_height),0,0,interpolation); 
+				vector<float> temp_features;
+				this->hog.compute(subImage,temp_features);
+				vector<double> features(temp_features.begin(), temp_features.end());
+				double* ptr = &features[0];
+				Map<VectorXd> hogFeatures(ptr, this->hog.getDescriptorSize());
 				this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
-				this->feature_values.row(this->feature_values.rows() - 1)=features.row(idx);
+				this->feature_values.row(this->feature_values.rows() - 1)=hogFeatures.normalized();
 				this->labels.conservativeResize(this->labels.size() + 1 );
 				this->labels(this->labels.size() - 1) = (overlap > args.overlap_threshold) ? 1.0 : 0.0;
 			}
 			idx++;
 		}
 	}
-	cout << features.rows() << ","<< features.cols() << "," << num_rows << "," << num_cols << endl;
 	cout << "positive examples : " << (this->labels.array() > 0).count() << endl;
 	cout << "negative examples : " << (this->labels.array() <= 0).count() << endl;
 	cvtColor(current_frame, current_frame, COLOR_GRAY2BGR);

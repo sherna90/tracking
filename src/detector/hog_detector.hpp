@@ -20,6 +20,7 @@ struct Args {
 	bool make_gray = true;
     bool resize_src = true;
     int width, height;
+    int hog_width, hog_height;
     double scale;
     int nlevels;
     double gr_threshold;

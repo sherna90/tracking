@@ -13,8 +13,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.hit_threshold = hit_threshold;
     args.hit_threshold_auto = false;
     args.win_width = args.width ;
-    args.win_stride_width = 5;
-    args.win_stride_height = 5;
+    args.win_stride_width = 15;
+    args.win_stride_height = 15;
     args.block_width = 16;
     args.block_stride_width = 8;
     args.block_stride_height = 8;
@@ -22,10 +22,10 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.nbins = 9;
     args.overlap_threshold=0.5;
     args.p_accept = 0.99;
-    args.lambda = 100;
-    args.epsilon= 1e-2;
+    args.lambda = 1.0;
+    args.epsilon= 1e-1;
     args.tolerance = 1e-1;
-    args.n_iterations = 1e4;
+    args.n_iterations = 1e2;
     args.padding = 16;
     //this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
     //this->n_descriptors = 3780;
@@ -113,7 +113,72 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame)
 		//nms2(raw_detections, detection_weights, this->detections, args.gr_threshold, 10);
 		DPP dpp = DPP();
 		VectorXd qualityTerm;
-		this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 1.0, 0.1);
+		this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
+ 	}
+	else {
+		for (unsigned int i = 0; i < raw_detections.size(); ++i)
+		{
+			this->detections.push_back(raw_detections[i]);	
+		}
+	} 
+	cout << "detections: " << detections.size() << endl;
+	return this->detections;
+}
+
+vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
+{
+	Mat current_frame;
+	frame.copyTo(current_frame);
+	vector<Rect> raw_detections;
+	vector<double> detection_weights;
+	copyMakeBorder( current_frame, current_frame, args.padding, args.padding,args.padding,args.padding,BORDER_REPLICATE);
+	this->detections.clear();
+	this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
+	this->weights.resize(0);
+	this->penalty_weights.resize(0);
+	for (int k=0;k<args.nlevels;k++){
+		Mat resized_frame;
+		current_frame.copyTo(resized_frame);
+		cvtColor(resized_frame, resized_frame, COLOR_GRAY2BGR);
+		double scaleMult=pow(args.scale,k);
+		for(int i=0;i<samples.size();i++){
+			Rect current_window=samples[i];
+			Mat subImage = current_frame(current_window);
+			resize(subImage,subImage,Size(args.hog_width, args.hog_height),0,0,interpolation); 
+			vector<float> temp_features;
+			this->hog.compute(subImage,temp_features);
+			vector<double> features(temp_features.begin(), temp_features.end());
+			double* ptr = &features[0];
+			Map<VectorXd> hogFeatures(ptr,this->n_descriptors);
+			MatrixXd temp_features_matrix=MatrixXd::Zero(1,this->n_descriptors);
+			temp_features_matrix.row(0)=hogFeatures.normalized();
+			VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
+			if (predict_prob(0)>args.hit_threshold) {
+				stringstream ss;
+        		ss << predict_prob(0);
+        		this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
+				this->feature_values.row(this->feature_values.rows() - 1)=temp_features_matrix.row(0);
+				this->weights.conservativeResize(this->weights.size() + 1 );
+				this->weights(this->weights.size() - 1) = predict_prob(0);
+				this->penalty_weights.conservativeResize(this->penalty_weights.size() + 1 );
+				this->penalty_weights(this->penalty_weights.size() - 1) = predict_prob(0);
+        		string disp = ss.str().substr(0,4);
+        		putText(resized_frame, disp, Point(current_window.x+5, current_window.y+10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 2);
+				rectangle( resized_frame, current_window, Scalar(0,0,255), 2, LINE_8  );
+				raw_detections.push_back(current_window);
+				detection_weights.push_back(predict_prob(0));
+			}
+		}	
+		cout << "-----------------------" << endl;
+		string name= "resized_image_"+to_string(k)+".png";
+		imwrite(name, resized_frame);
+		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
+	}
+	if(this->args.gr_threshold > 0) {
+		//nms2(raw_detections, detection_weights, this->detections, args.gr_threshold, 10);
+		DPP dpp = DPP();
+		VectorXd qualityTerm;
+		this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
  	}
 	else {
 		for (unsigned int i = 0; i < raw_detections.size(); ++i)

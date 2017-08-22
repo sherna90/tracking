@@ -2,7 +2,7 @@
 
 #ifndef PARAMS
 const float POS_STD = 3.0;
-const float SCALE_STD = 3.0;
+const float SCALE_STD = 0.2;
 const float OVERLAP_RATIO = 0.8;
 const float THRESHOLD = 1000;
 const int NEWBORN_PARTICLES = 0;
@@ -273,7 +273,14 @@ void BernoulliParticleFilter::update(const Mat& image){
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
 	int bottom = MIN(this->reference_roi.y + this->reference_roi.height, image.rows - 1);
 	Rect update_roi = Rect(left, top, right - left, bottom - top);
-	this->dppResults = this->detector.detect(grayImg);
+	vector<Rect> samples;
+	for (size_t i = 0; i < this->states.size(); ++i){
+        	particle state = this->states[i];
+        	Rect current_state=Rect(state.x, state.y, state.width, state.height);
+        	samples.push_back(current_state);
+	}
+	this->dppResults = this->detector.detect(grayImg,samples);
+	//this->detector.train(grayImg,update_roi);
 	/*//MatrixXd featureValues = this->detector.getFeatureValues();
 	//VectorXd phi = this->detector.getDetectionWeights();
 	//cout << phi.rows() << "," << featureValues.rows() << endl;

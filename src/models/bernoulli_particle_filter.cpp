@@ -18,7 +18,7 @@ const float PDF_C = 1.6e-4;
 
 const double LAMBDA_BC=20.4;
 
-const int GROUP_THRESHOLD = 1;
+const int GROUP_THRESHOLD = 0.3;
 const double HIT_THRESHOLD = 0.99;
 
 //const int this->step_slide = 20;
@@ -284,7 +284,7 @@ void BernoulliParticleFilter::update(const Mat& image){
 	//}
    	//VectorXd qualityTerm;
    	//this->dppResults = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
-	//cout << this->dppResults.size()  << endl;
+	cout << this->dppResults.size()  << endl;*/
 	if (this->dppResults.size() > 0)
 	{
 		vector<double> tmp_weights;
@@ -328,7 +328,6 @@ void BernoulliParticleFilter::update(const Mat& image){
         resample();
         tmp_weights.clear();
 	}
-	*/
 	//this->reference_hist=float(1-1./8.)*this->reference_hist.array()+float(1./8.)*this->featureValues.row(0).array();   
 }
 

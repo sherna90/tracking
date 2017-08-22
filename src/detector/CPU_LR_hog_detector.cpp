@@ -269,6 +269,66 @@ MatrixXd CPU_LR_HOGDetector::getFeatureValues(Mat &current_frame)
 	return hogFeatures;
 }
 
+MatrixXd CPU_LR_HOGDetector::getHog(Mat &frame)
+{	
+	Mat current_frame;
+	normalize(frame, current_frame, 0, 1, NORM_MINMAX, CV_32F); // to double
+	vector<float> temp_features;
+	Size win_stride(args.win_stride_width, args.win_stride_height);
+	this->hog.compute(current_frame, temp_features, win_stride);
+	vector<double> features(temp_features.begin(), temp_features.end());
+	double* ptr = &features[0];
+	int rows = (int)(features.size()/this->hog.getDescriptorSize());
+	Map<MatrixXd> hogFeatures(ptr, rows, this->hog.getDescriptorSize());
+	return hogFeatures;
+}
+
+MatrixXd CPU_LR_HOGDetector::genRowPixels(Mat &frame)
+{
+	Mat current_frame;
+	normalize(frame, current_frame, 0, 1, NORM_MINMAX, CV_32F); // to double
+	int channels = current_frame.channels();
+	vector<Mat> frame_channels(channels);
+	split(current_frame, frame_channels); // get per channel
+	if(channels == 3){
+		if (norm(frame_channels[0]-frame_channels[1]) > 1e-6){
+			cvtColor(current_frame,current_frame, CV_RGB2Lab);
+		}
+		else{
+			cvtColor(current_frame, current_frame, CV_RGB2GRAY);
+		}
+		frame_channels.clear();
+		channels = current_frame.channels();
+  		split(current_frame, frame_channels);
+	}
+	int num_rows=(current_frame.rows- this->args.height + this->args.win_stride_height)/this->args.win_stride_height;
+	int num_cols=(current_frame.cols- this->args.width + this->args.win_stride_width)/this->args.win_stride_width;
+	MatrixXd rowPixelsFeatures(num_rows*num_cols,  this->args.width*this->args.height*channels);
+	int ridx =0;
+	for(int i = 0; i < num_rows; i++){
+		for(int j = 0; j < num_cols; j++){
+			int row=i*this->args.win_stride_height;
+			int col=j*this->args.win_stride_width;
+			VectorXd tempFeatures = VectorXd::Zero(this->args.width*this->args.height*channels);
+			int cidx=0;
+			for (int ch = 0; ch < channels; ++ch){
+				for(int c = col; c < col + this->args.width ; c++){
+					for(int r = row; r < row + this->args.height ; r++){   
+				        tempFeatures(cidx) = frame_channels[ch].at<float>(r,c);
+				        cidx++;
+				    }
+				}
+			}
+			double normTerm = tempFeatures.norm();
+			if (normTerm > 1e-6){
+				rowPixelsFeatures.row(ridx) = tempFeatures.array()/normTerm;
+			}
+			ridx++;
+		}
+	}
+	return rowPixelsFeatures;
+}
+
 
 void CPU_LR_HOGDetector::loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias){
 	this->logistic_regression.init(false, true, true);

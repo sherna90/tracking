@@ -1,5 +1,9 @@
 #include "dpp.hpp"
 
+#ifndef PARAMS
+const int K = 4;
+#endif
+
 DPP::DPP(){
 }
 
@@ -8,7 +12,7 @@ MatrixXd DPP::squared_exponential_kernel(MatrixXd X, double nu, double sigma_f){
     int Xnrow = X.rows();
     int Xncol = X.cols();
     Cov.resize(Xnrow,Xnrow);
-    for(int i = 0; i < (Xnrow-1); ++i){      
+    for(int i = 0; i < (Xnrow-1); ++i){
       for(int j = i + 1; j < Xnrow; ++j){
         double S = 0;
         for(int k = 0; k < Xncol; ++k){
@@ -23,9 +27,9 @@ MatrixXd DPP::squared_exponential_kernel(MatrixXd X, double nu, double sigma_f){
         Cov(i,i) =  exp(sigma_f);
     }
     return Cov;
-} 
+}
 
-vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, VectorXd &penaltyWeights, MatrixXd &featureValues, 
+vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, VectorXd &penaltyWeights, MatrixXd &featureValues,
 	VectorXd &qualityTermResults, double lambda, double mu, double epsilon)
 {
 	//cout << "lambda:" << lambda << " mu:" << mu << " epsilon:" << epsilon << endl;
@@ -51,7 +55,7 @@ vector<Rect> DPP::run(vector<Rect> preDetections, VectorXd &detectionWeights, Ve
 		VectorXd qualityTerm = get_quality_term(detectionWeights, penaltyWeights, lambda);
 		MatrixXd similarityTerm = get_similarity_term(featureValues, intersectionArea, sqrtArea, mu);
 
-		vector<int> top = solve(qualityTerm, similarityTerm, epsilon);	
+		vector<int> top = solve(qualityTerm, similarityTerm, epsilon);
 		qualityTermResults.conservativeResize(0);
 		for (size_t i = 0; i < top.size(); ++i)
 		{
@@ -89,7 +93,7 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 	int selected;
 	double oldObj, prodQ;
 	oldObj = qualityTerm.maxCoeff(&selected);
-	
+
 	vector<int> top;
 	top.push_back(selected);
 	MatrixXd oldS = MatrixXd::Identity(1,1);
@@ -142,10 +146,34 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 			break;
 		}
 	}
-
 	return top;
 }
 
-
-
-
+VectorXd DPP::likelihood(VectorXd &qualityTerm, MatrixXd &similarityTerm){
+  VectorXd likelihood = VectorXd(0);
+	VectorXd indices = VectorXd(0);
+	int qualityTermProduct;
+	for (int i = 1; i <= K; ++i)
+	{
+    indices.resize(0);
+		string bitmask(i, 1);
+		bitmask.resize(qualityTerm.size(), 0);
+		do
+		{
+			indices.resize(0);
+			qualityTermProduct = 0;
+			for (unsigned int j = 0; j < bitmask.size(); ++j)
+			{
+				if (bitmask[j] == 1)
+				{
+					indices.conservativeResize(indices.size() + 1);
+					indices(indices.size() - 1) = j;
+					qualityTermProduct += log(qualityTerm(j));
+				}
+			}
+			likelihood.conservativeResize(likelihood.size() + 1);
+      likelihood(likelihood.size() - 1) = qualityTermProduct + logdet(indexing(similarityTerm, indices, indices));
+		} while (prev_permutation(bitmask.begin(), bitmask.end()));
+	}
+  return likelihood;
+}

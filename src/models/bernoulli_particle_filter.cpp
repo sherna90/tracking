@@ -171,7 +171,7 @@ void BernoulliParticleFilter::predict(){
 			_x = MIN(MAX(cvRound(state.x + _dx), 0), this->img_size.width);
 			_y = MIN(MAX(cvRound(state.y + _dy), 0), this->img_size.height);
 			_width = MIN(MAX(cvRound(state.width+_dw), 0), this->img_size.width);
-			_height = MIN(MAX(cvRound(state.height+_dh), 0), this->img_size.height);					
+			_height = MIN(MAX(cvRound(state.height+_dh), 0), this->img_size.height);
 			if(((_x + _width) < this->img_size.width)
 				&& (_x > 0)
 				&& ((_y + _height) < this->img_size.height)
@@ -221,7 +221,7 @@ void BernoulliParticleFilter::predict(){
 				_y = random_new_born_y(this->generator);
 				_width = this->reference_roi.width;
 				_height = this->reference_roi.height;
-				
+
 				state.x_p = this->reference_roi.x;
 				state.y_p = this->reference_roi.y;
 				state.width_p = this->reference_roi.width;
@@ -297,6 +297,8 @@ void BernoulliParticleFilter::update(const Mat& image){
    	//VectorXd qualityTerm;
    	//this->dppResults = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
 	cout << this->dppResults.size()  << endl;*/
+	
+
 	if (this->dppResults.size() > 0)
 	{
 		vector<double> tmp_weights;
@@ -321,9 +323,9 @@ void BernoulliParticleFilter::update(const Mat& image){
             psi.row(i) = gaussian.log_likelihood(observations).array().exp();
         }
 
-        
+
         VectorXd tau = VectorXd::Zero(this->dppResults.size());
-        tau = psi.colwise().sum();     
+        tau = psi.colwise().sum();
         VectorXd eta = psi.colwise().sum();
 
         for (size_t i = 0; i < this->weights.size(); ++i)
@@ -340,7 +342,7 @@ void BernoulliParticleFilter::update(const Mat& image){
         resample();
         tmp_weights.clear();
 	}
-	//this->reference_hist=float(1-1./8.)*this->reference_hist.array()+float(1./8.)*this->featureValues.row(0).array();   
+	//this->reference_hist=float(1-1./8.)*this->reference_hist.array()+float(1./8.)*this->featureValues.row(0).array();
 }
 
 void BernoulliParticleFilter::draw_particles(Mat& image, Scalar color){
@@ -401,7 +403,7 @@ void BernoulliParticleFilter::resample(){
 Rect BernoulliParticleFilter::estimate(const Mat& image, bool draw){
 	float _x = 0.0, _y = 0.0, _width = 0.0, _height = 0.0, norm = 0.0;
     Rect estimate;
-    
+
     for (int i = 0;i < n_particles; i++){
         particle state = this->states[i];
         if( (state.x > 0)
@@ -426,7 +428,7 @@ Rect BernoulliParticleFilter::estimate(const Mat& image, bool draw){
     _width = cvRound(_width/norm);
     _height = cvRound(_height/norm);
     pt2.x = cvRound(pt1.x+_width);
-    pt2.y = cvRound(pt1.y+_height); 
+    pt2.y = cvRound(pt1.y+_height);
     if( (pt2.x < this->img_size.width)
     	&& (pt1.x >= 0)
     	&& (pt2.y < this->img_size.height)

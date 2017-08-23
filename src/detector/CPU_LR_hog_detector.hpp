@@ -14,8 +14,8 @@ public:
 	void train();
 	//VectorXd predict(MatrixXd data);
 	MatrixXd getFeatureValues(Mat &current_frame);
-	MatrixXd genHog(Mat &frame);
-	MatrixXd genRowPixels(Mat &frame);
+	VectorXd genHog(Mat &frame);
+	VectorXd genRawPixels(Mat &frame);
 	void loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias);
 protected:
 	HOGDescriptor hog;

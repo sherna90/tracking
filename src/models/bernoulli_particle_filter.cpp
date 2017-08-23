@@ -19,7 +19,7 @@ const float PDF_C = 1.6e-4;
 const double LAMBDA_BC=20.4;
 
 const int GROUP_THRESHOLD = 0.3;
-const double HIT_THRESHOLD = 0.99;
+const double HIT_THRESHOLD = 0.95;
 
 //const int this->step_slide = 20;
 #endif
@@ -129,10 +129,12 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 			sample_boxes.push_back(Rect(state.x,state.y,state.width,state.height));
 		}
 
-	Mat grayImg;
-    cvtColor(current_frame, grayImg, CV_RGB2GRAY);
+	Mat current_frame_copy;
+	current_frame.copyTo(current_frame_copy);
+	//Mat grayImg;
+    //cvtColor(current_frame, grayImg, CV_RGB2GRAY);
     this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD, this->reference_roi);
-    this->detector.train(grayImg, this->reference_roi);
+    this->detector.train(current_frame_copy, this->reference_roi);
     this->initialized = true;
     cout << "initialized!!!" << endl;
 	}
@@ -266,8 +268,11 @@ void BernoulliParticleFilter::predict(){
 }
 
 void BernoulliParticleFilter::update(const Mat& image){
-	Mat grayImg;
-	cvtColor(image, grayImg, CV_RGB2GRAY);
+	Mat current_frame_copy;
+	image.copyTo(current_frame_copy);
+	//Mat grayImg;
+	//cvtColor(image, grayImg, CV_RGB2GRAY);
+
 	int left = MAX(this->reference_roi.x, 1);
 	int top = MAX(this->reference_roi.y, 1);
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
@@ -279,7 +284,7 @@ void BernoulliParticleFilter::update(const Mat& image){
         	Rect current_state=Rect(state.x, state.y, state.width, state.height);
         	samples.push_back(current_state);
 	}
-	this->dppResults = this->detector.detect(grayImg,samples);
+	this->dppResults = this->detector.detect(current_frame_copy,samples);
 	//this->detector.train(grayImg,update_roi);
 	/*//MatrixXd featureValues = this->detector.getFeatureValues();
 	//VectorXd phi = this->detector.getDetectionWeights();

@@ -19,7 +19,7 @@ const float PDF_C = 1.6e-4;
 const double LAMBDA_BC=20.4;
 
 const int GROUP_THRESHOLD = 0.3;
-const double HIT_THRESHOLD = 0.95;
+const double HIT_THRESHOLD = 0.1;
 
 //const int this->step_slide = 20;
 #endif

@@ -19,7 +19,7 @@ const float PDF_C = 1.6e-4;
 const double LAMBDA_BC=20.4;
 
 const int GROUP_THRESHOLD = 0.3;
-const double HIT_THRESHOLD = 0.1;
+const double HIT_THRESHOLD = 0.99;
 
 //const int this->step_slide = 20;
 #endif
@@ -131,8 +131,8 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 
 	Mat current_frame_copy;
 	current_frame.copyTo(current_frame_copy);
-	//Mat grayImg;
-    //cvtColor(current_frame, grayImg, CV_RGB2GRAY);
+	//Mat current_frame_copy;
+    //cvtColor(current_frame, current_frame_copy, CV_RGB2GRAY);
     this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD, this->reference_roi);
     this->detector.train(current_frame_copy, this->reference_roi);
     this->initialized = true;
@@ -270,8 +270,8 @@ void BernoulliParticleFilter::predict(){
 void BernoulliParticleFilter::update(const Mat& image){
 	Mat current_frame_copy;
 	image.copyTo(current_frame_copy);
-	//Mat grayImg;
-	//cvtColor(image, grayImg, CV_RGB2GRAY);
+	//Mat current_frame_copy;
+	//cvtColor(image, current_frame_copy, CV_RGB2GRAY);
 
 	int left = MAX(this->reference_roi.x, 1);
 	int top = MAX(this->reference_roi.y, 1);

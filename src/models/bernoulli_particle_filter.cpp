@@ -284,7 +284,7 @@ void BernoulliParticleFilter::update(const Mat& image){
         	Rect current_state=Rect(state.x, state.y, state.width, state.height);
         	samples.push_back(current_state);
 	}
-	this->dppResults = this->detector.detect(current_frame_copy,samples);
+	this->dppResults = this->detector.detect(current_frame_copy);
 	//this->detector.train(grayImg,update_roi);
 	/*//MatrixXd featureValues = this->detector.getFeatureValues();
 	//VectorXd phi = this->detector.getDetectionWeights();

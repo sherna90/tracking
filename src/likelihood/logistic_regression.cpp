@@ -13,6 +13,7 @@ void LogisticRegression::init(bool _normalization, bool _standardization,bool _w
 }
 
 void LogisticRegression::init(MatrixXd &_X,VectorXd &_Y,double _lambda, bool _normalization,bool _standardization,bool _with_bias){
+	this->initialized = true;
 	this->with_bias = _with_bias;
 	srand((unsigned int) time(0));
 	this->normalization=_normalization;
@@ -117,4 +118,6 @@ void LogisticRegression::setData(MatrixXd &_X,VectorXd &_Y){
  	this->Y_train = &_Y;
  	this->rows = this->X_train->rows();
 	this->dim = this->X_train->cols();
+	if(this->normalization) tools.dataNormalization(*this->X_train,this->featureMax,this->featureMin);
+ 	if(this->standardization) tools.dataStandardization(*this->X_train,this->featureMean,this->featureStd);
 }

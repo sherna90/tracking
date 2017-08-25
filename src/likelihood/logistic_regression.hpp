@@ -30,6 +30,7 @@ class LogisticRegression
  	double getGradientBias();
  	//MatrixXd computeHessian(MatrixXd &_X, VectorXd &_Y, VectorXd &_W);
  	RowVectorXd featureMean,featureStd,featureMin,featureMax;
+ 	bool initialized = false;
 
  protected:
  	VectorXd weights;

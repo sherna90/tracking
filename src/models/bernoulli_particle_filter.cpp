@@ -18,7 +18,7 @@ const float PDF_C = 1.6e-4;
 
 const double LAMBDA_BC=20.4;
 
-const int GROUP_THRESHOLD = 0.0;
+const double GROUP_THRESHOLD = 0.1;
 const double HIT_THRESHOLD = 0.9;
 
 //const int this->step_slide = 20;
@@ -285,7 +285,7 @@ void BernoulliParticleFilter::update(const Mat& image){
         	samples.push_back(current_state);
 	}
 	this->dppResults = this->detector.detect(current_frame,update_roi);
-	//this->detector.train(grayImg,update_roi);
+	this->detector.train(current_frame,update_roi);
 	/*//MatrixXd featureValues = this->detector.getFeatureValues();
 	//VectorXd phi = this->detector.getDetectionWeights();
 	//cout << phi.rows() << "," << featureValues.rows() << endl;

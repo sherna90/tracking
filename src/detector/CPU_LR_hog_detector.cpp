@@ -5,8 +5,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.resize_src = false;
     args.width = reference_roi.width;
     args.height = reference_roi.height;
-    args.hog_width = 32;
-    args.hog_height = 32;
+    args.hog_width = 64;
+    args.hog_height = 64;
     args.scale = 2;
     args.nlevels = 1;
     args.gr_threshold = group_threshold;
@@ -20,10 +20,10 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.block_stride_height = 8;
     args.cell_width = 8;
     args.nbins = 9;
-    args.overlap_threshold=0.2;
+    args.overlap_threshold=0.8;
     args.p_accept = 0.0;
-    args.lambda = 1.0;
-    args.epsilon= 1e-2;
+    args.lambda = 10.0;
+    args.epsilon= 1e-3;
     args.tolerance = 1e-1;
     args.n_iterations = 1e3;
     args.padding = 8;
@@ -40,6 +40,7 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     this->generator.seed(seed1);
     this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
 	this->labels.resize(0);
+	this->num_frame=0;
 }
 
 
@@ -101,7 +102,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 					this->penalty_weights.conservativeResize(this->penalty_weights.size() + 1 );
 					this->penalty_weights(this->penalty_weights.size() - 1) = predict_prob(0);
         			string disp = ss.str().substr(0,4);
-        			putText(resized_frame, disp, Point(col+5, row+10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 2);
+        			putText(resized_frame, disp, Point(col+5, row+10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 1);
 					rectangle( resized_frame, current_window, Scalar(0,0,255), 2, LINE_8  );
 					raw_detections.push_back(current_window);
 					detection_weights.push_back(predict_prob(0));
@@ -109,12 +110,12 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 			}	
 		}
 		cout << "-----------------------" << endl;
-		string name= "resized_image_"+to_string(k)+".png";
+		string name= "detections_raw_"+to_string(this->num_frame)+".png";
 		imwrite(name, resized_frame);
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
 	}
 	if(this->args.gr_threshold > 0) {
-		nms2(raw_detections, detection_weights, this->detections, args.gr_threshold, 10);
+		nms(raw_detections,this->detections, args.gr_threshold, 1);
 		//DPP dpp = DPP();
 		//VectorXd qualityTerm;
 		//this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
@@ -124,7 +125,13 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		{
 			this->detections.push_back(raw_detections[i]);	
 		}
-	} 
+	}
+	for(int i=0;i<detections.size();i++){
+		rectangle( cropped_frame, this->detections[i], Scalar(0,0,255), 2, LINE_8  );				
+	}
+	string name2= "detections_nms_"+to_string(this->num_frame++)+".png";
+	imwrite(name2, cropped_frame); 
+	cout << "raw_detections: " << raw_detections.size() << endl; 
 	cout << "detections: " << detections.size() << endl;
 	return this->detections;
 }
@@ -197,7 +204,8 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 		{
 			this->detections.push_back(raw_detections[i]);	
 		}
-	} 
+	}
+	cout << "raw_detections: " << raw_detections.size() << endl; 
 	cout << "detections: " << detections.size() << endl;
 	return this->detections;
 }
@@ -255,7 +263,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	cout << "negative examples : " << (this->labels.array() <= 0).count() << endl;
 	rectangle( current_frame, reference_roi, Scalar(0,255,0), 2, LINE_AA );
 	imwrite("resized_image.png", current_frame);
-	this->logistic_regression.init(this->feature_values, this->labels, args.lambda,true,true,true);
+	this->logistic_regression.init(this->feature_values, this->labels, args.lambda,false,true,true);
 	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
 	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
 	//exit(0);

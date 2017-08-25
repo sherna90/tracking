@@ -27,7 +27,7 @@ void LogisticRegression::init(MatrixXd &_X,VectorXd &_Y,double _lambda, bool _no
  	else this->bias=0.0;
  	this->rows = this->X_train->rows();
 	this->dim = this->X_train->cols();
-	this->weights = VectorXd::Ones(dim);
+	this->weights = VectorXd::Random(dim)/this->dim;
 	this->eta = VectorXd::Zero(this->rows);
 	this->phi = VectorXd::Zero(this->rows);;
 	this->grad_bias = 0.0;

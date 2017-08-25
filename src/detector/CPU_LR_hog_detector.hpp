@@ -20,6 +20,7 @@ public:
 protected:
 	HOGDescriptor hog;
 	CPU_LogisticRegression logistic_regression;
+	int num_frame;
 };
 
 #endif

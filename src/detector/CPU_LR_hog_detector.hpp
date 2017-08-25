@@ -8,7 +8,7 @@ class CPU_LR_HOGDetector : public HOGDetector
 {
 public:
 	void init(double group_threshold, double hit_threshold,Rect reference_roi);
-	vector<Rect> detect(Mat &frame);
+	vector<Rect> detect(Mat &frame,Rect reference_roi);
 	vector<Rect> detect(Mat &frame,vector<Rect> samples);
 	void train(Mat &frame,Rect reference_roi);
 	void train();

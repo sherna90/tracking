@@ -1,8 +1,11 @@
 #ifndef CPU_LR_HOG_DETECTOR_H
 #define CPU_LR_HOG_DETECTOR_H
 #include <opencv2/imgproc.hpp>
+#include <Eigen/Dense>
+#include <opencv2/core/eigen.hpp>
 #include "hog_detector.hpp"
 #include "../DPP/dpp.hpp"
+#include "../features/hist.hpp"
 #include "../likelihood/CPU_logistic_regression.hpp"
 
 class CPU_LR_HOGDetector : public HOGDetector

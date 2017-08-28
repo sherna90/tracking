@@ -151,7 +151,7 @@ vector<int> DPP::solve(VectorXd &qualityTerm, MatrixXd &similarityTerm, double e
 
 VectorXd DPP::likelihood(VectorXd &qualityTerm, MatrixXd &similarityTerm){
   VectorXd likelihood = VectorXd(0);
-	VectorXd indices = VectorXd(0);
+	/*VectorXd indices = VectorXd(0);
 	int qualityTermProduct;
 	for (int i = 1; i <= K; ++i)
 	{
@@ -174,6 +174,6 @@ VectorXd DPP::likelihood(VectorXd &qualityTerm, MatrixXd &similarityTerm){
 			likelihood.conservativeResize(likelihood.size() + 1);
       likelihood(likelihood.size() - 1) = qualityTermProduct + logdet(indexing(similarityTerm, indices, indices));
 		} while (prev_permutation(bitmask.begin(), bitmask.end()));
-	}
+	}*/
   return likelihood;
 }

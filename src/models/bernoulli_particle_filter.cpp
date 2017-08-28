@@ -2,7 +2,7 @@
 
 #ifndef PARAMS
 const float POS_STD = 3.0;
-const float SCALE_STD = 0.2;
+const float SCALE_STD = 1.0;
 const float OVERLAP_RATIO = 0.8;
 const float THRESHOLD = 1000;
 const int NEWBORN_PARTICLES = 0;

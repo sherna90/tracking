@@ -1,7 +1,7 @@
 #include "CPU_LR_hog_detector.hpp"
 
 #ifndef PARAMS
-const bool USE_COLOR=true;
+const bool USE_COLOR=false;
 #endif
 
 void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
@@ -17,8 +17,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.hit_threshold = hit_threshold;
     args.hit_threshold_auto = false;
     args.win_width = args.width ;
-    args.win_stride_width = 5;
-    args.win_stride_height = 5;
+    args.win_stride_width = 10;
+    args.win_stride_height = 10;
     args.block_width = 16;
     args.block_stride_width = 8;
     args.block_stride_height = 8;
@@ -26,10 +26,10 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.nbins = 9;
     args.overlap_threshold=0.8;
     args.p_accept = 0.0;
-    args.lambda = 10.0;
+    args.lambda = 1.0;
     args.epsilon= 1e-3;
     args.tolerance = 1e-1;
-    args.n_iterations = 1e4;
+    args.n_iterations = 1e3;
     args.padding = 8;
     //this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
     //this->n_descriptors = 3780;
@@ -56,9 +56,13 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
 vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 {
 	Mat cropped_frame,current_frame,cielab_image;
-	Rect cropped_roi=reference_roi+Size(2*reference_roi.width,2*reference_roi.height);
-	cropped_roi-=Point(50,50);
-	reference_roi=Rect(50,50,reference_roi.width,reference_roi.height);
+	int _x=MIN(MAX(reference_roi.x-reference_roi.width, 0), frame.cols-reference_roi.width);
+	int _y=MIN(MAX(reference_roi.y-reference_roi.height, 0), frame.rows-reference_roi.height);
+	int _width=MIN(MAX(3*reference_roi.width, 0), frame.cols-3*reference_roi.width);
+	int _height=MIN(MAX(3*reference_roi.height, 0), frame.rows-3*reference_roi.height);
+	Rect cropped_roi=Rect(_x,_y,_width,_height);
+	cout << cropped_roi.x << "," << cropped_roi.y << endl;
+	reference_roi=Rect(reference_roi.width,reference_roi.height,reference_roi.width,reference_roi.height);
 	cropped_frame=frame(cropped_roi);
 	cropped_frame.copyTo(current_frame);
 	cropped_frame.copyTo(cielab_image);
@@ -130,10 +134,10 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
 	}
 	if(this->args.gr_threshold > 0) {
-		nms(raw_detections,this->detections, args.gr_threshold, 1);
-		//DPP dpp = DPP();
-		//VectorXd qualityTerm;
-		//this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
+		//nms(raw_detections,this->detections, args.gr_threshold, 1);
+		DPP dpp = DPP();
+		VectorXd qualityTerm;
+		this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
  	}
 	else {
 		for (unsigned int i = 0; i < raw_detections.size(); ++i)
@@ -189,10 +193,8 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 			}				
 			temp_features_matrix.row(0) = temp;
 			VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
-			//cout << predict_prob.transpose() << endl;
-			if (predict_prob(0)>args.hit_threshold) {
-				stringstream ss;
-        		ss << predict_prob(0);
+			stringstream ss;
+        	ss << predict_prob(0);
         		this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
 				this->feature_values.row(this->feature_values.rows() - 1)=temp_features_matrix.row(0);
 				this->weights.conservativeResize(this->weights.size() + 1 );
@@ -204,24 +206,11 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 				rectangle( resized_frame, current_window, Scalar(0,0,255), 2, LINE_8  );
 				raw_detections.push_back(current_window);
 				detection_weights.push_back(predict_prob(0));
-			}
 		}	
 		cout << "-----------------------" << endl;
 		string name= "resized_image_"+to_string(k)+".png";
 		imwrite(name, resized_frame);
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
-	}
-	if(this->args.gr_threshold > 0) {
-		nms2(raw_detections, detection_weights, this->detections, args.gr_threshold, 100);
-		//DPP dpp = DPP();
-		//VectorXd qualityTerm;
-		//this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
- 	}
-	else {
-		for (unsigned int i = 0; i < raw_detections.size(); ++i)
-		{
-			this->detections.push_back(raw_detections[i]);	
-		}
 	}
 	cout << "raw_detections: " << raw_detections.size() << endl; 
 	cout << "detections: " << detections.size() << endl;
@@ -231,9 +220,12 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 {
 	Mat cropped_frame,current_frame,cielab_image;
-	Rect cropped_roi=reference_roi+Size(2*reference_roi.width,2*reference_roi.height);
-	cropped_roi-=Point(50,50);
-	reference_roi=Rect(50,50,reference_roi.width,reference_roi.height);
+	int _x=MIN(MAX(reference_roi.x-reference_roi.width, 0), frame.cols-reference_roi.width);
+	int _y=MIN(MAX(reference_roi.y-reference_roi.height, 0), frame.rows-reference_roi.height);
+	int _width=MIN(MAX(3*reference_roi.width, 0), frame.cols-3*reference_roi.width);
+	int _height=MIN(MAX(3*reference_roi.height, 0), frame.rows-3*reference_roi.height);
+	Rect cropped_roi=Rect(_x,_y,_width,_height);
+	reference_roi=Rect(reference_roi.width,reference_roi.height,reference_roi.width,reference_roi.height);
 	cropped_frame=frame(cropped_roi);
 	cropped_frame.copyTo(current_frame);
 	cropped_frame.copyTo(cielab_image);

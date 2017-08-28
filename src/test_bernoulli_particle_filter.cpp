@@ -39,7 +39,7 @@ void TestBernoulliParticleFilter::run(){
 		else{
 			filter.predict();
 			filter.update(current_frame);
-			//filter.draw_particles(current_frame, Scalar(0,255,255));
+			filter.draw_particles(current_frame, Scalar(0,255,255));
 			rectangle( current_frame, ground_truth, Scalar(0,255,0), 2, LINE_AA );
 			Rect estimate = filter.estimate(current_frame, true);
 			

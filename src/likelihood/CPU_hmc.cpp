@@ -13,6 +13,7 @@ void CPU_Hamiltonian_MC::init(MatrixXd &_X, VectorXd &_Y, double _lambda, int _w
 	this->dim = _X.cols()+1; // + bias
     this->logistic_regression.init(_X, _Y, this->lambda, false, true, true);
     this->init_hmc = true;
+    this->initialized = true;
     this->sampled = 0.0;
     this->accepted = 0.0;
     VectorXd mu = VectorXd::Zero(dim);
@@ -262,5 +263,9 @@ void CPU_Hamiltonian_MC::loadModel(VectorXd weights, VectorXd featureMean, Vecto
 	VectorXd temp(weights.rows() +1 );
 	temp << bias, weights;
 	this->mean_weights = temp;
+}
+
+void CPU_Hamiltonian_MC::setData(MatrixXd &_X,VectorXd &_Y){
+	this->logistic_regression.setData(_X, _Y);
 }
 

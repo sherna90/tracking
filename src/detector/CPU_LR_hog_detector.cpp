@@ -305,21 +305,22 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 {
 	Mat cropped_frame,current_frame,cielab_image;
-	int x_shift=80;
-	int y_shift=80;
+	int x_shift=50;
+	int y_shift=50;
 	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
 	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
 	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);
-	cropped_roi+=Size(2*reference_roi.width,2*reference_roi.height);
+	cropped_roi+=Size(100,100);
 	cout << cropped_roi << reference_roi << endl;
-	reference_roi.x=y_shift;
-	reference_roi.y=y_shift;
+	reference_roi.x=MIN(x_shift,reference_roi.x);
+	reference_roi.y=MIN(y_shift,reference_roi.y);
+	cout << cropped_roi << reference_roi << endl;
 	cropped_frame=frame(cropped_roi);
 	cropped_frame.copyTo(current_frame);
 	cropped_frame.copyTo(cielab_image);
 	cvtColor(cielab_image,cielab_image, CV_RGB2Lab);
-	copyMakeBorder( current_frame, current_frame, args.padding, args.padding,args.padding,args.padding,BORDER_REPLICATE);
-	copyMakeBorder( cielab_image, cielab_image, args.padding, args.padding,args.padding,args.padding,BORDER_REPLICATE);
+	int num_rows=(current_frame.rows- this->args.height + this->args.win_stride_height)/this->args.win_stride_height;
+	int num_cols=(current_frame.cols- this->args.width + this->args.win_stride_width)/this->args.win_stride_width;
 	this->detections.clear();
 	int channels = frame.channels();
 	this->feature_values=MatrixXd::Zero(0,this->n_descriptors); //
@@ -398,8 +399,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
 	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
 	//exit(0);
-}
-*/
+}*/
 
 void CPU_LR_HOGDetector::train()
 {
@@ -511,8 +511,8 @@ void CPU_LR_HOGDetector::samplerBox(Mat &current_frame, Rect ground_truth, int n
 	const float POS_STD=1.0;
 	const float SCALE_STD=1.0;
 	const float DT=1.0;
-	const float THRESHOLD=1.0;
-	const float OVERLAP_RATIO=0.2;
+	//const float THRESHOLD=1.0;
+	const float OVERLAP_RATIO=0.1;
 	mt19937 generator;
 	unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
 	generator.seed(seed1);

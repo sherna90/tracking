@@ -1,5 +1,6 @@
 #ifndef HOG_DETECTOR_H
 #define HOG_DETECTOR_H
+#include <Eigen/Dense>
 #include <Eigen/Core>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc.hpp>
@@ -10,7 +11,8 @@
 #include <string>
 #include "../utils/c_utils.hpp"
 #include "../DPP/nms.hpp"
-//#include "../DPP/dpp.hpp"
+#include "../features/hist.hpp"
+#include "../DPP/dpp.hpp"
 
 using namespace cv;
 using namespace std;
@@ -39,6 +41,19 @@ struct Args {
     int n_iterations;
     int padding;
 } ;
+
+typedef struct Roi {
+    float x; /** current x coordinate */
+    float y; /** current y coordinate */
+    float width; /** current width coordinate */
+    float height; /** current height coordinate */
+    float scale; /** current velocity bounding box scale */
+    float x_p; /** current x coordinate */
+    float y_p; /** current y coordinate */
+    float width_p; /** current width coordinate */
+    float height_p; /** current height coordinate */
+    float scale_p; /** current velocity bounding box scale */
+} Roi;
 
 class HOGDetector
 {

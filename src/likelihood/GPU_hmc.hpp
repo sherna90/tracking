@@ -15,6 +15,7 @@ public:
 	void loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias);
 	VectorXd gradient(VectorXd &W);
 	double logPosterior(VectorXd &W, bool precompute = true);
+	void setData(MatrixXd &_X,VectorXd &_Y);
 protected:
 	GPU_LogisticRegression logistic_regression;
 };

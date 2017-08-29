@@ -29,6 +29,7 @@ public:
 	void set_weights(VectorXd &_weights);
 	void set_weightsMatrix(MatrixXd &_weights);
 	virtual void run(bool warmup_flag = false){ cout << "Error, 'run' function, not established" << endl;};
+	bool initialized = false;
 protected:
 	void warmup();
 	double avsigmaGauss(double mean, double var);

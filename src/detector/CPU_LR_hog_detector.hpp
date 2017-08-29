@@ -4,10 +4,21 @@
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
 #include "hog_detector.hpp"
-#include "../DPP/dpp.hpp"
 #include "../features/hist.hpp"
+#include "../DPP/dpp.hpp"
 #include "../likelihood/CPU_logistic_regression.hpp"
-
+typedef struct Roi {
+    float x; /** current x coordinate */
+    float y; /** current y coordinate */
+    float width; /** current width coordinate */
+    float height; /** current height coordinate */
+    float scale; /** current velocity bounding box scale */
+    float x_p; /** current x coordinate */
+    float y_p; /** current y coordinate */
+    float width_p; /** current width coordinate */
+    float height_p; /** current height coordinate */
+    float scale_p; /** current velocity bounding box scale */
+} Roi;
 class CPU_LR_HOGDetector : public HOGDetector
 {
 public:
@@ -21,8 +32,10 @@ public:
 	VectorXd genHog(Mat &frame);
 	VectorXd genRawPixels(Mat &frame);
 	void loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias);
+	void samplerBox(Mat &current_frame, Rect ground_truth, int n_particles, vector<Rect>& sampleBox, vector<Rect>& negativeBox);
 protected:
 	HOGDescriptor hog;
+	mt19937 generator;
 	CPU_LogisticRegression logistic_regression;
 	int num_frame;
 };

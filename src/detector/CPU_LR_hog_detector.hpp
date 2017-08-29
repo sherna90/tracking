@@ -16,6 +16,7 @@ public:
 	VectorXd genHog(Mat &frame);
 	VectorXd genRawPixels(Mat &frame);
 	void loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias);
+	void samplerBox(Mat &current_frame, Rect ground_truth, int n_particles, vector<Rect>& sampleBox, vector<Rect>& negativeBox);
 protected:
 	HOGDescriptor hog;
 	CPU_LogisticRegression logistic_regression;

@@ -2,7 +2,7 @@
 
 #ifndef PARAMS
 const float POS_STD = 3.0;
-const float SCALE_STD = 1.0;
+const float SCALE_STD = 0.1;
 const float OVERLAP_RATIO = 0.8;
 const float THRESHOLD = 1000;
 const int NEWBORN_PARTICLES = 0;
@@ -19,7 +19,7 @@ const float PDF_C = 1.6e-4;
 const double LAMBDA_BC=20.4;
 
 const double GROUP_THRESHOLD = 0.1;
-const double HIT_THRESHOLD = 0.9;
+const double HIT_THRESHOLD = 0.99;
 
 //const int this->step_slide = 20;
 #endif
@@ -307,6 +307,8 @@ void BernoulliParticleFilter::update(const Mat& image){
 		MatrixXd observations = MatrixXd::Zero(this->dppResults.size(), 4);
 		for (size_t i = 0; i < this->dppResults.size(); i++){
             observations.row(i) << this->dppResults[i].x, this->dppResults[i].y, this->dppResults[i].width, this->dppResults[i].height;
+            rectangle( image, Point(this->dppResults[i].x, this->dppResults[i].y), Point(this->dppResults[i].x+this->dppResults[i].width, this->dppResults[i].y+this->dppResults[i].height), Scalar(0,255,255), 1, LINE_AA );
+      
         }
 
         MatrixXd psi(this->states.size(), this->dppResults.size());
@@ -333,8 +335,7 @@ void BernoulliParticleFilter::update(const Mat& image){
             double weight = this->weights[i];
             tmp_weights.push_back(weight * (1 - DETECTION_RATE) + psi.row(i).sum()/( LAMBDA_C * PDF_C));
         }
-
-        this->weights.swap(tmp_weights);
+		this->weights.swap(tmp_weights);
     	Scalar sum_weights = sum(this->weights);
         this->existence_prob =  (this->new_existence_prob * sum_weights[0]) / ( ( (LAMBDA_C * PDF_C) * (1 - this->new_existence_prob) ) + ( this->new_existence_prob + sum_weights[0]) );
 	    if(this->existence_prob > 0.999) this->existence_prob = 0.999;

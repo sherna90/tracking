@@ -1,7 +1,7 @@
 #include "CPU_LR_hog_detector.hpp"
 
 #ifndef PARAMS
-const bool USE_COLOR=true;
+const bool USE_COLOR=false;
 #endif
 
 void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
@@ -17,8 +17,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.hit_threshold = hit_threshold;
     args.hit_threshold_auto = false;
     args.win_width = args.width ;
-    args.win_stride_width = 5;
-    args.win_stride_height = 5;
+    args.win_stride_width = 3;
+    args.win_stride_height = 3;
     args.block_width = 16;
     args.block_stride_width = 8;
     args.block_stride_height = 8;
@@ -65,10 +65,9 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
 	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
 	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);
-	cropped_roi+=Size(2*reference_roi.width,2*reference_roi.height);
-	cout << cropped_roi << reference_roi << endl;
-	reference_roi.x=MAX(cropped_roi.x, reference_roi.x-x_shift);
-	reference_roi.y=MAX(cropped_roi.y, reference_roi.y-y_shift);
+	cropped_roi+=Size(100,100);
+	reference_roi.x=MIN(x_shift,reference_roi.x);
+	reference_roi.y=MIN(y_shift,reference_roi.y);
 	cropped_frame=frame(cropped_roi);
 	cropped_frame.copyTo(current_frame);
 	cropped_frame.copyTo(cielab_image);
@@ -113,7 +112,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 					temp << hogFeatures;//
 				}	
 				//
-				//temp.normalize();				
+				temp.normalize();				
 				temp_features_matrix.row(0) = temp;
 				VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
 				if (predict_prob(0)>args.hit_threshold) {
@@ -126,8 +125,8 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 					this->penalty_weights.conservativeResize(this->penalty_weights.size() + 1 );
 					this->penalty_weights(this->penalty_weights.size() - 1) = predict_prob(0);
         			string disp = ss.str().substr(0,4);
-        			rectangle( resized_frame, Point(col,row),Point(col+current_window.width,row+20), Scalar(0,0,255), 1, 8,0 );
-        			putText(resized_frame, disp, Point(col+5, row+10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 0.5);
+        			rectangle( resized_frame, Point(col,row),Point(col+current_window.width,row+20), Scalar(0,0,255), -1, 8,0 );
+        			putText(resized_frame, disp, Point(col+5, row+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
 					rectangle( resized_frame, current_window, Scalar(0,0,255), 1, LINE_8  );
 					raw_detections.push_back(current_window);
 					detection_weights.push_back(predict_prob(0));
@@ -135,7 +134,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 			}	
 		}
 		//rectangle( resized_frame, reference_roi, Scalar(255,255,255), 2, LINE_8  );
-		//cout << "-----------------------" << endl;
+		cout << "-----------------------" << endl;
 		string name= to_string(this->num_frame)+"_detections_raw.png";
 		imwrite(name, resized_frame);
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
@@ -153,12 +152,13 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		}
 	}
 	for(int i=0;i<detections.size();i++){
-		rectangle( cropped_frame, this->detections[i], Scalar(0,0,255), 2, LINE_8  );				
+		rectangle( cropped_frame, this->detections[i], Scalar(0,0,255), 2, LINE_8  );
+		this->detections[i]-=Point(MIN(x_shift,reference_roi.x),MIN(y_shift,reference_roi.y));				
 	}
 	string name2= to_string(this->num_frame++)+"_detections_nms.png";
 	imwrite(name2, cropped_frame); 
-	//cout << "raw_detections: " << raw_detections.size() << endl; 
-	//cout << "detections: " << detections.size() << endl;
+	cout << "raw_detections: " << raw_detections.size() << endl; 
+	cout << "detections: " << detections.size() << endl;
 	return this->detections;
 }
 
@@ -197,7 +197,8 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 				temp_features_matrix.resize(1, hogFeatures.rows());//
 				temp.resize(hogFeatures.rows());//
 				temp << hogFeatures;//
-			}				
+			}
+			temp.normalize();				
 			temp_features_matrix.row(0) = temp;
 			VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
 			stringstream ss;
@@ -232,10 +233,10 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
 	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
 	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);
-	cropped_roi+=Size(2*reference_roi.width,2*reference_roi.height);
+	cropped_roi+=Size(100,100);
 	cout << cropped_roi << reference_roi << endl;
-	reference_roi.x=y_shift;
-	reference_roi.y=y_shift;
+	reference_roi.x=MIN(x_shift,reference_roi.x);
+	reference_roi.y=MIN(y_shift,reference_roi.y);
 	cout << cropped_roi << reference_roi << endl;
 	cropped_frame=frame(cropped_roi);
 	cropped_frame.copyTo(current_frame);
@@ -256,8 +257,8 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 			Rect intersection = reference_roi & current_window;
 			double overlap=(double)intersection.area()/(double)reference_roi.area();
 			double uni_rand = (overlap > args.overlap_threshold) ? 1.0 : unif(this->generator);
-			if(uni_rand>args.p_accept){
-				Mat subImage = current_frame(current_window);
+			Mat subImage = current_frame(current_window);
+			if(uni_rand > args.p_accept ){
 				VectorXd hogFeatures = this->genHog(subImage);
 				VectorXd temp;
 				MatrixXd temp_features_matrix;
@@ -272,7 +273,8 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 					temp_features_matrix.resize(1, hogFeatures.rows());//
 					temp.resize(hogFeatures.rows());//
 					temp << hogFeatures;//
-				}
+				}	
+				temp.normalize();		
 				temp_features_matrix.row(0) = temp;
 				this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
 				this->feature_values.row(this->feature_values.rows() - 1)=temp_features_matrix.row(0);
@@ -295,7 +297,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	}
 	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
 	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
-	exit(0);
+	//exit(0);
 }
 
 void CPU_LR_HOGDetector::train()

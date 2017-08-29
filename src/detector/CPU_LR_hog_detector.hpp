@@ -11,12 +11,10 @@ public:
 	vector<Rect> detect(Mat &frame,vector<Rect> samples);
 	void train(Mat &frame,Rect reference_roi);
 	void train();
-	//VectorXd predict(MatrixXd data);
 	MatrixXd getFeatureValues(Mat &current_frame);
 	VectorXd genHog(Mat &frame);
 	VectorXd genRawPixels(Mat &frame);
 	void loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias);
-	void samplerBox(Mat &current_frame, Rect ground_truth, int n_particles, vector<Rect>& sampleBox, vector<Rect>& negativeBox);
 protected:
 	HOGDescriptor hog;
 	CPU_LogisticRegression logistic_regression;

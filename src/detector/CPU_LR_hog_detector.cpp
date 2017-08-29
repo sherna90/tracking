@@ -42,6 +42,7 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     this->hog = HOGDescriptor(win_size, block_size, block_stride, cell_size, args.nbins);
     if(USE_COLOR){
     	this->n_descriptors = this->hog.getDescriptorSize() + H_BINS*S_BINS;
+    	//int channels = 3;
     	//this->n_descriptors=this->hog.getDescriptorSize() + (this->args.hog_width/2)*(this->args.hog_height/2)*channels);
     }
     else this->n_descriptors = this->hog.getDescriptorSize();
@@ -294,6 +295,106 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	//exit(0);
 }
 
+/*
+void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
+{
+	Mat cropped_frame,current_frame,cielab_image;
+	int x_shift=80;
+	int y_shift=80;
+	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
+	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
+	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);
+	cropped_roi+=Size(2*reference_roi.width,2*reference_roi.height);
+	cout << cropped_roi << reference_roi << endl;
+	reference_roi.x=y_shift;
+	reference_roi.y=y_shift;
+	cropped_frame=frame(cropped_roi);
+	cropped_frame.copyTo(current_frame);
+	cropped_frame.copyTo(cielab_image);
+	cvtColor(cielab_image,cielab_image, CV_RGB2Lab);
+	copyMakeBorder( current_frame, current_frame, args.padding, args.padding,args.padding,args.padding,BORDER_REPLICATE);
+	copyMakeBorder( cielab_image, cielab_image, args.padding, args.padding,args.padding,args.padding,BORDER_REPLICATE);
+	this->detections.clear();
+	int channels = frame.channels();
+	this->feature_values=MatrixXd::Zero(0,this->n_descriptors); //
+	this->labels.resize(0);
+	vector<Rect> positiveBox;
+	vector<Rect> negativeBox;
+	samplerBox(current_frame, reference_roi, 100, positiveBox, negativeBox);
+
+	for (int i = 0; i < positiveBox.size(); ++i){
+		Rect current_window = positiveBox.at(i);
+		Mat subImage = current_frame(current_window);
+		VectorXd hogFeatures = this->genHog(subImage);
+		VectorXd temp;
+		MatrixXd temp_features_matrix;
+		if(USE_COLOR){
+			Mat subLabImage = cielab_image(current_window);
+			VectorXd rawPixelsFeatures = this->genRawPixels(subImage);
+			temp_features_matrix.resize(1, hogFeatures.rows()+rawPixelsFeatures.rows());
+			temp.resize(hogFeatures.rows()+rawPixelsFeatures.rows());
+			temp << hogFeatures, rawPixelsFeatures;
+		}
+		else{
+			temp_features_matrix.resize(1, hogFeatures.rows());
+			temp.resize(hogFeatures.rows());
+			temp << hogFeatures;
+		}
+		temp.normalize();				
+		temp_features_matrix.row(0) = temp;
+		this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
+		this->feature_values.row(this->feature_values.rows() - 1)=temp_features_matrix.row(0);
+		this->labels.conservativeResize(this->labels.size() + 1 );
+		this->labels(this->labels.size() - 1) = 1.0;
+		rectangle( current_frame, current_window, Scalar(255,255,255), 1, LINE_AA );
+	}
+
+	for (int i = 0; i < negativeBox.size(); ++i){
+		Rect current_window = negativeBox.at(i);
+		Mat subImage = current_frame(current_window);
+		VectorXd hogFeatures = this->genHog(subImage);
+		VectorXd temp;
+		MatrixXd temp_features_matrix;
+		if(USE_COLOR){
+			Mat subLabImage = cielab_image(current_window);
+			VectorXd rawPixelsFeatures = this->genRawPixels(subImage);
+			temp_features_matrix.resize(1, hogFeatures.rows()+rawPixelsFeatures.rows());
+			temp.resize(hogFeatures.rows()+rawPixelsFeatures.rows());
+			temp << hogFeatures, rawPixelsFeatures;
+		}
+		else{
+			temp_features_matrix.resize(1, hogFeatures.rows());
+			temp.resize(hogFeatures.rows());
+			temp << hogFeatures;
+		}
+		//temp.normalize();				
+		temp_features_matrix.row(0) = temp;
+		this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
+		this->feature_values.row(this->feature_values.rows() - 1)=temp_features_matrix.row(0);
+		this->labels.conservativeResize(this->labels.size() + 1 );
+		this->labels(this->labels.size() - 1) = 0.0;
+		rectangle( current_frame, current_window, Scalar(0,0,0), 1, LINE_AA );
+	}
+	
+	//else rectangle( current_frame, current_window, Scalar(0,0,0), 1, LINE_AA );
+
+
+	cout << "positive examples : " << (this->labels.array() > 0).count() << endl;
+	cout << "negative examples : " << (this->labels.array() <= 0).count() << endl;
+	rectangle( current_frame, reference_roi, Scalar(0,255,0), 2, LINE_AA );
+	imwrite("resized_image.png", current_frame);
+	if(!this->logistic_regression.initialized){
+		this->logistic_regression.init(this->feature_values, this->labels, args.lambda,false,true,true);	
+	} 
+	else{
+		this->logistic_regression.setData(this->feature_values, this->labels);
+	}
+	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
+	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
+	//exit(0);
+}
+*/
+
 void CPU_LR_HOGDetector::train()
 {
 	this->logistic_regression.init(this->feature_values, this->labels, args.lambda, false,true,true);
@@ -397,4 +498,97 @@ void CPU_LR_HOGDetector::loadModel(VectorXd weights,VectorXd featureMean, Vector
 	this->logistic_regression.featureStd = featureStd;
 	this->logistic_regression.featureMax = featureMax;
 	this->logistic_regression.featureMin = featureMin;
+}
+
+
+void CPU_LR_HOGDetector::samplerBox(Mat &current_frame, Rect ground_truth, int n_particles, vector<Rect>& sampleBox, vector<Rect>& negativeBox){
+	const float POS_STD=1.0;
+	const float SCALE_STD=1.0;
+	const float DT=1.0;
+	const float THRESHOLD=1.0;
+	const float OVERLAP_RATIO=0.2;
+	mt19937 generator;
+	unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
+	generator.seed(seed1);
+	vector<VectorXd> theta_x;
+    theta_x.clear();
+    RowVectorXd theta_x_pos(2);
+    theta_x_pos << POS_STD,POS_STD;
+    theta_x.push_back(theta_x_pos);
+    RowVectorXd theta_x_scale(2);
+    theta_x_scale << SCALE_STD,SCALE_STD;
+    theta_x.push_back(theta_x_scale);
+    normal_distribution<double> negative_random_pos(0.0,20.0);
+    normal_distribution<double> position_random_x(0.0,theta_x.at(0)(0));
+    normal_distribution<double> position_random_y(0.0,theta_x.at(0)(1));
+    sampleBox.clear();
+    negativeBox.clear();
+    Size im_size=current_frame.size();
+    int left = MAX(ground_truth.x, 1);
+    int top = MAX(ground_truth.y, 1);
+    int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
+    int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
+    Rect reference_roi=Rect(left, top, right - left, bottom - top);
+    if(reference_roi.width>0 && (reference_roi.x+reference_roi.width)<im_size.width &&
+        reference_roi.height>0 && (reference_roi.y+reference_roi.height)<im_size.height){
+        for (int i=0;i<n_particles;i++){
+            Roi state;
+            float _x,_y,_width,_height;
+            float _dx=position_random_x(generator);
+            float _dy=position_random_y(generator);
+            //float _dw=scale_random_width(generator);
+            //float _dh=scale_random_height(generator);
+            _x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
+            _y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
+            _width=MIN(MAX(cvRound(reference_roi.width),10.0),im_size.width);
+            _height=MIN(MAX(cvRound(reference_roi.height),10.0),im_size.height);
+            //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
+            //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
+            if( (_x+_width)<im_size.width
+                && _x>0
+                && (_y+_height)<im_size.height
+                && _y>0
+                && _width<im_size.width
+                && _height<im_size.height
+                && _width>0 && _height>0){
+                state.x_p=reference_roi.x;
+                state.y_p=reference_roi.y;
+                state.width_p=reference_roi.width;
+                state.height_p=reference_roi.height;
+                state.x=_x;
+                state.y=_y;
+                state.width=_width;
+                state.height=_height;
+                state.scale_p=state.scale;
+                state.scale=1.0;
+            }
+            else{
+                state.x=reference_roi.x;
+                state.y=reference_roi.y;
+                state.width=cvRound(reference_roi.width);
+                state.height=cvRound(reference_roi.height);
+                state.x_p=reference_roi.x;
+                state.y_p=reference_roi.y;
+                state.width_p=cvRound(reference_roi.width);
+                state.height_p=cvRound(reference_roi.height);
+                state.scale=1.0;
+            }
+            Rect box(state.x, state.y, state.width, state.height);
+            sampleBox.push_back(box);
+        }
+        for (int i=0;i<n_particles;i++){
+            Rect box=reference_roi;
+            Rect intersection=(box & reference_roi);
+            while( double(intersection.area())/double(reference_roi.area()) > OVERLAP_RATIO ){
+                float _dx=negative_random_pos(generator);
+                float _dy=negative_random_pos(generator);
+                box.x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
+                box.y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
+                box.width=MIN(MAX(cvRound(reference_roi.width),0),im_size.width-box.x);
+                box.height=MIN(MAX(cvRound(reference_roi.height),0),im_size.height-box.y);
+                intersection=(box & reference_roi);
+            }
+            negativeBox.push_back(box);
+        }
+    }
 }

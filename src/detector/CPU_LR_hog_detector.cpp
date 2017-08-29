@@ -58,19 +58,13 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	Mat cropped_frame,current_frame,cielab_image;
 	int x_shift=50;
 	int y_shift=50;
-	//int _x=MIN(MAX(cvRound(reference_roi.x-x_shift), 0), frame.cols-reference_roi.width);
-	//int _y=MIN(MAX(cvRound(reference_roi.y-y_shift), 0), frame.rows-reference_roi.height);
-	//int _width=MIN(MAX(cvRound(x_shift+2*reference_roi.width), 0), frame.cols);
-	//int _height=MIN(MAX(cvRound(y_shift+2*reference_roi.height), 0), frame.rows);
 	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
 	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
 	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);
 	cropped_roi+=Size(100,100);
-	reference_roi.x=MIN(x_shift,reference_roi.x);
-	reference_roi.y=MIN(y_shift,reference_roi.y);
-	cropped_frame=frame(cropped_roi);
-	cropped_frame.copyTo(current_frame);
-	cropped_frame.copyTo(cielab_image);
+	current_frame=frame(cropped_roi);
+	current_frame.copyTo(cropped_frame);
+	current_frame.copyTo(cielab_image);
 	cvtColor(cielab_image,cielab_image, CV_RGB2Lab);
 	vector<Rect> raw_detections;
 	vector<double> detection_weights;
@@ -85,10 +79,8 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		int num_rows=(current_frame.rows- this->args.height + this->args.win_stride_height)/this->args.win_stride_height;
 		int num_cols=(current_frame.cols- this->args.width + this->args.win_stride_width)/this->args.win_stride_width;
 		if (num_rows*num_cols<=0) break;
-		Mat resized_frame;
-		current_frame.copyTo(resized_frame);
-		//cout << "frame : " << current_frame.rows << "," << current_frame.cols << endl;
-		//cout << "num windows : " << num_rows << "," << num_cols << endl;
+		//Mat resized_frame;
+		//current_frame.copyTo(resized_frame);
 		double scaleMult=pow(args.scale,k);
 		for(int i=0;i<num_rows;i++){
 			for(int j=0;j<num_cols;j++){
@@ -125,9 +117,9 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 					this->penalty_weights.conservativeResize(this->penalty_weights.size() + 1 );
 					this->penalty_weights(this->penalty_weights.size() - 1) = predict_prob(0);
         			string disp = ss.str().substr(0,4);
-        			rectangle( resized_frame, Point(col,row),Point(col+current_window.width,row+20), Scalar(0,0,255), -1, 8,0 );
-        			putText(resized_frame, disp, Point(col+5, row+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
-					rectangle( resized_frame, current_window, Scalar(0,0,255), 1, LINE_8  );
+        			rectangle( current_frame, Point(col,row),Point(col+current_window.width,row+20), Scalar(0,0,255), -1, 8,0 );
+        			putText(current_frame, disp, Point(col+5, row+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
+					rectangle( current_frame, current_window, Scalar(0,0,255), 1, LINE_8  );
 					raw_detections.push_back(current_window);
 					detection_weights.push_back(predict_prob(0));
 				}
@@ -136,7 +128,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		//rectangle( resized_frame, reference_roi, Scalar(255,255,255), 2, LINE_8  );
 		cout << "-----------------------" << endl;
 		string name= to_string(this->num_frame)+"_detections_raw.png";
-		imwrite(name, resized_frame);
+		imwrite(name, current_frame);
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
 	}
 	if(this->args.gr_threshold > 0) {
@@ -153,12 +145,14 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	}
 	for(int i=0;i<detections.size();i++){
 		rectangle( cropped_frame, this->detections[i], Scalar(0,0,255), 2, LINE_8  );
-		this->detections[i]-=Point(MIN(x_shift,reference_roi.x),MIN(y_shift,reference_roi.y));				
+		this->detections[i]+=Point(cropped_roi.x,cropped_roi.y);				
 	}
-	string name2= to_string(this->num_frame++)+"_detections_nms.png";
+	string name2= to_string(this->num_frame)+"_detections_nms.png";
 	imwrite(name2, cropped_frame); 
-	cout << "raw_detections: " << raw_detections.size() << endl; 
+	cout << "Frame : " << this->num_frame << endl; 
+	cout << ", raw_detections: " << raw_detections.size() << endl; 
 	cout << "detections: " << detections.size() << endl;
+	this->num_frame++; 
 	return this->detections;
 }
 

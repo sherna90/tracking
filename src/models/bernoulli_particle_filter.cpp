@@ -307,7 +307,7 @@ void BernoulliParticleFilter::update(const Mat& image){
 		MatrixXd observations = MatrixXd::Zero(this->dppResults.size(), 4);
 		for (size_t i = 0; i < this->dppResults.size(); i++){
             observations.row(i) << this->dppResults[i].x, this->dppResults[i].y, this->dppResults[i].width, this->dppResults[i].height;
-            rectangle( image, Point(this->dppResults[i].x, this->dppResults[i].y), Point(this->dppResults[i].x+this->dppResults[i].width, this->dppResults[i].y+this->dppResults[i].height), Scalar(0,255,255), 1, LINE_AA );
+            rectangle( image, Point(this->dppResults[i].x, this->dppResults[i].y), Point(this->dppResults[i].x+this->dppResults[i].width, this->dppResults[i].y+this->dppResults[i].height), Scalar(0,255,255), 2, LINE_AA );
       
         }
 

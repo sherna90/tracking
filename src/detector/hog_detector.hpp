@@ -29,7 +29,8 @@ struct Args {
     double hit_threshold;
     bool hit_threshold_auto;
     int win_width;
-    int win_stride_width, win_stride_height;
+    int test_stride_width, test_stride_height;
+    int train_stride_width, train_stride_height;
     int block_width;
     int block_stride_width, block_stride_height;
     int cell_width;

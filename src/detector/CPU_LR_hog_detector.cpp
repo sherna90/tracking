@@ -17,15 +17,17 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.hit_threshold = hit_threshold;
     args.hit_threshold_auto = false;
     args.win_width = args.width ;
-    args.win_stride_width = 10;
-    args.win_stride_height = 10;
+    args.test_stride_width = 15;
+    args.test_stride_height = 15;
+    args.train_stride_width = 2;
+    args.train_stride_height = 2;
     args.block_width = 16;
     args.block_stride_width = 8;
     args.block_stride_height = 8;
     args.cell_width = 8;
     args.nbins = 9;
-    args.overlap_threshold=0.8;
-    args.p_accept = 0.5;
+    args.overlap_threshold=0.9;
+    args.p_accept = 0.9;
     args.lambda = 10.0;
     args.epsilon= 1e-3;
     args.tolerance = 1e-1;
@@ -33,7 +35,7 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.padding = 8;
     //this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
     //this->n_descriptors = 3780;
-	Size win_stride(args.win_stride_width, args.win_stride_height);
+	Size win_stride(args.train_stride_width, args.train_stride_width);
     Size win_size(args.hog_width, args.hog_height);
     Size block_size(args.block_width, args.block_width);
     Size block_stride(args.block_stride_width, args.block_stride_height);
@@ -56,15 +58,20 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
 
 vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 {
+	cout << "-----------------------" << endl;
 	Mat cropped_frame,current_frame;
 	int x_shift=50;
 	int y_shift=50;
 	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
 	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
 	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);
-	cropped_roi+=Size(100,100);
+	int w_crop=(frame.cols > (cropped_roi.x+cropped_roi.width+2*x_shift) )?  2*x_shift : x_shift ;
+	int h_crop=(frame.rows > (cropped_roi.y+cropped_roi.height+2*y_shift) )?  2*y_shift : x_shift;
+	cropped_roi+=Size(w_crop,h_crop);
 	//frame.copyTo(current_frame);
+	cout << frame.size() << cropped_roi << endl;
 	current_frame=frame(cropped_roi);
+	cout << "Frame cropped OK!" << endl;
 	current_frame.copyTo(cropped_frame);
 	vector<Rect> raw_detections;
 	vector<double> detection_weights;
@@ -74,17 +81,21 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	this->weights.resize(0);
 	this->penalty_weights.resize(0);
 	for (int k=0;k<args.nlevels;k++){
-		int num_rows=(current_frame.rows- this->args.height + this->args.win_stride_height)/this->args.win_stride_height;
-		int num_cols=(current_frame.cols- this->args.width + this->args.win_stride_width)/this->args.win_stride_width;
+		int num_rows=(current_frame.rows- this->args.height + this->args.test_stride_height)/this->args.test_stride_height;
+		int num_cols=(current_frame.cols- this->args.width + this->args.test_stride_width)/this->args.test_stride_width;
 		if (num_rows*num_cols<=0) break;
 		//Mat resized_frame;
 		//current_frame.copyTo(resized_frame);
 		double scaleMult=pow(args.scale,k);
 		for(int i=0;i<num_rows;i++){
 			for(int j=0;j<num_cols;j++){
-				int row=i*this->args.win_stride_height;
-				int col=j*this->args.win_stride_width;
-				Rect current_window(col,row, this->args.width,this->args.height);
+				int row=i*this->args.test_stride_height;
+				int col=j*this->args.test_stride_width;
+				//cout << current_frame.cols << ", col:" << col << ", w:" << this->args.width << ", bound : "<< current_frame.cols-(col+this->args.width) << endl;
+				//cout << current_frame.rows << ", row:" << row << ", h:" << this->args.height << ", bound : "<< current_frame.rows-(row+this->args.height) <<endl;
+				int w_shift=(current_frame.cols-(col+this->args.width) >=0 )?  this->args.width : current_frame.cols-col;
+				int h_shift=(current_frame.rows-(row+this->args.height) >=0 )?  this->args.height : current_frame.rows-row;
+				Rect current_window(col,row, w_shift,h_shift);
 				Mat subImage = current_frame(current_window);
 				VectorXd hogFeatures = this->genHog(subImage);
 				VectorXd temp;
@@ -123,13 +134,12 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 			}	
 		}
 		//rectangle( resized_frame, reference_roi, Scalar(255,255,255), 2, LINE_8  );
-		cout << "-----------------------" << endl;
 		string name= to_string(this->num_frame)+"_detections_raw.png";
 		imwrite(name, current_frame);
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
 	}
 	if(this->args.gr_threshold > 0) {
-		nms(raw_detections,this->detections, args.gr_threshold, 1);
+		nms(raw_detections,this->detections, args.gr_threshold, 0);
 		//DPP dpp = DPP();
 		//VectorXd qualityTerm;
 		//this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
@@ -219,23 +229,24 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
 	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
 	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);
-	cropped_roi+=Size(100,100);
+	int w_crop=(frame.cols-(cropped_roi.x+2*x_shift) >=0 )?  2*x_shift : frame.cols-cropped_roi.x;
+	int h_crop=(frame.rows-(cropped_roi.y+2*y_shift) >=0 )?  2*y_shift : frame.rows-cropped_roi.y;
+	cropped_roi+=Size(w_crop,h_crop);
 	cout << cropped_roi << reference_roi << endl;
 	reference_roi.x=MIN(x_shift,reference_roi.x);
 	reference_roi.y=MIN(y_shift,reference_roi.y);
-	cout << cropped_roi << reference_roi << endl;
 	cropped_frame=frame(cropped_roi);
 	cropped_frame.copyTo(current_frame);
-	int num_rows=(current_frame.rows- this->args.height + this->args.win_stride_height)/this->args.win_stride_height;
-	int num_cols=(current_frame.cols- this->args.width + this->args.win_stride_width)/this->args.win_stride_width;
+	int num_rows=(current_frame.rows- this->args.height + this->args.train_stride_height)/this->args.train_stride_height;
+	int num_cols=(current_frame.cols- this->args.width + this->args.train_stride_width)/this->args.train_stride_width;
 	this->detections.clear();
 	this->feature_values=MatrixXd::Zero(0,this->n_descriptors); //
 	this->labels.resize(0);
 	uniform_real_distribution<double> unif(0.0,1.0);
 	for(int i=0;i<num_rows;i++){
 		for(int j=0;j<num_cols;j++){
-			int row=i*this->args.win_stride_height;
-			int col=j*this->args.win_stride_width;
+			int row=i*this->args.train_stride_height;
+			int col=j*this->args.train_stride_width;
 			Rect current_window(col,row,this->args.width,this->args.height);
 			Rect intersection = reference_roi & current_window;
 			double overlap=(double)intersection.area()/(double)reference_roi.area();
@@ -304,7 +315,7 @@ void CPU_LR_HOGDetector::train()
 MatrixXd CPU_LR_HOGDetector::getFeatureValues(Mat &current_frame)
 {
 	vector<float> temp_features;
-	Size win_stride(args.win_stride_width, args.win_stride_height);
+	Size win_stride(args.test_stride_width, args.test_stride_height);
 	this->hog.compute(current_frame, temp_features, win_stride);
 	vector<double> features(temp_features.begin(), temp_features.end());
 	double* ptr = &features[0];

@@ -6,10 +6,11 @@
 #include "particle_filter.hpp"
 
 #ifndef PARAMS
-const float POS_STD=1.0;
-const float SCALE_STD=1.0;
+const float POS_STD=3.0;
+const float SCALE_STD=0.1;
 const float DT=1.0;
-
+const float THRESHOLD=0.9;
+#endif
 
 particle_filter::particle_filter() {
 }
@@ -22,7 +23,6 @@ particle_filter::~particle_filter() {
 particle_filter::particle_filter(int _n_particles) {
     states.clear();
     weights.clear();
-    positive_likelihood.clear();
     n_particles = _n_particles;
     time_stamp=0;
     initialized=false;
@@ -49,7 +49,7 @@ void particle_filter::reinitialize() {
 void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     normal_distribution<double> position_random_x(0.0, this->theta_x.at(0)(0));
     normal_distribution<double> position_random_y(0.0, this->theta_x.at(0)(1));
-
+    this->frame_size=current_frame.size();
     normal_distribution<double> negative_random_pos(0.0,20.0);
 
     this->states.clear();
@@ -63,9 +63,9 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
     this->reference_roi = Rect(left, top, right - left, bottom - top);
     if ( (this->reference_roi.width > 0)
-        && ((this->reference_roi.x + this->reference_roi.width) < this->img_size.width)
+        && ((this->reference_roi.x + this->reference_roi.width) < frame_size.width)
         && (this->reference_roi.height > 0)
-        && ((this->reference_roi.y + this->reference_roi.height) < this->img_size.height) )
+        && ((this->reference_roi.y + this->reference_roi.height) < frame_size.height) )
     {
         for (int i = 0; i < this->n_particles; ++i)
         {
@@ -74,17 +74,17 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
             float _dx = position_random_x(this->generator);
             float _dy = position_random_y(this->generator);
 
-            _x = MIN(MAX(cvRound(this->reference_roi.x + _dx), 0), this->img_size.width);
-            _y = MIN(MAX(cvRound(this->reference_roi.y + _dy), 0), this->img_size.height);
-            _width = MIN(MAX(cvRound(this->reference_roi.width), 10.0), this->img_size.width);
-            _height = MIN(MAX(cvRound(this->reference_roi.height), 10.0), this->img_size.height);
+            _x = MIN(MAX(cvRound(this->reference_roi.x + _dx), 0), this->frame_size.width);
+            _y = MIN(MAX(cvRound(this->reference_roi.y + _dy), 0), this->frame_size.height);
+            _width = MIN(MAX(cvRound(this->reference_roi.width), 10.0), this->frame_size.width);
+            _height = MIN(MAX(cvRound(this->reference_roi.height), 10.0), this->frame_size.height);
 
-            if ( ((_x + _width) < this->img_size.width)
+            if ( ((_x + _width) < this->frame_size.width)
                 && (_x > 0)
-                && ((_y + _height) < this->img_size.height)
+                && ((_y + _height) < this->frame_size.height)
                 && (_y > 0)
-                && (_width < this->img_size.width)
-                && (_height < this->img_size.height)
+                && (_width < this->frame_size.width)
+                && (_height < this->frame_size.height)
                 && (_width > 0)
                 && (_height > 0) )
             {
@@ -120,7 +120,7 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
 
     Mat current_frame_copy;
     current_frame.copyTo(current_frame_copy);
-    this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD, this->reference_roi);
+    this->detector.init(0.0,0.0, this->reference_roi);
     this->detector.train(current_frame_copy, this->reference_roi);
     this->initialized = true;
     cout << "initialized!!!" << endl;
@@ -132,8 +132,6 @@ void particle_filter::predict(){
     normal_distribution<double> position_random_y(0.0,theta_x.at(0)(1));
     normal_distribution<double> scale_random_width(0.0,theta_x.at(1)(0));
     normal_distribution<double> scale_random_height(0.0,theta_x.at(1)(1));
-    sampleBox.clear();//important
-    //cout << "predicted particles!" <<endl;
     if(initialized==true){
         time_stamp++;
         vector<particle> tmp_new_states(n_particles);
@@ -142,20 +140,20 @@ void particle_filter::predict(){
             float _x, _y, _width, _height;
             float _dx = position_random_x(generator);
             float _dy = position_random_y(generator);
-            //float _dw=scale_random_width(generator);
-            //float _dh=scale_random_height(generator);
-            _x=MIN(MAX(cvRound(state.x),0),im_size.width);
-            _y=MIN(MAX(cvRound(state.y),0),im_size.height);
-            _width=MIN(MAX(cvRound(state.width),10),im_size.width);
-            _height=MIN(MAX(cvRound(state.height),10),im_size.height);
-            //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
-            //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
-            if( (_x+_width)<im_size.width 
+            float _dw=scale_random_width(generator);
+            float _dh=scale_random_height(generator);
+            _x = MIN(MAX(cvRound(state.x + _dx), 0), this->frame_size.width);
+            _y = MIN(MAX(cvRound(state.y + _dy), 0), this->frame_size.height);
+            _width = MIN(MAX(cvRound(state.width+_dw), 0), this->frame_size.width);
+            _height = MIN(MAX(cvRound(state.height+_dh), 0), this->frame_size.height);
+            //_width=MIN(MAX(cvRound(state.width+state.scale),0),this->frame_size.width);
+            //_height=MIN(MAX(cvRound(state.height+state.scale),0),this->frame_size.height);
+            if( (_x+_width)<this->frame_size.width 
                 && _x>0 
-                && (_y+_height)<im_size.height 
+                && (_y+_height)<this->frame_size.height 
                 && _y>0 
-                && _width<im_size.width 
-                && _height<im_size.height 
+                && _width<this->frame_size.width 
+                && _height<this->frame_size.height 
                 && _width>0 && _height>0 ){
                 state.x_p=state.x;
                 state.y_p=state.y;
@@ -179,11 +177,10 @@ void particle_filter::predict(){
                 state.scale=1.0f;
             }
             Rect box(state.x, state.y, state.width, state.height);
-            box.x=MIN(MAX(cvRound(box.x),0),im_size.width);
-            box.y=MIN(MAX(cvRound(box.y),0),im_size.height);
-            box.width=MIN(MAX(cvRound(box.width),0),im_size.width-box.x);
-            box.height=MIN(MAX(cvRound(box.height),0),im_size.height-box.y);
-            sampleBox.push_back(box);
+            box.x=MIN(MAX(cvRound(box.x),0),this->frame_size.width);
+            box.y=MIN(MAX(cvRound(box.y),0),this->frame_size.height);
+            box.width=MIN(MAX(cvRound(box.width),0),this->frame_size.width-box.x);
+            box.height=MIN(MAX(cvRound(box.height),0),this->frame_size.height-box.y);
             
             //cout << "box " << box.height << " " << box.width << endl;
 
@@ -215,10 +212,10 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     for (int i=0;i<n_particles;i++){
         particle state=states[i];
         //double weight=weights.at(i);
-        if(state.x>0 && state.x<im_size.width 
-            && state.y>0  && state.y<im_size.height 
-            && state.width>0 && state.width<im_size.height 
-            && state.height>0 && state.height<im_size.height){
+        if(state.x>0 && state.x<this->frame_size.width 
+            && state.y>0  && state.y<this->frame_size.height 
+            && state.width>0 && state.width<this->frame_size.height 
+            && state.height>0 && state.height<this->frame_size.height){
             _x+= state.x; 
             _y+= state.y; 
             _width+= state.width; 
@@ -233,21 +230,21 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     _height=cvRound(_height/norm);
     pt2.x=cvRound(pt1.x+_width);
     pt2.y=cvRound(pt1.y+_height); 
-    if(pt2.x<im_size.width && pt1.x>=0 && pt2.y<im_size.height && pt1.y>=0){
+    if(pt2.x<this->frame_size.width && pt1.x>=0 && pt2.y<this->frame_size.height && pt1.y>=0){
         if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 2, LINE_AA );
         estimate=Rect(pt1.x,pt1.y,_width,_height);
     }
     //cout << " estimate x:" << estimate.x << ",y:" << estimate.y <<",w:" << estimate.width <<",h:" << estimate.height << endl;
-    estimates.push_back(estimate);
     return estimate;
 
 }
 
 void particle_filter::update(Mat& image)
 {
-    vector<float> tmp_weights;
-    Mat current_frame_copy;
-    image.copyTo(current_frame_copy);
+    Mat current_frame;
+    image.copyTo(current_frame);
+    //Mat current_frame_copy;
+    //cvtColor(image, current_frame_copy, CV_RGB2GRAY);
 
     int left = MAX(this->reference_roi.x, 1);
     int top = MAX(this->reference_roi.y, 1);
@@ -257,22 +254,26 @@ void particle_filter::update(Mat& image)
     vector<Rect> samples;
     for (size_t i = 0; i < this->states.size(); ++i){
             particle state = this->states[i];
-            Rect current_state=Rect(state.x, state.y, state.width, state.height);
+            int _x, _y, _width, _height;
+            _x=MIN(MAX(cvRound(state.x),0),this->frame_size.width-this->reference_roi.width);
+            _y=MIN(MAX(cvRound(state.y),0),this->frame_size.height-this->reference_roi.height);
+            _width=MIN(MAX(cvRound(state.width),10),this->frame_size.width-_x);
+            _height=MIN(MAX(cvRound(state.height),10),this->frame_size.height-_y);
+            Rect current_state=Rect(_x, _y, _width, _height);
             samples.push_back(current_state);
     }
-    this->dppResults = this->detector.detect(current_frame_copy,samples);
-
-
-    //weights.swap(tmp_weights);
-    tmp_weights.clear();
-    resample();
+    vector<double> tmp_weights=this->detector.detect(current_frame,samples);
+    for (size_t i = 0; i < this->states.size(); ++i){
+            this->weights[i]+=log(tmp_weights[i]);
+    }
+    this->resample();
 
 }
 
-float particle_filter::resample(){
-    vector<float> cumulative_sum(n_particles);
-    vector<float> normalized_weights(n_particles);
-    vector<float> squared_normalized_weights(n_particles);
+double particle_filter::resample(){
+    vector<double> cumulative_sum(n_particles);
+    vector<double> normalized_weights(n_particles);
+    vector<double> squared_normalized_weights(n_particles);
     uniform_real_distribution<float> unif_rnd(0.0,1.0); 
     float max_value = *max_element(weights.begin(), weights.end());
     float logsumexp=0.0f;
@@ -296,13 +297,13 @@ float particle_filter::resample(){
     Scalar sum_squared_weights=sum(squared_normalized_weights);
     marginal_likelihood+=max_value+log(sum_weights[0])-log(n_particles); 
     ESS=1/sum_squared_weights[0]/n_particles;
-    //cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood <<  endl;
+    cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood <<  endl;
     //cout << "resampled particles!" << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
         vector<particle> new_states(n_particles);
         for (int i=0; i<n_particles; i++) {
             float uni_rand = unif_rnd(generator);
-            vector<float>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
+            vector<double>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
             unsigned int ipos = distance(cumulative_sum.begin(), pos);
             
             particle state=states[ipos];
@@ -321,167 +322,4 @@ float particle_filter::resample(){
     normalized_weights.clear();
     squared_normalized_weights.clear();
     return marginal_likelihood;
-}
-
-float particle_filter::getESS(){
-    return ESS;
-}
-
-void particle_filter::update_model(vector<VectorXd> theta_x_new){
-    theta_x.clear();
-    VectorXd theta_x_pos=theta_x_new.at(0);
-    VectorXd theta_x_scale=theta_x_new.at(1);
-    theta_x.push_back(theta_x_pos);
-    theta_x.push_back(theta_x_scale);
-}
-
-void particle_filter::update_model(Mat& current_frame,vector<Rect> positive_examples,vector<Rect> negative_examples){
-    Mat grayImg;
-    cvtColor(current_frame, grayImg, CV_RGB2GRAY);
-    if(LOGISTIC_REGRESSION){
-        VectorXd labels(positive_examples.size()+negative_examples.size());
-        labels << VectorXd::Ones(positive_examples.size()), VectorXd::Constant(negative_examples.size(),-1.0);
-        if(HAAR_FEATURE){
-            MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
-            haar.getFeatureValue(grayImg,positive_examples);
-            cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
-            haar.getFeatureValue(grayImg,negative_examples);
-            cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
-            MatrixXd eigen_sample_feature_value( eigen_sample_positive_feature_value.rows(),
-                eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
-            eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
-                                            eigen_sample_negative_feature_value;
-            eigen_sample_feature_value.transposeInPlace();
-            hamiltonian_monte_carlo.setData(eigen_sample_feature_value, labels);
-        }
-
-        if(LBP_FEATURE){
-            local_binary_pattern.init(grayImg, positive_examples);
-            local_binary_pattern.getFeatureValue(grayImg, negative_examples, false);
-            MatrixXd eigen_sample_feature_value(local_binary_pattern.sampleFeatureValue.rows() +
-            local_binary_pattern.negativeFeatureValue.rows(), local_binary_pattern.sampleFeatureValue.cols());
-            eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
-                                          local_binary_pattern.negativeFeatureValue;
-            hamiltonian_monte_carlo.setData(eigen_sample_feature_value, labels);
-        }
-
-        if(MB_LBP_FEATURE){
-            multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false,3,3);
-            multiblock_local_binary_patterns.init(grayImg, positive_examples);
-            multiblock_local_binary_patterns.getFeatureValue(grayImg, negative_examples, false);
-            MatrixXd eigen_sample_feature_value(multiblock_local_binary_patterns.sampleFeatureValue.rows() +
-                multiblock_local_binary_patterns.negativeFeatureValue.rows(), multiblock_local_binary_patterns.sampleFeatureValue.cols());
-            eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
-                                          multiblock_local_binary_patterns.negativeFeatureValue;
-            hamiltonian_monte_carlo.setData(eigen_sample_feature_value, labels);
-        }
-
-        if(HOG_FEATURE){
-            MatrixXd hog_descriptors(0, 3780);
-            VectorXd hist;
-            for (unsigned int i = 0; i < positive_examples.size(); ++i)
-            {
-                Mat subImage = grayImg(positive_examples.at(i));
-                calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
-                hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
-                hog_descriptors.row(hog_descriptors.rows()-1) = hist;
-            }
-
-            for (unsigned int i = 0; i < negative_examples.size(); ++i)
-            {
-                Mat subImage = grayImg(negative_examples.at(i));
-                calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
-                hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
-                hog_descriptors.row(hog_descriptors.rows()-1) = hist;
-            }
-            hamiltonian_monte_carlo.setData(hog_descriptors, labels);
-        }
-        hamiltonian_monte_carlo.run(10,1e-2,10);
-    }
-    if(GAUSSIAN_NAIVEBAYES){
-        VectorXd labels(positive_examples.size()+negative_examples.size());
-        labels << VectorXd::Ones(positive_examples.size()), VectorXd::Zero(negative_examples.size());
-        double learning_rate = 0.9;
-        if(HAAR_FEATURE){
-            haar.init(grayImg,reference_roi,positive_examples);
-            MatrixXd eigen_sample_positive_feature_value, eigen_sample_negative_feature_value;
-            cv2eigen(haar.sampleFeatureValue, eigen_sample_positive_feature_value);
-            haar.getFeatureValue(grayImg,negative_examples);
-            cv2eigen(haar.sampleFeatureValue, eigen_sample_negative_feature_value);
-            MatrixXd eigen_sample_feature_value( eigen_sample_positive_feature_value.rows(),
-                eigen_sample_positive_feature_value.cols() + eigen_sample_negative_feature_value.cols());
-            eigen_sample_feature_value <<   eigen_sample_positive_feature_value,
-                                            eigen_sample_negative_feature_value;
-            eigen_sample_feature_value.transposeInPlace();
-            gaussian_naivebayes.partial_fit(eigen_sample_feature_value, labels, learning_rate);
-        }
-        if(LBP_FEATURE){
-            local_binary_pattern.init(grayImg, positive_examples);
-            local_binary_pattern.getFeatureValue(grayImg, negative_examples, false);
-            MatrixXd eigen_sample_feature_value(local_binary_pattern.sampleFeatureValue.rows() +
-            local_binary_pattern.negativeFeatureValue.rows(), local_binary_pattern.sampleFeatureValue.cols());
-            eigen_sample_feature_value << local_binary_pattern.sampleFeatureValue,
-                                          local_binary_pattern.negativeFeatureValue;
-            gaussian_naivebayes.partial_fit(eigen_sample_feature_value, labels, learning_rate);
-        }
-        if(MB_LBP_FEATURE){
-            multiblock_local_binary_patterns = MultiScaleBlockLBP(3,59,2,true,false,3,3);
-            multiblock_local_binary_patterns.init(grayImg, positive_examples);
-            multiblock_local_binary_patterns.getFeatureValue(grayImg, negative_examples, false);
-            MatrixXd eigen_sample_feature_value(multiblock_local_binary_patterns.sampleFeatureValue.rows() +
-                multiblock_local_binary_patterns.negativeFeatureValue.rows(), multiblock_local_binary_patterns.sampleFeatureValue.cols());
-            eigen_sample_feature_value << multiblock_local_binary_patterns.sampleFeatureValue,
-                                          multiblock_local_binary_patterns.negativeFeatureValue;
-            gaussian_naivebayes.partial_fit(eigen_sample_feature_value, labels, learning_rate);
-        }
-        if(HOG_FEATURE){
-            MatrixXd hog_descriptors(0, 3780);
-            VectorXd hist;
-            for (unsigned int i = 0; i < positive_examples.size(); ++i)
-            {
-                Mat subImage = grayImg(positive_examples.at(i));
-                calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
-                hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
-                hog_descriptors.row(hog_descriptors.rows()-1) = hist;
-            }
-
-            for (unsigned int i = 0; i < negative_examples.size(); ++i)
-            {
-                Mat subImage = grayImg(negative_examples.at(i));
-                calc_hog(subImage, hist,Size(reference_roi.width,reference_roi.height));
-                hog_descriptors.conservativeResize( hog_descriptors.rows()+1, hog_descriptors.cols() );
-                hog_descriptors.row(hog_descriptors.rows()-1) = hist;
-            }
-            gaussian_naivebayes.partial_fit(hog_descriptors, labels, learning_rate);
-        }
-
-    }
-
-}
-
-vector<VectorXd> particle_filter::get_dynamic_model(){
-    return theta_x;
-}
-
-vector<VectorXd> particle_filter::get_observation_model(){
-    return theta_y;
-}
-float particle_filter::getMarginalLikelihood(){
-    return marginal_likelihood;
-}
-
-particle particle_filter::update_state(particle state, Mat& image){
-    if (state.width < 0 || state.width>image.cols){
-        state.width = reference_roi.width;
-    }
-    if (state.height < 0 || state.height>image.rows){
-        state.height = reference_roi.width;
-    }
-    if (state.x < 0 || state.x>image.cols){
-        state.x = reference_roi.x;
-    }
-    if (state.y < 0 || state.y>image.rows){
-        state.y = reference_roi.y;
-    }
-    return state;
 }

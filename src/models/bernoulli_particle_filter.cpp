@@ -53,7 +53,7 @@ bool BernoulliParticleFilter::is_initialized(){
 }
 
 void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect ground_truth){
-	this->img_size = current_frame.size();
+	this->frame_size = current_frame.size();
 
 	normal_distribution<double> position_random_x(0.0, this->theta_x.at(0)(0));
 	normal_distribution<double> position_random_y(0.0, this->theta_x.at(0)(1));
@@ -71,9 +71,9 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
 	this->reference_roi = Rect(left, top, right - left, bottom - top);
 	if ( (this->reference_roi.width > 0)
-		&& ((this->reference_roi.x + this->reference_roi.width) < this->img_size.width)
+		&& ((this->reference_roi.x + this->reference_roi.width) < this->frame_size.width)
 		&& (this->reference_roi.height > 0)
-		&& ((this->reference_roi.y + this->reference_roi.height) < this->img_size.height) )
+		&& ((this->reference_roi.y + this->reference_roi.height) < this->frame_size.height) )
 	{
 		for (int i = 0; i < this->n_particles; ++i)
 		{
@@ -82,17 +82,17 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 			float _dx = position_random_x(this->generator);
 			float _dy = position_random_y(this->generator);
 
-			_x = MIN(MAX(cvRound(this->reference_roi.x + _dx), 0), this->img_size.width);
-			_y = MIN(MAX(cvRound(this->reference_roi.y + _dy), 0), this->img_size.height);
-			_width = MIN(MAX(cvRound(this->reference_roi.width), 10.0), this->img_size.width);
-			_height = MIN(MAX(cvRound(this->reference_roi.height), 10.0), this->img_size.height);
+            _x=MIN(MAX(cvRound(state.x),0),this->frame_size.width-this->reference_roi.width);
+            _y=MIN(MAX(cvRound(state.y),0),this->frame_size.height-this->reference_roi.height);
+            _width=MIN(MAX(cvRound(state.width),10),this->frame_size.width-_x);
+            _height=MIN(MAX(cvRound(state.height),10),this->frame_size.height-_y);
 
-			if ( ((_x + _width) < this->img_size.width)
+			if ( ((_x + _width) < this->frame_size.width)
 				&& (_x > 0)
-				&& ((_y + _height) < this->img_size.height)
+				&& ((_y + _height) < this->frame_size.height)
 				&& (_y > 0)
-				&& (_width < this->img_size.width)
-				&& (_height < this->img_size.height)
+				&& (_width < this->frame_size.width)
+				&& (_height < this->frame_size.height)
 				&& (_width > 0)
 				&& (_height > 0) )
 			{
@@ -165,16 +165,16 @@ void BernoulliParticleFilter::predict(){
 			float _dy = position_random_y(this->generator);
 			float _dw = scale_random_width(this->generator);
 			float _dh = scale_random_height(this->generator);
-			_x = MIN(MAX(cvRound(state.x + _dx), 0), this->img_size.width);
-			_y = MIN(MAX(cvRound(state.y + _dy), 0), this->img_size.height);
-			_width = MIN(MAX(cvRound(state.width+_dw), 0), this->img_size.width);
-			_height = MIN(MAX(cvRound(state.height+_dh), 0), this->img_size.height);
-			if(((_x + _width) < this->img_size.width)
+			_x = MIN(MAX(cvRound(state.x + _dx), 0), this->frame_size.width);
+			_y = MIN(MAX(cvRound(state.y + _dy), 0), this->frame_size.height);
+			_width = MIN(MAX(cvRound(state.width+_dw), 0), this->frame_size.width);
+			_height = MIN(MAX(cvRound(state.height+_dh), 0), this->frame_size.height);
+			if(((_x + _width) < this->frame_size.width)
 				&& (_x > 0)
-				&& ((_y + _height) < this->img_size.height)
+				&& ((_y + _height) < this->frame_size.height)
 				&& (_y > 0)
-				&& (_width < this->img_size.width)
-				&& (_height < this->img_size.height)
+				&& (_width < this->frame_size.width)
+				&& (_height < this->frame_size.height)
 				&& (_width > 0)
 				&& (_height > 0)){
 				state.x_p = state.x;
@@ -206,8 +206,8 @@ void BernoulliParticleFilter::predict(){
 		/***********************************************************************/
 
 		/*********************** Generate birth particles ***********************/
-		uniform_int_distribution<int> random_new_born_x(0, this->img_size.width - this->reference_roi.width);
-		uniform_int_distribution<int> random_new_born_y(0, this->img_size.height - this->reference_roi.width);
+		uniform_int_distribution<int> random_new_born_x(0, this->frame_size.width - this->reference_roi.width);
+		uniform_int_distribution<int> random_new_born_y(0, this->frame_size.height - this->reference_roi.width);
 		double nb_weight = BIRTH_PROB * (1 - this->existence_prob)/NEWBORN_PARTICLES;
 		for (int i = 0; i < NEWBORN_PARTICLES; ++i)
 		{
@@ -231,12 +231,12 @@ void BernoulliParticleFilter::predict(){
 				state.height = _height;
 				state.scale = 1.0;
 			}
-			while (!(((_x + _width) < this->img_size.width)
+			while (!(((_x + _width) < this->frame_size.width)
 				&& (_x > 0)
-				&& ((_y + _height) < this->img_size.height)
+				&& ((_y + _height) < this->frame_size.height)
 				&& (_y > 0)
-				&& (_width < this->img_size.width)
-				&& (_height < this->img_size.height)
+				&& (_width < this->frame_size.width)
+				&& (_height < this->frame_size.height)
 				&& (_width > 0)
 				&& (_height > 0)));
 			//cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << "\tweight: " << nb_weight << endl;
@@ -281,7 +281,7 @@ void BernoulliParticleFilter::update(const Mat& image){
         	Rect current_state=Rect(state.x, state.y, state.width, state.height);
         	samples.push_back(current_state);
 	}
-	this->dppResults = this->detector.detect(current_frame,update_roi);
+	this->observations = this->detector.detect(current_frame,update_roi);
 	//this->detector.train(current_frame,update_roi);
 	/*//MatrixXd featureValues = this->detector.getFeatureValues();
 	//VectorXd phi = this->detector.getDetectionWeights();
@@ -292,23 +292,23 @@ void BernoulliParticleFilter::update(const Mat& image){
 	//	penalty_weights(i) = (double)intersection.area()/update_roi.area();
 	//}
    	//VectorXd qualityTerm;
-   	//this->dppResults = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
-	cout << this->dppResults.size()  << endl;*/
+   	//this->observations = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
+	cout << this->observations.size()  << endl;*/
 	
 
-	if (this->dppResults.size() > 0)
+	if (this->observations.size() > 0)
 	{
 		vector<double> tmp_weights;
 		MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
 
-		MatrixXd observations = MatrixXd::Zero(this->dppResults.size(), 4);
-		for (size_t i = 0; i < this->dppResults.size(); i++){
-            observations.row(i) << this->dppResults[i].x, this->dppResults[i].y, this->dppResults[i].width, this->dppResults[i].height;
-            rectangle( image, Point(this->dppResults[i].x, this->dppResults[i].y), Point(this->dppResults[i].x+this->dppResults[i].width, this->dppResults[i].y+this->dppResults[i].height), Scalar(0,255,255), 2, LINE_AA );
+		MatrixXd observations = MatrixXd::Zero(this->observations.size(), 4);
+		for (size_t i = 0; i < this->observations.size(); i++){
+            observations.row(i) << this->observations[i].x, this->observations[i].y, this->observations[i].width, this->observations[i].height;
+            rectangle( image, Point(this->observations[i].x, this->observations[i].y), Point(this->observations[i].x+this->observations[i].width, this->observations[i].y+this->observations[i].height), Scalar(0,255,255), 2, LINE_AA );
       
         }
 
-        MatrixXd psi(this->states.size(), this->dppResults.size());
+        MatrixXd psi(this->states.size(), this->observations.size());
 
         for (size_t i = 0; i < this->states.size(); ++i)
         {
@@ -323,7 +323,7 @@ void BernoulliParticleFilter::update(const Mat& image){
         }
 
 
-        VectorXd tau = VectorXd::Zero(this->dppResults.size());
+        VectorXd tau = VectorXd::Zero(this->observations.size());
         tau = psi.colwise().sum();
         VectorXd eta = psi.colwise().sum();
 
@@ -405,13 +405,13 @@ Rect BernoulliParticleFilter::estimate(const Mat& image, bool draw){
     for (int i = 0;i < n_particles; i++){
         particle state = this->states[i];
         if( (state.x > 0)
-        	&& (state.x < this->img_size.width)
+        	&& (state.x < this->frame_size.width)
             && (state.y > 0)
-            && (state.y < this->img_size.height)
+            && (state.y < this->frame_size.height)
             && (state.width > 0)
-            && (state.width < this->img_size.height)
+            && (state.width < this->frame_size.height)
             && (state.height > 0)
-            && (state.height < this->img_size.height)){
+            && (state.height < this->frame_size.height)){
             _x += state.x;
             _y += state.y;
             _width += state.width;
@@ -427,9 +427,9 @@ Rect BernoulliParticleFilter::estimate(const Mat& image, bool draw){
     _height = cvRound(_height/norm);
     pt2.x = cvRound(pt1.x+_width);
     pt2.y = cvRound(pt1.y+_height);
-    if( (pt2.x < this->img_size.width)
+    if( (pt2.x < this->frame_size.width)
     	&& (pt1.x >= 0)
-    	&& (pt2.y < this->img_size.height)
+    	&& (pt2.y < this->frame_size.height)
     	&& (pt1.y >= 0)){
         if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 2, LINE_AA );
         estimate = Rect(pt1.x,pt1.y,_width,_height);

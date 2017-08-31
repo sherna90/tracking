@@ -34,7 +34,6 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.n_iterations = 1e3;
     args.padding = 8;
     //this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
-    //this->n_descriptors = 3780;
 	Size win_stride(args.train_stride_width, args.train_stride_width);
     Size win_size(args.hog_width, args.hog_height);
     Size block_size(args.block_width, args.block_width);
@@ -69,23 +68,17 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	int h_crop=(frame.rows > (cropped_roi.y+cropped_roi.height+2*y_shift) )?  2*y_shift : x_shift;
 	cropped_roi+=Size(w_crop,h_crop);
 	//frame.copyTo(current_frame);
-	cout << frame.size() << cropped_roi << endl;
 	current_frame=frame(cropped_roi);
-	cout << "Frame cropped OK!" << endl;
 	current_frame.copyTo(cropped_frame);
 	vector<Rect> raw_detections;
-	vector<double> detection_weights;
 	this->detections.clear();
 	int channels = frame.channels();
 	this->feature_values=MatrixXd::Zero(0,this->n_descriptors); //
-	this->weights.resize(0);
-	this->penalty_weights.resize(0);
+	this->weights.clear();
 	for (int k=0;k<args.nlevels;k++){
 		int num_rows=(current_frame.rows- this->args.height + this->args.test_stride_height)/this->args.test_stride_height;
 		int num_cols=(current_frame.cols- this->args.width + this->args.test_stride_width)/this->args.test_stride_width;
 		if (num_rows*num_cols<=0) break;
-		//Mat resized_frame;
-		//current_frame.copyTo(resized_frame);
 		double scaleMult=pow(args.scale,k);
 		for(int i=0;i<num_rows;i++){
 			for(int j=0;j<num_cols;j++){
@@ -120,16 +113,12 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
         			ss << predict_prob(0);
         			this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
 					this->feature_values.row(this->feature_values.rows() - 1)=temp_features_matrix.row(0);
-					this->weights.conservativeResize(this->weights.size() + 1 );
-					this->weights(this->weights.size() - 1) = predict_prob(0);
-					this->penalty_weights.conservativeResize(this->penalty_weights.size() + 1 );
-					this->penalty_weights(this->penalty_weights.size() - 1) = predict_prob(0);
-        			string disp = ss.str().substr(0,4);
+					string disp = ss.str().substr(0,4);
         			rectangle( current_frame, Point(col,row),Point(col+current_window.width,row+20), Scalar(0,0,255), -1, 8,0 );
         			putText(current_frame, disp, Point(col+5, row+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
 					rectangle( current_frame, current_window, Scalar(0,0,255), 1, LINE_8  );
 					raw_detections.push_back(current_window);
-					detection_weights.push_back(predict_prob(0));
+					this->weights.push_back(predict_prob(0));
 				}
 			}	
 		}
@@ -163,22 +152,18 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	return this->detections;
 }
 
-vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
+vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 {
 	Mat current_frame;
 	frame.copyTo(current_frame);
-	vector<Rect> raw_detections;
-	vector<double> detection_weights;
-	this->detections.clear();
-	this->feature_values=MatrixXd::Zero(0,this->n_descriptors); //
-	this->weights.resize(0);
-	this->penalty_weights.resize(0);
+	this->feature_values=MatrixXd::Zero(samples.size(),this->n_descriptors); //
+	this->weights.clear();
 	for (int k=0;k<args.nlevels;k++){
-		Mat resized_frame;
-		current_frame.copyTo(resized_frame);
 		double scaleMult=pow(args.scale,k);
 		for(int i=0;i<samples.size();i++){
 			Rect current_window=samples[i];
+			int col=current_window.x;
+			int row=current_window.y;
 			Mat subImage = current_frame(current_window);
 			VectorXd hogFeatures = this->genHog(subImage);
 			VectorXd temp;
@@ -194,31 +179,26 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 				temp.resize(hogFeatures.rows());//
 				temp << hogFeatures;//
 			}
-			temp.normalize();				
+			//temp.normalize();				
 			temp_features_matrix.row(0) = temp;
 			VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
 			stringstream ss;
         	ss << predict_prob(0);
-        		this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
-				this->feature_values.row(this->feature_values.rows() - 1)=temp_features_matrix.row(0);
-				this->weights.conservativeResize(this->weights.size() + 1 );
-				this->weights(this->weights.size() - 1) = predict_prob(0);
-				this->penalty_weights.conservativeResize(this->penalty_weights.size() + 1 );
-				this->penalty_weights(this->penalty_weights.size() - 1) = predict_prob(0);
-        		string disp = ss.str().substr(0,4);
-        		putText(resized_frame, disp, Point(current_window.x+5, current_window.y+10), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 255, 255), 2);
-				rectangle( resized_frame, current_window, Scalar(0,0,255), 2, LINE_8  );
-				raw_detections.push_back(current_window);
-				detection_weights.push_back(predict_prob(0));
+        	//cout << predict_prob(0) << ",";
+    		this->feature_values.row(i)=temp_features_matrix.row(0);
+			this->weights.push_back(predict_prob(0));
+			string disp = ss.str().substr(0,4);
+        	rectangle( current_frame, Point(col,row),Point(col+current_window.width,row+20), Scalar(0,0,255), -1, 8,0 );
+        	putText(current_frame, disp, Point(col+5, row+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
+			rectangle( current_frame, current_window, Scalar(0,0,255), 1, LINE_8  );
 		}	
 		cout << "-----------------------" << endl;
-		string name= "resized_image_"+to_string(k)+".png";
-		imwrite(name, resized_frame);
+		string name= to_string(this->num_frame)+"_particle_filter.png";
+		imwrite(name, current_frame);
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
 	}
-	cout << "raw_detections: " << raw_detections.size() << endl; 
-	cout << "detections: " << detections.size() << endl;
-	return this->detections;
+	this->num_frame++;
+	return this->weights;
 }
 
 void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
@@ -232,7 +212,6 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	int w_crop=(frame.cols-(cropped_roi.x+2*x_shift) >=0 )?  2*x_shift : frame.cols-cropped_roi.x;
 	int h_crop=(frame.rows-(cropped_roi.y+2*y_shift) >=0 )?  2*y_shift : frame.rows-cropped_roi.y;
 	cropped_roi+=Size(w_crop,h_crop);
-	cout << cropped_roi << reference_roi << endl;
 	reference_roi.x=MIN(x_shift,reference_roi.x);
 	reference_roi.y=MIN(y_shift,reference_roi.y);
 	cropped_frame=frame(cropped_roi);
@@ -301,12 +280,12 @@ void CPU_LR_HOGDetector::train()
 	VectorXd weights = this->logistic_regression.getWeights();
 	VectorXd bias(1);
 	bias << this->logistic_regression.getBias();
-	tools.writeToCSVfile("INRIA_Model_weights.csv", weights);
-	tools.writeToCSVfile("INRIA_Model_means.csv", this->logistic_regression.featureMean.transpose());
-	tools.writeToCSVfile("INRIA_Model_stds.csv", this->logistic_regression.featureStd.transpose());
-	tools.writeToCSVfile("INRIA_Model_maxs.csv", this->logistic_regression.featureMax.transpose());
-	tools.writeToCSVfile("INRIA_Model_mins.csv", this->logistic_regression.featureMin.transpose());
-	tools.writeToCSVfile("INRIA_Model_bias.csv", bias);
+	tools.writeToCSVfile("Model_weights.csv", weights);
+	tools.writeToCSVfile("Model_means.csv", this->logistic_regression.featureMean.transpose());
+	tools.writeToCSVfile("Model_stds.csv", this->logistic_regression.featureStd.transpose());
+	tools.writeToCSVfile("Model_maxs.csv", this->logistic_regression.featureMax.transpose());
+	tools.writeToCSVfile("Model_mins.csv", this->logistic_regression.featureMin.transpose());
+	tools.writeToCSVfile("Model_bias.csv", bias);
 }
 
 

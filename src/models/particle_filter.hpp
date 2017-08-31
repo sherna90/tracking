@@ -17,8 +17,6 @@
 #include <chrono>
 
 
-#include "../likelihood/gaussian.hpp"
-#include "../likelihood/multivariate_gaussian.hpp"
 #include "../utils/utils.hpp"
 #include "../detector/CPU_LR_hog_detector.hpp"
 
@@ -50,7 +48,7 @@ class particle_filter {
 public:
     int n_particles;
     vector<particle> states;
-    vector<float>  weights;
+    vector<double>  weights;
     ~particle_filter();
     particle_filter(int _n_particles);
     particle_filter();
@@ -63,15 +61,20 @@ public:
     void predict();
     void update(Mat& image);
 
+
 protected:
-    float marginal_likelihood;
+    double resample();
+    double marginal_likelihood;
     vector<VectorXd> theta_x;
     vector<VectorXd> theta_y;
-    float ESS;
+    double ESS;
     bool initialized;
     mt19937 generator;
     normal_distribution<double> position_random_walk,velocity_random_walk,scale_random_walk;
     double eps;
+    Rect reference_roi;
+    Size frame_size;
+    CPU_LR_HOGDetector detector;
 };
 
 #endif

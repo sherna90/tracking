@@ -66,12 +66,11 @@ public:
 	void draw();
 	MatrixXd getFeatures();
 	Args args;
-	VectorXd getDetectionWeights();
 	void saveToCSV(string name, bool append = true);
 	void loadFeatures(MatrixXd features, VectorXd labels);
 	virtual MatrixXd getFeatureValues(Mat &current_frame){
-		MatrixXd void_features;
-		return void_features;
+	MatrixXd void_features;
+	return void_features;
 	};
 protected:
 	MatrixXd feature_values;
@@ -80,7 +79,7 @@ protected:
 	int n_descriptors, n_data;
 	vector<Rect> detections;
 	VectorXd labels;
-	VectorXd weights, penalty_weights;
+	vector<double> weights;
 	Mat frame;
 	C_utils tools;
 	mt19937 generator;

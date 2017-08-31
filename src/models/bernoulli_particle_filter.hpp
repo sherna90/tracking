@@ -61,11 +61,11 @@ private:
 	vector<Rect> estimates;
 	//VectorXd weights;
 	vector<VectorXd> theta_x;
-	Size img_size;
+	Size frame_size;
 	mt19937 generator;
 	float ESS;
 	//vector<Rect> sampleBox; 
-	vector<Rect> dppResults;
+	vector<Rect> observations;
 	double existence_prob, new_existence_prob;
 	CPU_LR_HOGDetector detector;
 };

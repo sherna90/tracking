@@ -53,7 +53,6 @@ bool BernoulliParticleFilter::is_initialized(){
 }
 
 void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect ground_truth){
-	vector<Rect> sample_boxes;
 	this->img_size = current_frame.size();
 
 	normal_distribution<double> position_random_x(0.0, this->theta_x.at(0)(0));
@@ -71,7 +70,6 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
 	int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
 	this->reference_roi = Rect(left, top, right - left, bottom - top);
-	//sample_boxes.push_back(this->reference_roi);
 	if ( (this->reference_roi.width > 0)
 		&& ((this->reference_roi.x + this->reference_roi.width) < this->img_size.width)
 		&& (this->reference_roi.height > 0)
@@ -126,7 +124,6 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 			//cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << "\tweight: " << weight << endl;
 			this->states.push_back(state);
 			this->weights.push_back(weight);
-			sample_boxes.push_back(Rect(state.x,state.y,state.width,state.height));
 		}
 
 	Mat current_frame_copy;

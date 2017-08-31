@@ -47,81 +47,84 @@ void particle_filter::reinitialize() {
 }
 
 void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
+    normal_distribution<double> position_random_x(0.0, this->theta_x.at(0)(0));
+    normal_distribution<double> position_random_y(0.0, this->theta_x.at(0)(1));
+
     normal_distribution<double> negative_random_pos(0.0,20.0);
-    normal_distribution<double> position_random_x(0.0,theta_x.at(0)(0));
-    normal_distribution<double> position_random_y(0.0,theta_x.at(0)(1));
-    normal_distribution<double> scale_random_width(0.0,theta_x.at(1)(0));
-    normal_distribution<double> scale_random_height(0.0,theta_x.at(1)(1));
-    marginal_likelihood=0.0;
-    vector<Rect> negativeBox;
-    states.clear();
-    weights.clear();
-    estimates.clear();
-    sampleBox.clear();
-    estimates.push_back(ground_truth);
-    im_size=current_frame.size();
+
+    this->states.clear();
+    this->weights.clear();
+    //this->weights = VectorXd::Ones(this->n_particles) * log(1.0/(this->n_particles));
+    double weight = 1.0f/this->n_particles;
+
     int left = MAX(ground_truth.x, 1);
     int top = MAX(ground_truth.y, 1);
     int right = MIN(ground_truth.x + ground_truth.width, current_frame.cols - 1);
     int bottom = MIN(ground_truth.y + ground_truth.height, current_frame.rows - 1);
-    reference_roi=Rect(left, top, right - left, bottom - top);
-    if(reference_roi.width>0 && (reference_roi.x+reference_roi.width)<im_size.width && 
-        reference_roi.height>0 && (reference_roi.y+reference_roi.height)<im_size.height){
-        marginal_likelihood=0.0;
-        float weight=log(1.0/n_particles);
-        for (int i=0;i<n_particles;i++){
+    this->reference_roi = Rect(left, top, right - left, bottom - top);
+    if ( (this->reference_roi.width > 0)
+        && ((this->reference_roi.x + this->reference_roi.width) < this->img_size.width)
+        && (this->reference_roi.height > 0)
+        && ((this->reference_roi.y + this->reference_roi.height) < this->img_size.height) )
+    {
+        for (int i = 0; i < this->n_particles; ++i)
+        {
             particle state;
-            float _x,_y,_width,_height;
-            float _dx=position_random_x(generator);
-            float _dy=position_random_y(generator);
-            //float _dw=scale_random_width(generator);
-            //float _dh=scale_random_height(generator);
-            _x=MIN(MAX(cvRound(reference_roi.x+_dx),0),im_size.width);
-            _y=MIN(MAX(cvRound(reference_roi.y+_dy),0),im_size.height);
-            _width=MIN(MAX(cvRound(reference_roi.width),10.0),im_size.width);
-            _height=MIN(MAX(cvRound(reference_roi.height),10.0),im_size.height);
-            //_width=MIN(MAX(cvRound(state.width+state.scale),0),im_size.width);
-            //_height=MIN(MAX(cvRound(state.height+state.scale),0),im_size.height);
-            if( (_x+_width)<im_size.width 
-                && _x>0 
-                && (_y+_height)<im_size.height 
-                && _y>0 
-                && _width<im_size.width 
-                && _height<im_size.height 
-                && _width>0 && _height>0){
-                state.x_p=reference_roi.x;
-                state.y_p=reference_roi.y;
-                state.width_p=reference_roi.width;
-                state.height_p=reference_roi.height;
-                state.x=_x;
-                state.y=_y;
-                state.width=_width;
-                state.height=_height;
-                state.scale_p=state.scale;
-                state.scale=1.0;
-            }
-            else{
-                state.x=reference_roi.x;
-                state.y=reference_roi.y;
-                state.width=cvRound(reference_roi.width);
-                state.height=cvRound(reference_roi.height);
-                state.x_p=reference_roi.x;
-                state.y_p=reference_roi.y;
-                state.width_p=cvRound(reference_roi.width);
-                state.height_p=cvRound(reference_roi.height);
-                state.scale=1.0;
-            }
-            states.push_back(state);
-            weights.push_back(weight);
-            ESS=0.0f;     
-        }
-        this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD, this->reference_roi);
-        this->detector.train(current_frame_copy, this->reference_roi);
-        this->initialized = true;
-        cout << "initialized!!!" << endl;
-        initialized=true;    
-    }
+            float _x, _y, _width, _height;
+            float _dx = position_random_x(this->generator);
+            float _dy = position_random_y(this->generator);
 
+            _x = MIN(MAX(cvRound(this->reference_roi.x + _dx), 0), this->img_size.width);
+            _y = MIN(MAX(cvRound(this->reference_roi.y + _dy), 0), this->img_size.height);
+            _width = MIN(MAX(cvRound(this->reference_roi.width), 10.0), this->img_size.width);
+            _height = MIN(MAX(cvRound(this->reference_roi.height), 10.0), this->img_size.height);
+
+            if ( ((_x + _width) < this->img_size.width)
+                && (_x > 0)
+                && ((_y + _height) < this->img_size.height)
+                && (_y > 0)
+                && (_width < this->img_size.width)
+                && (_height < this->img_size.height)
+                && (_width > 0)
+                && (_height > 0) )
+            {
+                state.x_p = this->reference_roi.x;
+                state.y_p = this->reference_roi.y;
+                state.width_p = this->reference_roi.width;
+                state.height_p = this->reference_roi.height;
+                state.scale_p = state.scale;
+
+                state.x = _x;
+                state.y = _y;
+                state.width = _width;
+                state.height = _height;
+                state.scale = 1.0;
+            }
+            else
+            {
+                state.x_p = this->reference_roi.x;
+                state.y_p = this->reference_roi.y;
+                state.width_p = cvRound(this->reference_roi.width);
+                state.height_p = cvRound(this->reference_roi.height);
+
+                state.x = this->reference_roi.x;
+                state.y = this->reference_roi.y;
+                state.width = cvRound(this->reference_roi.width);
+                state.height = cvRound(this->reference_roi.height);
+                state.scale = 1.0;
+            }
+            //cout << "x: " << state.x << "\ty: " << state.y << "\twidth: " << state.width << "\theight: " << state.height << "\tweight: " << weight << endl;
+            this->states.push_back(state);
+            this->weights.push_back(weight);
+        }
+
+    Mat current_frame_copy;
+    current_frame.copyTo(current_frame_copy);
+    this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD, this->reference_roi);
+    this->detector.train(current_frame_copy, this->reference_roi);
+    this->initialized = true;
+    cout << "initialized!!!" << endl;
+    }
 }
 
 void particle_filter::predict(){

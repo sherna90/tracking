@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/sergio/code/cpp/kcf/src/piotr_fhog/gradientMex.cpp" "/home/sergio/code/cpp/kcf/src/piotr_fhog/CMakeFiles/fhog.dir/gradientMex.cpp.o"
+  "/home/sergio/code/cpp/tracking/src/libs/piotr_fhog/gradientMex.cpp" "/home/sergio/code/cpp/tracking/src/libs/piotr_fhog/CMakeFiles/fhog.dir/gradientMex.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

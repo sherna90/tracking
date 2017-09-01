@@ -322,7 +322,8 @@ VectorXd CPU_LR_HOGDetector::genHog(Mat &frame)
 	vector<double> features(temp_features.begin(), temp_features.end());
 	double* ptr = &features[0];
 	Map<VectorXd> hogFeatures(ptr, this->hog.getDescriptorSize());
-	hogFeatures.normalize();
+	//hogFeatures.normalize();
+	
 	return hogFeatures;
 }
 

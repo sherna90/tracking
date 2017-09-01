@@ -1,3 +1,3 @@
-/home/sergio/code/cpp/kcf/src/piotr_fhog/CMakeFiles/edit_cache.dir
-/home/sergio/code/cpp/kcf/src/piotr_fhog/CMakeFiles/rebuild_cache.dir
-/home/sergio/code/cpp/kcf/src/piotr_fhog/CMakeFiles/fhog.dir
+/home/sergio/code/cpp/tracking/src/libs/piotr_fhog/CMakeFiles/edit_cache.dir
+/home/sergio/code/cpp/tracking/src/libs/piotr_fhog/CMakeFiles/rebuild_cache.dir
+/home/sergio/code/cpp/tracking/src/libs/piotr_fhog/CMakeFiles/fhog.dir

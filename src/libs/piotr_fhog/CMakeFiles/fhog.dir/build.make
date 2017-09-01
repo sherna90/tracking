@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/sergio/code/cpp/kcf/src/piotr_fhog
+CMAKE_SOURCE_DIR = /home/sergio/code/cpp/tracking/src/libs/piotr_fhog
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/sergio/code/cpp/kcf/src/piotr_fhog
+CMAKE_BINARY_DIR = /home/sergio/code/cpp/tracking/src/libs/piotr_fhog
 
 # Include any dependencies generated for this target.
 include CMakeFiles/fhog.dir/depend.make
@@ -59,16 +59,16 @@ include CMakeFiles/fhog.dir/flags.make
 
 CMakeFiles/fhog.dir/gradientMex.cpp.o: CMakeFiles/fhog.dir/flags.make
 CMakeFiles/fhog.dir/gradientMex.cpp.o: gradientMex.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/sergio/code/cpp/kcf/src/piotr_fhog/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/fhog.dir/gradientMex.cpp.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/fhog.dir/gradientMex.cpp.o -c /home/sergio/code/cpp/kcf/src/piotr_fhog/gradientMex.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/sergio/code/cpp/tracking/src/libs/piotr_fhog/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/fhog.dir/gradientMex.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/fhog.dir/gradientMex.cpp.o -c /home/sergio/code/cpp/tracking/src/libs/piotr_fhog/gradientMex.cpp
 
 CMakeFiles/fhog.dir/gradientMex.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/fhog.dir/gradientMex.cpp.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sergio/code/cpp/kcf/src/piotr_fhog/gradientMex.cpp > CMakeFiles/fhog.dir/gradientMex.cpp.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sergio/code/cpp/tracking/src/libs/piotr_fhog/gradientMex.cpp > CMakeFiles/fhog.dir/gradientMex.cpp.i
 
 CMakeFiles/fhog.dir/gradientMex.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/fhog.dir/gradientMex.cpp.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sergio/code/cpp/kcf/src/piotr_fhog/gradientMex.cpp -o CMakeFiles/fhog.dir/gradientMex.cpp.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sergio/code/cpp/tracking/src/libs/piotr_fhog/gradientMex.cpp -o CMakeFiles/fhog.dir/gradientMex.cpp.s
 
 CMakeFiles/fhog.dir/gradientMex.cpp.o.requires:
 
@@ -91,7 +91,7 @@ fhog_EXTERNAL_OBJECTS =
 libfhog.a: CMakeFiles/fhog.dir/gradientMex.cpp.o
 libfhog.a: CMakeFiles/fhog.dir/build.make
 libfhog.a: CMakeFiles/fhog.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/sergio/code/cpp/kcf/src/piotr_fhog/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX static library libfhog.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/sergio/code/cpp/tracking/src/libs/piotr_fhog/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX static library libfhog.a"
 	$(CMAKE_COMMAND) -P CMakeFiles/fhog.dir/cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/fhog.dir/link.txt --verbose=$(VERBOSE)
 
@@ -109,6 +109,6 @@ CMakeFiles/fhog.dir/clean:
 .PHONY : CMakeFiles/fhog.dir/clean
 
 CMakeFiles/fhog.dir/depend:
-	cd /home/sergio/code/cpp/kcf/src/piotr_fhog && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/sergio/code/cpp/kcf/src/piotr_fhog /home/sergio/code/cpp/kcf/src/piotr_fhog /home/sergio/code/cpp/kcf/src/piotr_fhog /home/sergio/code/cpp/kcf/src/piotr_fhog /home/sergio/code/cpp/kcf/src/piotr_fhog/CMakeFiles/fhog.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/sergio/code/cpp/tracking/src/libs/piotr_fhog && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/sergio/code/cpp/tracking/src/libs/piotr_fhog /home/sergio/code/cpp/tracking/src/libs/piotr_fhog /home/sergio/code/cpp/tracking/src/libs/piotr_fhog /home/sergio/code/cpp/tracking/src/libs/piotr_fhog /home/sergio/code/cpp/tracking/src/libs/piotr_fhog/CMakeFiles/fhog.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/fhog.dir/depend
 

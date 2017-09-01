@@ -7,6 +7,7 @@ LogisticRegression::LogisticRegression(){
 }
 
 void LogisticRegression::init(bool _normalization, bool _standardization,bool _with_bias){
+	std::setprecision(10);
 	this->normalization=_normalization;
 	this->standardization=_standardization;
 	this->with_bias = _with_bias;
@@ -41,8 +42,8 @@ VectorXd LogisticRegression::sigmoid(VectorXd &eta){
 	VectorXd phi =eta.unaryExpr([](double elem) 
 	{
 		double eps= numeric_limits<double>::epsilon();
-	    double p= (elem>0) ? 1.0/(1.0+exp(-elem)) : exp(elem)/(1.0+exp(elem));
-	    p= max(eps,min(p,1.0-eps));
+		double p= (elem>0) ? 1.0f/(1.0f+exp(-elem)) : exp(elem)/(1.0f+exp(elem));
+	    //p= max(eps,min(p,1.0-eps));
 	    return p;
 	});
 	return phi;

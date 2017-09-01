@@ -57,10 +57,10 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
 
 vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 {
-	cout << "-----------------------" << endl;
+	//cout << "-----------------------" << endl;
 	Mat cropped_frame,current_frame;
-	int x_shift=50;
-	int y_shift=50;
+	int x_shift=100;
+	int y_shift=100;
 	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
 	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
 	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);
@@ -145,9 +145,9 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	}
 	string name2= to_string(this->num_frame)+"_detections_nms.png";
 	imwrite(name2, cropped_frame); 
-	cout << "Frame : " << this->num_frame << endl; 
-	cout << "raw_detections: " << raw_detections.size() << endl; 
-	cout << "detections: " << detections.size() << endl;
+	//cout << "Frame : " << this->num_frame << endl; 
+	//cout << "raw_detections: " << raw_detections.size() << endl; 
+	//cout << "detections: " << detections.size() << endl;
 	this->num_frame++; 
 	return this->detections;
 }
@@ -192,7 +192,7 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
         	putText(current_frame, disp, Point(col+5, row+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
 			rectangle( current_frame, current_window, Scalar(0,0,255), 1, LINE_8  );
 		}	
-		cout << "-----------------------" << endl;
+		//cout << "-----------------------" << endl;
 		string name= to_string(this->num_frame)+"_particle_filter.png";
 		imwrite(name, current_frame);
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
@@ -203,6 +203,7 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 
 void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 {
+	cout << reference_roi << endl;
 	Mat cropped_frame,current_frame;
 	int x_shift=50;
 	int y_shift=50;

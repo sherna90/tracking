@@ -266,6 +266,7 @@ void particle_filter::update(Mat& image)
     for (size_t i = 0; i < this->states.size(); ++i){
             this->weights[i]+=log(tmp_weights[i]);
     }
+    //this->detector.train(current_frame,update_roi);
     this->resample();
 
 }

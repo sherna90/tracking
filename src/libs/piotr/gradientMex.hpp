@@ -46,6 +46,7 @@ TODO:
 #include <opencv2/opencv.hpp>
 #include "feature_channels.hpp"
 #include "wrappers.hpp"
+#include <vector>
 
 namespace piotr {
     void fhog(float * const M, float * const O,
@@ -56,10 +57,11 @@ namespace piotr {
     void gradMag(float * const I, float * const M,
         float * const O, int h, int w, int d, bool full);
 
-    template<typename PRIMITIVE_TYPE>
+template<typename PRIMITIVE_TYPE>
     void fhogToCol(const cv::Mat& img, cv::Mat& cvFeatures,
         int binSize, int colIdx, PRIMITIVE_TYPE cosFactor)
     {
+        ///cvFeatures.clear();
         const int orientations = 9;
         // ensure array is continuous
         const cv::Mat& image = (img.isContinuous() ? img : img.clone());
@@ -69,11 +71,10 @@ namespace piotr {
         int height = image.rows;
         int widthBin = width / binSize;
         int heightBin = height / binSize;
-
-        CV_Assert(channels == 1 || channels == 3);
-        CV_Assert(cvFeatures.channels() == 1 && cvFeatures.isContinuous());
-
-        float* const H = (float*)wrCalloc(static_cast<size_t>(widthBin * heightBin * computeChannels), sizeof(float));
+        //CV_Assert(channels == 1 || channels == 3);
+        //CV_Assert(cvFeatures.channels() == 1 && cvFeatures.isContinuous());
+        int descriptor_size=widthBin * heightBin * (channels*orientations+5);
+        float* const H = (float*)wrCalloc(static_cast<size_t>(descriptor_size), sizeof(float));
         float* const I = (float*)wrCalloc(static_cast<size_t>(width * height * channels), sizeof(float));
         float* const M = (float*)wrCalloc(static_cast<size_t>(width * height), sizeof(float));
         float* const O = (float*)wrCalloc(static_cast<size_t>(width * height), sizeof(float));
@@ -102,16 +103,21 @@ namespace piotr {
         // calc fhog in col major
         gradMag(I, M, O, height, width, channels, true);
         fhog(M, O, H, height, width, binSize, orientations, -1, 0.2f);
+        cvFeatures=cv::Mat::zeros(1,descriptor_size, CV_32FC1);
+        for(int j=0;j<descriptor_size;j++){
+            //std::cout << H[j] << ",";
+            cvFeatures.at<float>(0,j)=H[j];
+        }
 
         // the order of rows in cvFeatures does not matter
         // as long as it is the same for all columns;
         // zero channel is not copied as it is the last
         // channel in H and cvFeatures rows doesn't include it
-        PRIMITIVE_TYPE* cdata = reinterpret_cast<PRIMITIVE_TYPE*>(cvFeatures.data);
+        /*PRIMITIVE_TYPE* cdata = reinterpret_cast<PRIMITIVE_TYPE*>(cvFeatures.data);
         int outputWidth = cvFeatures.cols;
 
         for (int row = 0; row < cvFeatures.rows; ++row)
-            cdata[outputWidth*row + colIdx] = H[row] * cosFactor;
+            cdata[outputWidth*row + colIdx] = H[row] * cosFactor;*/
 
         wrFree(H);
         wrFree(M);
@@ -133,8 +139,8 @@ namespace piotr {
         int widthBin = width / binSize;
         int heightBin = height / binSize;
 
-        CV_Assert(channels == 1 || channels == 3);
-        CV_Assert(cvFeatures.channels() == 1 && cvFeatures.isContinuous());
+        //CV_Assert(channels == 1 || channels == 3);
+        //CV_Assert(cvFeatures.channels() == 1 && cvFeatures.isContinuous());
 
         float* const H = (float*)wrCalloc(static_cast<size_t>(widthBin * heightBin * computeChannels), sizeof(float));
         float* const M = (float*)wrCalloc(static_cast<size_t>(width * height), sizeof(float));

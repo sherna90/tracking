@@ -75,6 +75,7 @@ protected:
     Rect reference_roi;
     Size frame_size;
     CPU_LR_HOGDetector detector;
+    double max_prob=0.0;
 };
 
 #endif

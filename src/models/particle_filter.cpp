@@ -6,10 +6,10 @@
 #include "particle_filter.hpp"
 
 #ifndef PARAMS
-const float POS_STD=3.0;
+const float POS_STD=2.0;
 const float SCALE_STD=0.1;
 const float DT=1.0;
-const float THRESHOLD=0.9;
+const float THRESHOLD=1.0;
 #endif
 
 particle_filter::particle_filter() {
@@ -263,10 +263,12 @@ void particle_filter::update(Mat& image)
             samples.push_back(current_state);
     }
     vector<double> tmp_weights=this->detector.detect(current_frame,samples);
+    double max_value = *max_element(tmp_weights.begin(), tmp_weights.end());
     for (size_t i = 0; i < this->states.size(); ++i){
-            this->weights[i]+=log(tmp_weights[i]);
+            this->weights[i]=log(tmp_weights[i]);
     }
-    //this->detector.train(current_frame,update_roi);
+    max_prob=MAX(max_prob,max_value);
+    if(abs(max_value-max_prob)>0.1) this->detector.train(current_frame,update_roi);
     this->resample();
 
 }
@@ -275,9 +277,9 @@ double particle_filter::resample(){
     vector<double> cumulative_sum(n_particles);
     vector<double> normalized_weights(n_particles);
     vector<double> squared_normalized_weights(n_particles);
-    uniform_real_distribution<float> unif_rnd(0.0,1.0); 
-    float max_value = *max_element(weights.begin(), weights.end());
-    float logsumexp=0.0f;
+    uniform_real_distribution<double> unif_rnd(0.0,1.0); 
+    double max_value = *max_element(weights.begin(), weights.end());
+    double logsumexp=0.0f;
     for (int i=0; i<n_particles; i++) {
         normalized_weights.at(i) = exp(weights.at(i)-max_value);
         logsumexp+=normalized_weights.at(i);
@@ -316,9 +318,9 @@ double particle_filter::resample(){
         states.swap(new_states);
         new_states = vector<particle>();
     }
-    else{
-        //weights.swap(log_normalized_weights);
-    }
+    //else{
+    //    weights.swap(log_normalized_weights);
+    //}
     cumulative_sum.clear();
     normalized_weights.clear();
     squared_normalized_weights.clear();

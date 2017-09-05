@@ -1,7 +1,7 @@
 #include "CPU_LR_hog_detector.hpp"
 
 #ifndef PARAMS
-const bool USE_COLOR=false;
+const bool USE_COLOR=true;
 #endif
 
 void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
@@ -9,8 +9,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.resize_src = false;
     args.width = reference_roi.width;
     args.height = reference_roi.height;
-    args.hog_width = 64;
-    args.hog_height = 64;
+    args.hog_width = 32;
+    args.hog_height = 32;
     args.scale = 2;
     args.nlevels = 1;
     args.gr_threshold = group_threshold;
@@ -165,6 +165,7 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 	frame.copyTo(current_frame);
 	this->feature_values=MatrixXd::Zero(samples.size(),this->n_descriptors); //
 	this->weights.clear();
+	double max_prob=0.0;
 	for (int k=0;k<args.nlevels;k++){
 		double scaleMult=pow(args.scale,k);
 		for(int i=0;i<samples.size();i++){
@@ -191,6 +192,7 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 			VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
 			stringstream ss;
         	ss << predict_prob(0);
+        	max_prob=MAX(max_prob,predict_prob(0));
         	//cout << predict_prob(0) << ",";
     		this->feature_values.row(i)=temp_features_matrix.row(0);
 			this->weights.push_back(predict_prob(0));
@@ -204,6 +206,9 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 		imwrite(name, current_frame);
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
 	}
+	cout << "-----------------------" << endl;
+	cout << "Frame : " << this->num_frame << endl; 
+	cout << "max prob: " << max_prob << endl;
 	this->num_frame++;
 	return this->weights;
 }
@@ -276,7 +281,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 		this->logistic_regression.setData(this->feature_values, this->labels);
 	}
 	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
-	this->logistic_regression.train(args.n_iterations, args.epsilon*exp(-this->num_frame), args.tolerance);
+	this->logistic_regression.train((int)args.n_iterations*exp(-this->num_frame), args.epsilon*exp(-this->num_frame), args.tolerance);
 	//exit(0);
 }
 

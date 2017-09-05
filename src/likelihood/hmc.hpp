@@ -28,7 +28,7 @@ public:
 	MatrixXd get_weights();
 	void set_weights(VectorXd &_weights);
 	void set_weightsMatrix(MatrixXd &_weights);
-	virtual void run(bool warmup_flag = false){ cout << "Error, 'run' function, not established" << endl;};
+	virtual void run(bool warmup_flag = false,  bool for_predict = false){ cout << "Error, 'run' function, not established" << endl;};
 	bool initialized = false;
 protected:
 	void warmup();
@@ -51,6 +51,7 @@ protected:
  	MatrixXd data;
  	VectorXd *Y_train;
  	VectorXd mean_weights;
+ 	VectorXd current_x;
  	MVNGaussian multivariate_gaussian;
  	C_utils tools;
 };

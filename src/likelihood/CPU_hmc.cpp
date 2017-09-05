@@ -20,6 +20,7 @@ void CPU_Hamiltonian_MC::init(MatrixXd &_X, VectorXd &_Y, double _lambda, int _w
 	MatrixXd cov = VectorXd::Ones(dim).asDiagonal();
 	this->inv_cov = cov.inverse();
     this->multivariate_gaussian = MVNGaussian(mu, cov);
+    this->current_x = VectorXd::Random(this->dim);
     if (this->warmup_iterations >= 20) this->warmup();
     this->iterations = _iterations;
 
@@ -59,15 +60,13 @@ double CPU_Hamiltonian_MC::logPosterior(VectorXd &W, bool precompute){
 }
 
 
-void CPU_Hamiltonian_MC::run(bool warmup_flag){
-	if (!warmup_flag) cout << "Run" << endl;
+void CPU_Hamiltonian_MC::run(bool warmup_flag, bool for_predict){
+	if (!warmup_flag and !for_predict) cout << "Run" << endl;
 	if (this->init_hmc){	
-
-		//bool accepted_flag = false;
-		this->weights.resize(this->iterations, this->dim);
-
-		VectorXd x = VectorXd::Ones(this->dim);
 		
+		VectorXd x = this->current_x;
+
+		this->weights.resize(this->iterations, this->dim);
 		//Hamiltonian
 		double Hold;
 		double Hnew;
@@ -78,7 +77,7 @@ void CPU_Hamiltonian_MC::run(bool warmup_flag){
 
 		int n = 0;
 		while (n < this->iterations){
-			tools.printProgBar(n, this->iterations);
+			if(!for_predict) tools.printProgBar(n, this->iterations);
 
 			p = initial_momentum();
 
@@ -116,31 +115,31 @@ void CPU_Hamiltonian_MC::run(bool warmup_flag){
 			if (log(random_uniform()) < a ){
 				Eold = Enew;
 				this->accepted++;
-				//accepted_flag = true;
 			}
 			else{
 				x = xold;	
-				//accepted_flag = false;
 			}
-			if (n>=0){
-				this->weights.row(n) = x;
-			}
+			
+			this->weights.row(n) = x;
 
 			this->sampled++;
 
 			n = n+1;
 
 		}
-		cout << endl;
+		this->current_x = x;
+
+		if(!for_predict)cout << endl;
 		this->acceptace_rate();
 		
-		if (!warmup_flag){
+		if (!warmup_flag and !for_predict){
 			int partition = (int)this->iterations*0.5; 
 			this->mean_weights = (this->weights.block(partition,0 ,this->weights.rows()-partition, this->dim)).colwise().mean();
-			//this->mean_weights = this->weights.colwise().mean();
-		}
-		else{
-			//tools.writeToCSVfile("hmc_warmup.csv", this->weights);
+			VectorXd mu = VectorXd::Zero(dim);
+			MatrixXd temp_weights = this->weights.block(partition,0 ,this->weights.rows()-partition, this->dim);
+			MVNGaussian MVG= MVNGaussian(temp_weights);
+			MatrixXd cov = MVG.getCov();
+			this->multivariate_gaussian = MVNGaussian(mu, cov);
 		}
 
 	}
@@ -150,91 +149,38 @@ void CPU_Hamiltonian_MC::run(bool warmup_flag){
 }
 
 
-VectorXd CPU_Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples, bool erf, bool prob_label){
-	/*
-	Predict: 
-		-Predicts (weights = mean matrix weights):
-			Prob:  prob = true, samples = 0 (default), erf = false (default), prob_label = false (default)
-			Label: prob = false (default), samples = 0 (default), erf = false (default), prob_label = false (default)
-		-Assemble predicts: (n latest)
-			Prob(mean): prob = true, samples = n ; n > 0, erf = false (default), prob_label = false (default)
-			Label: prob = false (default), samples = n ; n > 0, erf = false (default), prob_label = true
-			Label to assemble prob: prob = true, samples = n ; n > 0, erf = false (default),  prob_label = true
-		-Assemble Cumulative Gaussian (ERF) predicts: (n latest)
-			Prob: prob = true, samples = n ; n > 0, erf = true, prob_label = false (default)
-			Label (not supported): prob = false, samples = n ; n > 0, erf = true, prob_label = true
-			Label to ERF prob: prob = true, samples = n ; n > 0, erf = true, prob_label = true
-	*/
+VectorXd CPU_Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples){
 
 	VectorXd predict;
 	if (this->init_hmc){
+		this->sampled = 0.0;
+	    this->accepted = 0.0;
 
-		if (samples == 0){
-			VectorXd temp = this->mean_weights.tail(this->mean_weights.rows()-1);
+		MatrixXd temp_predict(samples, X_test.rows());
+		//this->iterations = samples;
+		//this->run(false, true);
+		bool data_processing = true;
+		for (int i = 0; i < samples; ++i){
+			VectorXd W = this->weights.row(this->weights.rows()-1-i);
+			//VectorXd W = this->weights.row(i);
+
+			VectorXd temp = W.tail(W.rows()-1);
 			this->logistic_regression.setWeights(temp);
-			this->logistic_regression.setBias(this->mean_weights(0));
-			predict = this->logistic_regression.predict(X_test, prob);
-			return predict;
+			this->logistic_regression.setBias(W(0));
+			temp_predict.row(i) = this->logistic_regression.predict(X_test, prob, data_processing);
+			data_processing = false;
 		}
-		else{ // Assemble
-			if ( !erf or prob){
-				MatrixXd temp_predict(samples, X_test.rows());
-				MatrixXd temp_weights(samples, this->dim -1);
-				//MatrixXd temp_weights(samples, this->dim);
 
-				bool data_processing = true;
-				for (int i = 0; i < samples; ++i){
+		//cout << temp_predict.transpose() << endl;
+		predict = temp_predict.colwise().mean();
 
-					//int randNum = rand()%(weights.rows()-1 + 1) + 0;
-					//VectorXd W = this->weights.row(randNum);
-
-					VectorXd W = this->weights.row(this->weights.rows()-1-i);
-					if (erf){
-						temp_weights.row(i) = W.tail(W.rows()-1); //bias?
-						//temp_weights.row(i) = W;
-					}
-					else{
-						VectorXd temp = W.tail(W.rows()-1);
-						this->logistic_regression.setWeights(temp);
-						this->logistic_regression.setBias(W(0));
-						temp_predict.row(i) = this->logistic_regression.predict(X_test, prob, data_processing);
-						data_processing = false;
-					}
-				}
-				
-				if (erf){
-					this->mean_weights = temp_weights.colwise().mean();
-					MVNGaussian MVG= MVNGaussian(temp_weights);
-					MatrixXd covariate = MVG.getCov();
-					predict = this->cumGauss(this->mean_weights, X_test, covariate);
-
-					if (prob_label){
-						predict.noalias() = predict.unaryExpr([](double elem){
-							return (elem > 0.5) ? 1.0 : 0.0;
-						});
-					}
-				}
-				else {
-
-					predict = temp_predict.colwise().mean();
-
-					if (prob_label){
-						predict.noalias() = predict.unaryExpr([](double elem){
-	    					return (elem > 0.5) ? 1.0 : 0.0;
-						});
-					}
-
-				}
-
-				return predict;
-
-			}
-			else{
-				cout << "Error: Not supported configuration"<< endl;
-				return predict;
-			}
-			
+		if (!prob){
+			predict.noalias() = predict.unaryExpr([](double elem){
+				return (elem > 0.5) ? 1.0 : 0.0;
+			});
 		}
+
+		return predict;
 		
 	}
 	else{
@@ -242,6 +188,8 @@ VectorXd CPU_Hamiltonian_MC::predict(MatrixXd &X_test, bool prob, int samples, b
 		return predict;
 	}
 }
+
+
 
 void CPU_Hamiltonian_MC::getModel(VectorXd& weights, VectorXd& featureMean, VectorXd& featureStd, VectorXd& featureMax, VectorXd& featureMin, double& bias){
 	weights = this->mean_weights.tail(this->mean_weights.rows()-1);

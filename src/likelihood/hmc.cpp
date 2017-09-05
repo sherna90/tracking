@@ -17,13 +17,11 @@ void Hamiltonian_MC::warmup(){
 	    MatrixXd temp_weights = this->weights.block(int(this->weights.rows()/10),0,this->weights.rows()- int(this->weights.rows()/10),this->weights.cols());
 	    MVNGaussian MVG= MVNGaussian(temp_weights);
 		MatrixXd cov = MVG.getCov();
-		//MatrixXd centered = temp_weights.rowwise() - temp_weights.colwise().mean();
-		//MatrixXd cov = (centered.adjoint() * centered) / double(temp_weights.rows() - 1);
 		this->multivariate_gaussian = MVNGaussian(mu, cov);
 		this->inv_cov = cov.inverse();
 		int partition = (int)this->warmup_iterations*0.5;
 		this->mean_weights = (this->weights.block(partition,0 ,this->weights.rows()-partition, this->dim)).colwise().mean();
-		//this->mean_weights = this->weights.colwise().mean();
+		this->current_x = VectorXd::Random(this->dim);
 	}
 }
 

@@ -29,7 +29,7 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.overlap_threshold=0.9;
     args.p_accept = 0.99;
     args.lambda = 10.0;
-    args.epsilon= 0.05;
+    args.epsilon= 0.99;
     args.tolerance = 1e-1;
     args.n_iterations = 1e3;
     args.padding = 8;
@@ -128,7 +128,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 			}	
 		}
 		//rectangle( resized_frame, reference_roi, Scalar(255,255,255), 2, LINE_8  );
-		cout << "max prob: " << max_prob << endl;
+		cout << "max prob: " << max_prob << "," << this->weights.size() << endl;
 		string name= to_string(this->num_frame)+"_detections_raw.png";
 		imwrite(name, current_frame);
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
@@ -137,7 +137,9 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		nms2(raw_detections,this->weights,this->detections, args.gr_threshold, 0);
 		//DPP dpp = DPP();
 		//VectorXd qualityTerm;
-		//this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
+		//double* ptr = &this->weights[0];
+		//Map<VectorXd> eigen_weights(ptr,this->weights.size());
+		//this->detections = dpp.run(raw_detections,eigen_weights, eigen_weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
  	}
 	else {
 		for (unsigned int i = 0; i < raw_detections.size(); ++i)
@@ -156,7 +158,6 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	//cout << "detections: " << detections.size() << endl;
 	this->num_frame++; 
 	return this->detections;
-	exit(0);
 }
 
 vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
@@ -281,7 +282,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 		this->logistic_regression.setData(this->feature_values, this->labels);
 	}
 	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
-	this->logistic_regression.train((int)args.n_iterations*exp(-this->num_frame), args.epsilon*exp(-this->num_frame), args.tolerance);
+	this->logistic_regression.train((int)args.n_iterations, args.epsilon, args.tolerance);
 	//exit(0);
 }
 

@@ -39,6 +39,7 @@ class LogisticRegression
 	VectorXd eta,phi;
 	VectorXd train_mask;
  	VectorXd test_mask;
+ 	VectorXd momemtum;
  	int rows,dim;
  	double lambda,bias,grad_bias;
  	bool normalization, standardization, with_bias;

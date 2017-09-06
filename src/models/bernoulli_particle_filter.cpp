@@ -282,7 +282,11 @@ void BernoulliParticleFilter::update(const Mat& image){
         	samples.push_back(current_state);
 	}
 	this->observations = this->detector.detect(current_frame,update_roi);
-	//this->detector.train(current_frame,update_roi);
+	/*if(this->observations.size()>0){
+		vector<double> detection_weights=this->detector.getWeights();
+		double max_prob= *max_element(detection_weights.begin(), detection_weights.end());
+		if (max_prob>0.5) this->detector.train(current_frame,update_roi);
+	}*/
 	/*//MatrixXd featureValues = this->detector.getFeatureValues();
 	//VectorXd phi = this->detector.getDetectionWeights();
 	//cout << phi.rows() << "," << featureValues.rows() << endl;

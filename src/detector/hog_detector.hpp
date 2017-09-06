@@ -65,6 +65,7 @@ public:
 	void dataClean();
 	void draw();
 	MatrixXd getFeatures();
+    vector<double>  getWeights();
 	Args args;
 	void saveToCSV(string name, bool append = true);
 	void loadFeatures(MatrixXd features, VectorXd labels);

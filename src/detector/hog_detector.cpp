@@ -44,6 +44,10 @@ MatrixXd HOGDetector::getFeatures()
 	return this->feature_values;
 }
 
+vector<double> HOGDetector::getWeights()
+{
+	return this->weights;
+}
 
 void HOGDetector::saveToCSV(string name, bool append){
 	tools.writeToCSVfile(name+"_values.csv", this->feature_values, append);

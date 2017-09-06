@@ -19,7 +19,7 @@ public:
 	/*vector<Rect> run(vector<Rect> preDetections, VectorXd &detectionWeights,VectorXd &penaltyWeights,MatrixXd &featureValues,
 	 double alpha, double lambda, double beta, double mu, double epsilon);*/
 	vector<Rect> run(vector<Rect> preDetections, VectorXd &detectionWeights,VectorXd &penaltyWeights, MatrixXd &featureValues,
-		VectorXd &qualityTermResults, double lambda, double mu, double epsilon);
+	VectorXd &qualityTermResults, double lambda, double mu, double epsilon);
 	VectorXd likelihood(VectorXd &qualityTerm, MatrixXd &similarityTerm);
 
 private:
@@ -29,7 +29,7 @@ private:
 	MatrixXd squared_exponential_kernel(MatrixXd X, double nu, double sigma_f);
 };
 
-template<class ArgType, class RowIndexType, class ColIndexType>
+/*template<class ArgType, class RowIndexType, class ColIndexType>
 class indexing_functor {
 	const ArgType &m_arg;
 	const RowIndexType &m_rowIndices;
@@ -87,5 +87,5 @@ inline typename MatrixType::Scalar logdet(const MatrixType& M) {
 	}
   return ld;
 }
-
+*/
 #endif

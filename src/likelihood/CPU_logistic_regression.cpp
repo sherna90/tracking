@@ -6,13 +6,15 @@ VectorXd CPU_LogisticRegression::train(int n_iter,double alpha,double tol){
 		tools.printProgBar(i, n_iter);
 		this->preCompute();
 		log_likelihood(i)=-this->logPosterior();
+		//cout << "iteration :   " << i << " | loss : " << log_likelihood(i) << endl;
 		VectorXd gradient=this->computeGradient();
-		//if( (n_iter/10 % 0)==0) cout << "iteration :   " << i << " | loss : " << log_likelihood(i) << " | Gradient : " <<this->grad_bias  << ","<< gradient.transpose() << endl;
+		//if( (n_iter/10 % 0)==0) cout << "iteration :   " << i << " | loss : " << log_likelihood(i) << " | Gradient : " <<this->grad_bias  << ","<< gradient.sum() << endl;
 		//cout << "iteration :   " << i << " | Weights : " << this->weights.transpose() << endl;
 		this->weights-=alpha*gradient;
 		if(this->with_bias) this->bias-=alpha*this->grad_bias;
 	}
 	cout << endl;
+	//exit(0);
 	return log_likelihood;
 }
 

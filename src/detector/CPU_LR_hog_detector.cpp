@@ -19,8 +19,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.win_width = args.width ;
     args.test_stride_width = 15;
     args.test_stride_height = 15;
-    args.train_stride_width = 1;
-    args.train_stride_height = 1;
+    args.train_stride_width = 2;
+    args.train_stride_height = 2;
     args.block_width = 16;
     args.block_stride_width = 8;
     args.block_stride_height = 8;
@@ -29,7 +29,7 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.overlap_threshold=0.9;
     args.p_accept = 0.99;
     args.lambda = 10.0;
-    args.epsilon= 1e-3;
+    args.epsilon= 0.05;
     args.tolerance = 1e-1;
     args.n_iterations = 1e3;
     args.padding = 8;
@@ -134,7 +134,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
 	}
 	if(this->args.gr_threshold > 0) {
-		nms(raw_detections,this->detections, args.gr_threshold, 0);
+		nms2(raw_detections,this->weights,this->detections, args.gr_threshold, 0);
 		//DPP dpp = DPP();
 		//VectorXd qualityTerm;
 		//this->detections = dpp.run(raw_detections,this->weights, this->weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
@@ -333,7 +333,7 @@ VectorXd CPU_LR_HOGDetector::genHog(Mat &frame)
 			
 	//vector<float> temp_features;
 	//this->hog.compute(current_frame, temp_features);
-	//current_frame *= 0.003921568627451; // patchResizedFloat /= 255;
+	current_frame *= 255; // patchResizedFloat /= 255;
 	piotr::fhogToCol(current_frame,mat_hog_features,8,0,0);
 	//vector<double> features(temp_features.begin(), temp_features.end());
 	//double* ptr = &features[0];
@@ -360,7 +360,7 @@ VectorXd CPU_LR_HOGDetector::genRawPixels(Mat &frame)
     //imwrite("rgb_image.png", frame);
     frame.copyTo(current_frame);
     current_frame.convertTo( current_frame, CV_32FC(3));
-    //current_frame *= 1./255;
+    current_frame *= 255;
     //current_frame *= 0.003921568627451; // patchResizedFloat /= 255;
     cvtColor(current_frame, current_frame, CV_BGR2HSV);
  	//imwrite("cielab_image.png", current_frame);

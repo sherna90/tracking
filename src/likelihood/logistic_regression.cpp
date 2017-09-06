@@ -25,11 +25,11 @@ void LogisticRegression::init(MatrixXd &_X,VectorXd &_Y,double _lambda, bool _no
  	tools.dataPermutation(*this->X_train,*this->Y_train);
  	if(this->normalization) tools.dataNormalization(*this->X_train,this->featureMax,this->featureMin);
  	if(this->standardization) tools.dataStandardization(*this->X_train,this->featureMean,this->featureStd);
- 	if (this->with_bias) this->bias=1.0;
+ 	if (this->with_bias) this->bias=1.0/this->dim;
  	else this->bias=0.0;
  	this->rows = this->X_train->rows();
 	this->dim = this->X_train->cols();
-	this->weights = VectorXd::Random(dim)/this->dim;
+	this->weights =tools.random_generator(dim)/this->dim;
 	this->eta = VectorXd::Zero(this->rows);
 	this->phi = VectorXd::Zero(this->rows);;
 	this->grad_bias = 0.0;
@@ -61,13 +61,17 @@ VectorXd LogisticRegression::sigmoid(VectorXd &eta){
 double LogisticRegression::logLikelihood(){
 	ArrayXd y_array=this->Y_train->array();
 	ArrayXd phi_array=this->phi.array();
+	//VectorXd temp=*this->Y_train-this->phi;
+	//return temp.norm();
+	//cout << "debug:" << phi_array.sum() << "," << y_array.sum() << endl;
 	ArrayXd log_likelihood = y_array*phi_array.log() + ((1.0-y_array)*(1-phi_array).log());
 	return log_likelihood.sum();
 }
 
 double LogisticRegression::logPrior(){
-    double prior = -log(sqrt(2*M_PI))-0.5*log(pow(this->lambda,this->dim))-this->weights.squaredNorm()/(2*this->lambda);
-    if(this->with_bias) prior += -log(sqrt(2*M_PI))-log(sqrt(this->lambda))- pow(this->bias,2)/(2*this->lambda);
+    //double prior = -log(sqrt(2*M_PI))-0.5*log(pow(this->lambda,this->dim))-this->weights.squaredNorm()/(2*this->lambda);
+    double prior = -log(sqrt(2*M_PI))-this->weights.squaredNorm()/(2*this->lambda);
+    if(this->with_bias) prior -=  pow(this->bias,2)/(2*this->lambda);
 	return prior;
 }
 

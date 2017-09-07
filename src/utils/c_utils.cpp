@@ -16,6 +16,101 @@ double C_utils::unif(double min, double max){
   return dis(gen);
 }
 
+Mat C_utils::RGBtoLAB(Mat &frame){
+  int channels = frame.channels();
+  vector<Mat> frameChannels(channels);
+  split(frame, frameChannels); 
+  MatrixXd R, G, B;
+  cv2eigen(frameChannels[0],R);
+  cv2eigen(frameChannels[1],G);
+  cv2eigen(frameChannels[2],B);
+
+  if ((R.maxCoeff() >1.0) or (G.maxCoeff() >1.0) or (B.maxCoeff() >1.0))
+  { 
+    R = R.array()/255.;
+    G = G.array()/255.;
+    B = B.array()/255.;
+  }
+
+  double T = 0.008856;
+  int cols = R.cols();
+  int rows = R.rows();
+  int s = cols * rows;
+
+  MatrixXd RGB(channels,s);
+  RGB.row(0) = Map<VectorXd>(R.data(), s);
+  RGB.row(1) = Map<VectorXd>(G.data(), s);
+  RGB.row(2) = Map<VectorXd>(B.data(), s);
+
+  MatrixXd MAT(3,3);
+  MAT << 0.412453, 0.357580, 0.180423,
+       0.212671, 0.715160, 0.072169,
+       0.019334, 0.119193, 0.950227;
+
+  MatrixXd XYZ = MAT * RGB;
+  VectorXd X = XYZ.row(0).array()/0.950456;
+  VectorXd Y = XYZ.row(1);
+  VectorXd Z = XYZ.row(2).array()/1.088754;
+
+  int Xdim = X.rows();
+  VectorXd XT= VectorXd::Zero(Xdim);
+  VectorXd YT= VectorXd::Zero(Xdim);
+  VectorXd ZT= VectorXd::Zero(Xdim);
+  VectorXd nXT= VectorXd::Zero(Xdim);
+  VectorXd nYT= VectorXd::Zero(Xdim);
+  VectorXd nZT= VectorXd::Zero(Xdim);
+
+  for (int i = 0; i < Xdim; ++i){
+    if(X(i)>T){
+      XT(i) = 1.0;
+    }
+    else{
+      nXT(i) = 1.0;
+    }
+    if(Y(i)>T){
+      YT(i) = 1.0;
+    }
+    else{
+      nYT(i) = 1.0;
+    }
+    if(Z(i)>T){
+      ZT(i) = 1.0;
+    }
+    else{
+      nZT(i) = 1.0;
+    }
+  }
+
+  VectorXd Y3 = Y.array().pow(1./3);
+
+  VectorXd fX = XT.array() * X.array().pow(1./3) + nXT.array() * (7.787 * X.array() + 16./116);
+  VectorXd fY = YT.array() * Y3.array() + nYT.array() * (7.787 * Y.array() + 16./116);
+  VectorXd fZ = ZT.array() * Z.array().pow(1./3) + nZT.array() * (7.787 * Z.array() + 16./116);
+
+  MatrixXd L(cols, rows);
+  VectorXd tempL = (YT.array() * (116. * Y3.array() - 16.0) + nYT.array() * (903.3 * Y.array()))/100.;
+  L = Map<MatrixXd>((tempL).data(), cols, rows);
+  MatrixXd a(cols, rows);
+  VectorXd tempa = ((500. * (fX.array() - fY.array())) *3. +110.)/220.;
+  a = Map<MatrixXd>((tempa).data(), cols, rows);
+  MatrixXd b(cols, rows);
+  VectorXd tempb = ((200. * (fY.array() - fZ.array()))*3. +110.)/220.;
+  b = Map<MatrixXd>((tempb).data(), cols, rows);
+
+  Mat Lab;
+  Mat chL, cha, chb;
+  eigen2cv(L, chL);
+  eigen2cv(a, cha);
+  eigen2cv(b, chb);
+  vector<Mat> LabChannels;
+  LabChannels.push_back(chL);
+  LabChannels.push_back(cha);
+  LabChannels.push_back(chb);
+  merge(LabChannels, Lab);
+
+  return Lab; 
+}
+
 VectorXd C_utils::random_generator(int dimension){
   unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
   mt19937 generator;

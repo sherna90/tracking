@@ -35,6 +35,7 @@ public:
 	C_utils();
 	double unif(double min, double max);
 	VectorXd random_generator(int dimension);
+	Mat RGBtoLAB(Mat &frame);
 	double random_uniform();
 	VectorXd random_binomial(int n, VectorXd prob, int dim);
     void writeToCSVfile(string name, MatrixXd matrix, bool append = false);

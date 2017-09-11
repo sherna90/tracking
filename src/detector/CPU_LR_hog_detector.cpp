@@ -59,8 +59,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
 vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 {
 	Mat cropped_frame,current_frame;
-	int x_shift=50;
-	int y_shift=50;
+	int x_shift=40;
+	int y_shift=40;
 	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
 	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
 	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);

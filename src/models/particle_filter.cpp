@@ -6,7 +6,7 @@
 #include "particle_filter.hpp"
 
 #ifndef PARAMS
-const float POS_STD=2.0;
+const float POS_STD=1.0;
 const float SCALE_STD=0.1;
 const float DT=1.0;
 const float THRESHOLD=1.0;
@@ -265,10 +265,10 @@ void particle_filter::update(Mat& image)
     vector<double> tmp_weights=this->detector.detect(current_frame,samples);
     double max_value = *max_element(tmp_weights.begin(), tmp_weights.end());
     for (size_t i = 0; i < this->states.size(); ++i){
-            this->weights[i]=log(tmp_weights[i]);
+            this->weights[i]+=log(tmp_weights[i]);
     }
     max_prob=MAX(max_prob,max_value);
-    if(abs(max_value-max_prob)>0.1) this->detector.train(current_frame,update_roi);
+    //if(abs(max_value-max_prob)>0.1) this->detector.train(current_frame,update_roi);
     this->resample();
 
 }
@@ -278,15 +278,13 @@ double particle_filter::resample(){
     vector<double> normalized_weights(n_particles);
     vector<double> squared_normalized_weights(n_particles);
     uniform_real_distribution<double> unif_rnd(0.0,1.0); 
-    double max_value = *max_element(weights.begin(), weights.end());
-    double logsumexp=0.0f;
+    double max_value = *max_element(this->weights.begin(), this->weights.end());
+    double sumexp=0.0f;
     for (int i=0; i<n_particles; i++) {
-        normalized_weights.at(i) = exp(weights.at(i)-max_value);
-        logsumexp+=normalized_weights.at(i);
+        sumexp+=exp(weights.at(i)-max_value);
     }
-    Scalar sum_weights=sum(normalized_weights);
     for (int i=0; i<n_particles; i++) {
-        normalized_weights.at(i) = normalized_weights.at(i)/sum_weights[0];
+        normalized_weights.at(i) = exp(this->weights.at(i)-max_value-log(sumexp));
     }
     for (int i=0; i<n_particles; i++) {
         squared_normalized_weights.at(i)=normalized_weights.at(i)*normalized_weights.at(i);
@@ -295,25 +293,27 @@ double particle_filter::resample(){
         } else {
             cumulative_sum.at(i) = cumulative_sum.at(i-1) + normalized_weights.at(i);
         }
-        //cout << " cumsum: " << normalized_weights.at(i) << "," <<cumulative_sum.at(i) << endl;
     }
     Scalar sum_squared_weights=sum(squared_normalized_weights);
-    marginal_likelihood+=max_value+log(sum_weights[0])-log(n_particles); 
+    //marginal_likelihood+=max_value+log(sum_weights[0])-log(n_particles); 
     ESS=1/sum_squared_weights[0]/n_particles;
-    cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood <<  endl;
+    //cout  << "ESS :" << ESS << ",marginal_likelihood :" << marginal_likelihood <<  endl;
     //cout << "resampled particles!" << ESS << endl;
     if(isless(ESS,(float)THRESHOLD)){
         vector<particle> new_states(n_particles);
-        for (int i=0; i<n_particles; i++) {
-            float uni_rand = unif_rnd(generator);
-            vector<double>::iterator pos = lower_bound(cumulative_sum.begin(), cumulative_sum.end(), uni_rand);
-            unsigned int ipos = distance(cumulative_sum.begin(), pos);
-            
-            particle state=states[ipos];
-            
-            //cout << "x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
+        int i=0;
+        while (i<n_particles) {
+            double uni_rand = unif_rnd(generator);
+            int ipos=0;
+            while(cumulative_sum.at(ipos)<uni_rand) {
+                //cout << ipos << ","<< cumulative_sum.at(ipos) << "," << uni_rand << endl;
+                ipos++;
+            }
+            particle state=states.at(ipos);
+            //cout << "pos:" << ipos << ", x:" << state.x << ",y:" << state.y <<",w:" << state.width <<",h:" << state.height << endl;
             new_states[i]=state;
-            weights[i]=log(1.0f/n_particles);
+            weights[i]=1.0f/n_particles;
+            i++;
         }
         states.swap(new_states);
         new_states = vector<particle>();

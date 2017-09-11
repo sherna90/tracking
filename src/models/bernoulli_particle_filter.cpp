@@ -1,7 +1,7 @@
 #include "bernoulli_particle_filter.hpp"
 
 #ifndef PARAMS
-const float POS_STD = 2.0;
+const float POS_STD = 1.0;
 const float SCALE_STD = 0.1;
 const float OVERLAP_RATIO = 0.8;
 const float THRESHOLD = 1000;
@@ -12,7 +12,7 @@ const float INITIAL_EXISTENCE_PROB = 0.99;
 const float BIRTH_PROB = 0.1;
 const float DETECTION_RATE = 0.9;
 const float CLUTTER_RATE = 1;
-const float POSITION_LIKELIHOOD_STD = 10.0;
+const float POSITION_LIKELIHOOD_STD = 3.0;
 const float LAMBDA_C= 20.0;
 const float PDF_C = 1.6e-4;
 

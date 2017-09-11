@@ -65,3 +65,12 @@ target_link_libraries( bernoulli_pf_HMC ${OpenCV_LIBS} )
 
 add_executable( particle_filter src/test_particle_filter.cpp src/models/particle_filter.cpp  ${COMMON_SOURCES} ) 
 target_link_libraries( particle_filter ${OpenCV_LIBS} )
+
+add_executable( test_lr src/test_lr.cpp src/likelihood/logistic_regression.cpp src/likelihood/CPU_logistic_regression.cpp src/utils/c_utils.cpp ) 
+target_link_libraries( test_lr ${OpenCV_LIBS} )
+
+add_executable( test_op src/test_op.cpp src/utils/c_utils.cpp ${CF_PIOTR_SOURCES}) 
+target_link_libraries( test_op ${OpenCV_LIBS} )
+
+add_executable( test_op2 src/test_op2.cpp src/utils/c_utils.cpp ${CF_PIOTR_SOURCES}) 
+target_link_libraries( test_op2 ${OpenCV_LIBS} )

@@ -22,13 +22,13 @@ void LogisticRegression::init(MatrixXd &_X,VectorXd &_Y,double _lambda, bool _no
 	this->lambda=_lambda;
  	this->X_train = &_X;
  	this->Y_train = &_Y;
- 	tools.dataPermutation(*this->X_train,*this->Y_train);
+ 	//tools.dataPermutation(*this->X_train,*this->Y_train);
  	if(this->normalization) tools.dataNormalization(*this->X_train,this->featureMax,this->featureMin);
  	if(this->standardization) tools.dataStandardization(*this->X_train,this->featureMean,this->featureStd);
- 	if (this->with_bias) this->bias=1.0/this->dim;
- 	else this->bias=0.0;
  	this->rows = this->X_train->rows();
 	this->dim = this->X_train->cols();
+	if (this->with_bias) this->bias=1.0/this->dim;
+ 	else this->bias=0.0;
 	this->weights =tools.random_generator(dim)/this->dim;
 	this->eta = VectorXd::Zero(this->rows);
 	this->phi = VectorXd::Zero(this->rows);;

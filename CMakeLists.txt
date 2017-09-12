@@ -8,7 +8,8 @@ SET (CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
 SET (CMAKE_CXX_FLAGS_RELEASE        "-O4 -DNDEBUG")
 SET (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
 find_package( OpenCV REQUIRED)
-#find_package(CUDA QUIET REQUIRED)
+
+OPTION (MAKE_HMC "Make HMC" OFF)
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories( "src/detector/" )
@@ -18,8 +19,6 @@ include_directories( "src/features/" )
 include_directories( "src/utils/" )
 include_directories( "src/DPP/" )
 include_directories( "/usr/include/eigen3/" )
-#include_directories( "/usr/local/cuda-8.0/include/" )
-#include_directories( "/usr/local/include/eigen3/" )
 
 set(CF_PIOTR_DIR "src/libs/piotr")
 include_directories(${CF_PIOTR_DIR} ${CF_PIOTR_DIR}/src)
@@ -50,20 +49,26 @@ set(COMMON_SOURCES
 	src/features/hist.cpp
     ${CF_PIOTR_SOURCES})
 
-set(HMC_SOURCES
-	src/likelihood/hmc.cpp  
-	src/likelihood/CPU_hmc.cpp  
-	src/detector/CPU_HMC_hog_detector.cpp 
-   )
+
 
 add_executable( bernoulli_pf src/test_bernoulli_particle_filter.cpp src/models/bernoulli_particle_filter.cpp  ${COMMON_SOURCES}) 
 target_link_libraries( bernoulli_pf ${OpenCV_LIBS} )
 
-add_executable( bernoulli_pf_HMC src/test_bernoulli_particle_filter_HMC.cpp src/models/bernoulli_particle_filter_HMC.cpp  ${COMMON_SOURCES} ${HMC_SOURCES}) 
-target_link_libraries( bernoulli_pf_HMC ${OpenCV_LIBS} )
 
 add_executable( particle_filter src/test_particle_filter.cpp src/models/particle_filter.cpp  ${COMMON_SOURCES} ) 
 target_link_libraries( particle_filter ${OpenCV_LIBS} )
 
-add_executable( particle_filter_HMC src/test_particle_filter_HMC.cpp src/models/particle_filter_HMC.cpp  ${COMMON_SOURCES} ${HMC_SOURCES}) 
-target_link_libraries( particle_filter_HMC ${OpenCV_LIBS} )
+
+if(MAKE_HMC)
+	set(HMC_SOURCES
+		src/likelihood/hmc.cpp  
+		src/likelihood/CPU_hmc.cpp  
+		src/detector/CPU_HMC_hog_detector.cpp 
+	   )
+
+	add_executable( bernoulli_pf_HMC src/test_bernoulli_particle_filter_HMC.cpp src/models/bernoulli_particle_filter_HMC.cpp  ${COMMON_SOURCES} ${HMC_SOURCES}) 
+	target_link_libraries( bernoulli_pf_HMC ${OpenCV_LIBS} )
+
+	add_executable( particle_filter_HMC src/test_particle_filter_HMC.cpp src/models/particle_filter_HMC.cpp  ${COMMON_SOURCES} ${HMC_SOURCES}) 
+	target_link_libraries( particle_filter_HMC ${OpenCV_LIBS} )
+endif()

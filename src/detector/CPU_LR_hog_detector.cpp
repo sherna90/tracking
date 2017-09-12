@@ -138,12 +138,12 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
 	}
 	if(this->args.gr_threshold > 0) {
-		nms2(raw_detections,this->weights,this->detections, args.gr_threshold, 0);
-		//DPP dpp = DPP();
-		//VectorXd qualityTerm;
-		//double* ptr = &this->weights[0];
-		//Map<VectorXd> eigen_weights(ptr,this->weights.size());
-		//this->detections = dpp.run(raw_detections,eigen_weights, eigen_weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
+		//nms2(raw_detections,this->weights,this->detections, args.gr_threshold, 0);
+		DPP dpp = DPP();
+		VectorXd qualityTerm;
+		double* ptr = &this->weights[0];
+		Map<VectorXd> eigen_weights(ptr,this->weights.size());
+		this->detections = dpp.run(raw_detections,eigen_weights, eigen_weights, this->feature_values, qualityTerm, 1.0, 0.5, 0.1);
  	}
 	else {
 		for (unsigned int i = 0; i < raw_detections.size(); ++i)

@@ -65,3 +65,5 @@ target_link_libraries( bernoulli_pf_HMC ${OpenCV_LIBS} )
 add_executable( particle_filter src/test_particle_filter.cpp src/models/particle_filter.cpp  ${COMMON_SOURCES} ) 
 target_link_libraries( particle_filter ${OpenCV_LIBS} )
 
+add_executable( particle_filter_HMC src/test_particle_filter_HMC.cpp src/models/particle_filter_HMC.cpp  ${COMMON_SOURCES} ${HMC_SOURCES}) 
+target_link_libraries( particle_filter_HMC ${OpenCV_LIBS} )

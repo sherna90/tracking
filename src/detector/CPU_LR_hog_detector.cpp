@@ -112,7 +112,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		}
 		VectorXd dataNorm = temp_features_matrix.rowwise().squaredNorm().array().sqrt();
 		temp_features_matrix = temp_features_matrix.array().colwise() / dataNorm.array();
-		tools.writeToCSVfile("testFeatures.csv", temp_features_matrix);
+
 		VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
 		for (int i = 0; i < predict_prob.rows(); ++i){
 			max_prob=MAX(max_prob,predict_prob(i));
@@ -166,43 +166,46 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 {
 	Mat current_frame;
 	frame.copyTo(current_frame);
-	this->feature_values=MatrixXd::Zero(samples.size(),this->n_descriptors); //
+	//this->feature_values=MatrixXd::Zero(samples.size(),this->n_descriptors); //
 	this->weights.clear();
 	double max_prob=0.0;
 	for (int k=0;k<args.nlevels;k++){
 		double scaleMult=pow(args.scale,k);
+		MatrixXd temp_features_matrix = MatrixXd::Zero(samples.size(),this->n_descriptors);
 		for(int i=0;i<samples.size();i++){
 			Rect current_window=samples[i];
-			int col=current_window.x;
-			int row=current_window.y;
 			Mat subImage = current_frame(current_window);
 			VectorXd hogFeatures = this->genHog(subImage);
 			VectorXd temp;
-			MatrixXd temp_features_matrix;
 			if(USE_COLOR){
 				VectorXd rawPixelsFeatures = this->genRawPixels(subImage);
-				temp_features_matrix.resize(1, hogFeatures.rows()+rawPixelsFeatures.rows());
 				temp.resize(hogFeatures.rows()+rawPixelsFeatures.rows());
 				temp << hogFeatures, rawPixelsFeatures;
 			}
 			else{
-				temp_features_matrix.resize(1, hogFeatures.rows());//
-				temp.resize(hogFeatures.rows());//
-				temp << hogFeatures;//
+				temp.resize(hogFeatures.rows());
+				temp << hogFeatures;
 			}
 			//temp.normalize();				
-			temp_features_matrix.row(0) = temp;
-			VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
+			temp_features_matrix.row(i) = temp;	
+		}
+		VectorXd dataNorm = temp_features_matrix.rowwise().squaredNorm().array().sqrt();
+		temp_features_matrix = temp_features_matrix.array().colwise() / dataNorm.array();
+		VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
+		for (int i = 0; i < predict_prob.rows(); ++i)
+		{
+			Rect current_window=samples[i];
 			stringstream ss;
-        	ss << predict_prob(0);
-        	max_prob=MAX(max_prob,predict_prob(0));
-    		this->feature_values.row(i)=temp_features_matrix.row(0);
-			this->weights.push_back(predict_prob(0));
+	    	ss << predict_prob(i);
+	    	max_prob=MAX(max_prob,predict_prob(i));
+			//this->feature_values.row(i)=temp_features_matrix.row(i);
+			this->weights.push_back(predict_prob(i));
 			string disp = ss.str().substr(0,4);
-        	rectangle( current_frame, Point(col,row),Point(col+current_window.width,row+20), Scalar(0,0,255), -1, 8,0 );
-        	putText(current_frame, disp, Point(col+5, row+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
+	    	rectangle( current_frame, Point(current_window.x,current_window.y),Point(current_window.x+current_window.width,current_window.y+20), Scalar(0,0,255), -1, 8,0 );
+	    	putText(current_frame, disp, Point(current_window.x+5, current_window.y+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
 			rectangle( current_frame, current_window, Scalar(0,0,255), 1, LINE_8  );
-		}	
+		}
+
 		//cout << "-----------------------" << endl;
 		string name= to_string(this->num_frame)+"_particle_filter.png";
 		imwrite(name, current_frame);
@@ -282,8 +285,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	positiveFeatures = positiveFeatures.array().colwise() / pdataNorm.array();
 	VectorXd ndataNorm = negativeFeatures.rowwise().squaredNorm().array().sqrt();
 	negativeFeatures = negativeFeatures.array().colwise() / ndataNorm.array();
-	tools.writeToCSVfile("positiveFeatures.csv", positiveFeatures);
-	tools.writeToCSVfile("negativeFeatures.csv", negativeFeatures);
+	
 	int fRows = negativeFeatures.rows() + positiveFeatures.rows();
 	this->feature_values.resize(fRows, this->n_descriptors);
 	this->feature_values << positiveFeatures, negativeFeatures;
@@ -302,7 +304,6 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	}
 	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
 	
-	tools.writeToCSVfile("train_features.csv", this->feature_values);
 	this->logistic_regression.train((int)args.n_iterations, args.epsilon, args.tolerance);
 	//exit(0);
 }

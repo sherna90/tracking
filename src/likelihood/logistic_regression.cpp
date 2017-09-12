@@ -22,7 +22,7 @@ void LogisticRegression::init(MatrixXd &_X,VectorXd &_Y,double _lambda, bool _no
 	this->lambda=_lambda;
  	this->X_train = &_X;
  	this->Y_train = &_Y;
- 	//tools.dataPermutation(*this->X_train,*this->Y_train);
+ 	tools.dataPermutation(*this->X_train,*this->Y_train);
  	if(this->normalization) tools.dataNormalization(*this->X_train,this->featureMax,this->featureMin);
  	if(this->standardization) tools.dataStandardization(*this->X_train,this->featureMean,this->featureStd);
  	this->rows = this->X_train->rows();

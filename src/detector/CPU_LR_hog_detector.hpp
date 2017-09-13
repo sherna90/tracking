@@ -19,7 +19,8 @@ public:
 protected:
 	HOGDescriptor hog;
 	CPU_LogisticRegression logistic_regression;
-	int num_frame;
+	int num_frame=0;
+	double max_value=1.0;
 };
 
 #endif

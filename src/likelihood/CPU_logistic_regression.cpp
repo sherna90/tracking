@@ -3,7 +3,7 @@
 VectorXd CPU_LogisticRegression::train(int n_iter,double alpha,double tol){
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	for(int i=0;i<n_iter;i++){
-		tools.printProgBar(i, n_iter);
+		//tools.printProgBar(i, n_iter);
 		this->preCompute();
 		log_likelihood(i)=-this->logPosterior();
 		//cout << "iteration :   " << i << " | loss : " << log_likelihood(i) << endl;
@@ -13,7 +13,7 @@ VectorXd CPU_LogisticRegression::train(int n_iter,double alpha,double tol){
 		this->weights+=this->momemtum;
 		if(this->with_bias) this->bias-=this->grad_bias/(double)this->rows;
 	}
-	cout << endl;
+	//cout << endl;
 	//exit(0);
 	return log_likelihood;
 }

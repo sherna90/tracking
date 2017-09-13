@@ -123,7 +123,6 @@ void particle_filter::initialize(Mat& current_frame, Rect ground_truth) {
     this->detector.init(0.0,0.0, this->reference_roi);
     this->detector.train(current_frame_copy, this->reference_roi);
     this->initialized = true;
-    cout << "initialized!!!" << endl;
     }
 }
 
@@ -267,8 +266,8 @@ void particle_filter::update(Mat& image)
     for (size_t i = 0; i < this->states.size(); ++i){
             this->weights[i]+=log(tmp_weights[i]);
     }
-    max_prob=MAX(max_prob,max_value);
-    //if(abs(max_value-max_prob)>0.1) this->detector.train(current_frame,update_roi);
+    if(max_value/max_prob<0.8) this->detector.train(current_frame,update_roi);
+    max_prob=max_value;
     this->resample();
 
 }

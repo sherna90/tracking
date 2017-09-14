@@ -6,7 +6,7 @@
 #include "particle_filter.hpp"
 
 #ifndef PARAMS
-const float POS_STD=3.0;
+const float POS_STD=1.0;
 const float SCALE_STD=0.1;
 const float DT=1.0;
 const float THRESHOLD=1.0;

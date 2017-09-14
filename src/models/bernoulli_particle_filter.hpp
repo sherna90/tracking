@@ -68,6 +68,7 @@ private:
 	vector<Rect> observations;
 	double existence_prob, new_existence_prob;
 	CPU_LR_HOGDetector detector;
+	double max_prob=1.0;
 };
 
 #endif

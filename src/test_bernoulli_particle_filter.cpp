@@ -34,6 +34,7 @@ void TestBernoulliParticleFilter::run(){
 	   	if(!filter.is_initialized())
 	   	{
 	   		filter.initialize(current_frame, ground_truth);
+	   		cout <<  ground_truth.x << "," << ground_truth.y << "," << ground_truth.width << "," << ground_truth.height << endl;
 	   		//filter.draw_particles(current_frame, Scalar(0,255,255));
 		}
 		else{
@@ -42,7 +43,7 @@ void TestBernoulliParticleFilter::run(){
 			//filter.draw_particles(current_frame, Scalar(0,255,255));
 			rectangle( current_frame, ground_truth, Scalar(0,255,0), 2, LINE_AA );
 			Rect estimate = filter.estimate(current_frame, true);
-			
+			cout <<  estimate.x << "," << estimate.y << "," << estimate.width << "," << estimate.height << endl;
 			performance.calc(ground_truth, estimate);
 			/*if(r1 < 0.1) {
 				filter.reinitialize();
@@ -55,9 +56,9 @@ void TestBernoulliParticleFilter::run(){
   	}
 	time(&end);
 	double sec = difftime (end, start);
-	cout << performance.get_avg_precision()/(num_frames - reinit_rate);
-	cout << "," << performance.get_avg_recall()/(num_frames - reinit_rate);
-	cout << "," << num_frames/sec << "," << reinit_rate <<  "," << num_frames << endl;
+	//cout << performance.get_avg_precision()/(num_frames - reinit_rate);
+	//cout << "," << performance.get_avg_recall()/(num_frames - reinit_rate);
+	//cout << "," << num_frames/sec << "," << reinit_rate <<  "," << num_frames << endl;
 };
 
 int main(int argc, char* argv[]){

@@ -133,7 +133,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
     this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD, this->reference_roi);
     this->detector.train(current_frame_copy, this->reference_roi);
     this->initialized = true;
-    cout << "initialized!!!" << endl;
+    //cout << "initialized!!!" << endl;
 	}
 }
 
@@ -341,6 +341,9 @@ void BernoulliParticleFilter::update(const Mat& image){
         this->existence_prob =  (this->new_existence_prob * sum_weights[0]) / ( ( (LAMBDA_C * PDF_C) * (1 - this->new_existence_prob) ) + ( this->new_existence_prob + sum_weights[0]) );
 	    if(this->existence_prob > 0.999) this->existence_prob = 0.999;
 		if(this->existence_prob < 0.001) this->existence_prob = 0.001;
+		double max_value = *max_element(this->weights.begin(), this->weights.end());
+		if(max_value/max_prob<0.8) this->detector.train(current_frame,update_roi);
+    	max_prob=max_value;
         resample();
         tmp_weights.clear();
 	}

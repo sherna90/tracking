@@ -1,7 +1,7 @@
 #include "CPU_LR_hog_detector.hpp"
 
 #ifndef PARAMS
-const bool USE_COLOR=false;
+const bool USE_COLOR=true;
 #endif
 
 void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
@@ -309,7 +309,6 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	if(this->num_frame>0) num_iter=20;
 	else num_iter=args.n_iterations;
 	this->logistic_regression.train(num_iter, args.epsilon, args.tolerance);
-	//exit(0);
 }
 
 
@@ -354,10 +353,11 @@ VectorXd CPU_LR_HOGDetector::genHog(Mat &frame)
         interpolation = INTER_AREA;
     }
 	Mat current_frame,mat_hog_features;
+	int channels = frame.channels();
 	cvtColor(frame, current_frame, COLOR_RGB2BGR);
 	resize(current_frame,current_frame,Size(args.hog_width, args.hog_height),0,0,interpolation);
 	
-	current_frame.convertTo( current_frame, CV_32FC(3), 1.0/255.0); //to double
+	current_frame.convertTo( current_frame, CV_32FC(channels), 1.0/255.0); //to double
 	current_frame *= 255.;
 	piotr::fhogToCol(current_frame,mat_hog_features,8,0,0);
 	VectorXd hog_features=VectorXd::Zero(mat_hog_features.cols);
@@ -376,15 +376,13 @@ VectorXd CPU_LR_HOGDetector::genRawPixels(Mat &frame)
       }else{
         interpolation = INTER_AREA;
     }
-  Mat current_frame;
-  cvtColor(frame, current_frame, COLOR_RGB2BGR);
-  current_frame.convertTo( current_frame, CV_32FC(3), 1.0/255.0); //to double
-  
-  Mat cieLabFrame = tools.RGBtoLAB(current_frame);
-
+  Mat current_frame,cieLabFrame;
+  int channels = frame.channels();
+  frame.copyTo(current_frame);
+  current_frame.convertTo( current_frame, CV_32FC(channels), 1.0/255.0); //to double
+  cvtColor(current_frame, current_frame, COLOR_BGR2RGB);
+  cieLabFrame = tools.RGBtoLAB(current_frame);
   resize(cieLabFrame,cieLabFrame,Size(args.hog_width/2, args.hog_height/2),0,0,interpolation);
-
-  int channels = cieLabFrame.channels();
   vector<Mat> frame_channels(channels);
   split(cieLabFrame, frame_channels);
   VectorXd rawPixelsFeatures(cieLabFrame.cols*cieLabFrame.rows*channels);

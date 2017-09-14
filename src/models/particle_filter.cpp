@@ -242,9 +242,6 @@ void particle_filter::update(Mat& image)
 {
     Mat current_frame;
     image.copyTo(current_frame);
-    //Mat current_frame_copy;
-    //cvtColor(image, current_frame_copy, CV_RGB2GRAY);
-
     int left = MAX(this->reference_roi.x, 1);
     int top = MAX(this->reference_roi.y, 1);
     int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);

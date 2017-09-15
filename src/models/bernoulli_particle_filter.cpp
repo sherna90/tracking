@@ -18,7 +18,7 @@ const float PDF_C = 1.6e-4;
 
 const double LAMBDA_BC=20.4;
 
-const double GROUP_THRESHOLD = 0.4;
+const double GROUP_THRESHOLD = 0.1;
 const double HIT_THRESHOLD = 0.001;
 
 //const int this->step_slide = 20;
@@ -130,7 +130,7 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 	current_frame.copyTo(current_frame_copy);
 	//Mat current_frame_copy;
     //cvtColor(current_frame, current_frame_copy, CV_RGB2GRAY);
-    this->detector.init(GROUP_THRESHOLD, HIT_THRESHOLD, this->reference_roi);
+    this->detector.init(GROUP_THRESHOLD,HIT_THRESHOLD, this->reference_roi);
     this->detector.train(current_frame_copy, this->reference_roi);
     this->initialized = true;
     //cout << "initialized!!!" << endl;
@@ -308,7 +308,7 @@ void BernoulliParticleFilter::update(const Mat& image){
 		MatrixXd observations = MatrixXd::Zero(this->observations.size(), 4);
 		for (size_t i = 0; i < this->observations.size(); i++){
             observations.row(i) << this->observations[i].x, this->observations[i].y, this->observations[i].width, this->observations[i].height;
-            rectangle( image, Point(this->observations[i].x, this->observations[i].y), Point(this->observations[i].x+this->observations[i].width, this->observations[i].y+this->observations[i].height), Scalar(0,255,255), 2, LINE_AA );
+            //rectangle( image, Point(this->observations[i].x, this->observations[i].y), Point(this->observations[i].x+this->observations[i].width, this->observations[i].y+this->observations[i].height), Scalar(0,255,255), 2, LINE_AA );
       
         }
 
@@ -342,7 +342,7 @@ void BernoulliParticleFilter::update(const Mat& image){
 	    if(this->existence_prob > 0.999) this->existence_prob = 0.999;
 		if(this->existence_prob < 0.001) this->existence_prob = 0.001;
 		double max_value = *max_element(this->weights.begin(), this->weights.end());
-		if(max_value/max_prob<0.8) this->detector.train(current_frame,update_roi);
+		//if(max_value/max_prob<0.8) this->detector.train(current_frame,update_roi);
     	max_prob=max_value;
         resample();
         tmp_weights.clear();

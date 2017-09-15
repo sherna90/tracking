@@ -2,7 +2,8 @@
 #define CPU_LR_HOG_DETECTOR_H
 #include "hog_detector.hpp"
 #include "../likelihood/CPU_logistic_regression.hpp"
-#include "../libs/piotr/gradientMex.hpp"
+#include "../libs/piotr_fhog/fhog.hpp"
+#include "../libs/cn/cnfeat.hpp"
 
 class CPU_LR_HOGDetector : public HOGDetector
 {

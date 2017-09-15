@@ -20,20 +20,10 @@ include_directories( "src/utils/" )
 include_directories( "src/DPP/" )
 include_directories( "/usr/include/eigen3/" )
 
-set(CF_PIOTR_DIR "src/libs/piotr")
-include_directories(${CF_PIOTR_DIR} ${CF_PIOTR_DIR}/src)
+add_subdirectory("src/libs/piotr_fhog")
+add_subdirectory("src/libs/cn")
 
-set(CF_PIOTR_SOURCES
-	${CF_PIOTR_DIR}/shift.hpp
-	${CF_PIOTR_DIR}/math_spectrums.hpp
-	${CF_PIOTR_DIR}/cv_ext.hpp
-	${CF_PIOTR_DIR}/mat_consts.hpp
-	${CF_PIOTR_DIR}/math_helper.hpp
-	${CF_PIOTR_DIR}/feature_channels.hpp
-    ${CF_PIOTR_DIR}/gradientMex.hpp
-    ${CF_PIOTR_DIR}/src/gradientMex.cpp
-    ${CF_PIOTR_DIR}/src/sse.hpp
-    ${CF_PIOTR_DIR}/src/wrappers.hpp)
+
 
 set(COMMON_SOURCES
 	src/utils/utils.cpp 
@@ -47,16 +37,16 @@ set(COMMON_SOURCES
 	src/detector/CPU_LR_hog_detector.cpp 
 	src/DPP/dpp.cpp 
 	src/features/hist.cpp
-    ${CF_PIOTR_SOURCES})
+    )
 
 
 
 add_executable( bernoulli_pf src/test_bernoulli_particle_filter.cpp src/models/bernoulli_particle_filter.cpp  ${COMMON_SOURCES}) 
-target_link_libraries( bernoulli_pf ${OpenCV_LIBS} )
+target_link_libraries( bernoulli_pf ${OpenCV_LIBS} fhog cndata)
 
 
 add_executable( particle_filter src/test_particle_filter.cpp src/models/particle_filter.cpp  ${COMMON_SOURCES} ) 
-target_link_libraries( particle_filter ${OpenCV_LIBS} )
+target_link_libraries( particle_filter ${OpenCV_LIBS} fhog cndata)
 
 
 if(MAKE_HMC)

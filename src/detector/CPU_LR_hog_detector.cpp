@@ -29,7 +29,7 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.overlap_threshold=0.9;
     args.p_accept = 0.99;
     args.lambda = 100.0;
-    args.epsilon= 0.99;
+    args.epsilon= 0.5;
     args.tolerance = 1e-1;
     args.n_iterations = 1e3;
     args.padding = 8;
@@ -44,10 +44,10 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     if(USE_COLOR){
     	//this->n_descriptors = args.hog_width/8 * args.hog_height/8 * (3*args.nbins+5) + H_BINS*S_BINS;
     	int channels = 3;
-    	this->n_descriptors=args.hog_width/8 * args.hog_height/8 * (3*args.nbins+5) + (this->args.hog_width/2)*(this->args.hog_height/2)*channels;
+    	this->n_descriptors=(args.nbins*3+5-1)*(args.hog_width/args.cell_width)*(args.hog_width/args.cell_width) + (this->args.hog_width/2)*(this->args.hog_height/2)*channels;
     }
-    //else this->n_descriptors = this->hog.getDescriptorSize();
-    else this->n_descriptors = args.hog_width/8 * args.hog_height/8 * (3*args.nbins+5);
+    else this->n_descriptors = (args.nbins*3+5-1)*(args.hog_width/args.cell_width)*(args.hog_width/args.cell_width);
+    //else this->n_descriptors = args.hog_width/8 * args.hog_height/8 * (3*args.nbins+5);
     this->generator.seed(seed1);
     this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
 	this->labels.resize(0);
@@ -145,7 +145,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		double* ptr = &this->weights[0];
 		Map<VectorXd> eigen_weights(ptr,this->weights.size());
 		this->detections = dpp.run(raw_detections,eigen_weights, eigen_weights, this->feature_values, 1.0, 0.5, 0.1);
- 	}
+	}
 	else {
 		for (unsigned int i = 0; i < raw_detections.size(); ++i)
 		{
@@ -153,7 +153,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 		}
 	}
 	for(int i=0;i<detections.size();i++){
-		rectangle( cropped_frame, this->detections[i], Scalar(0,0,255), 2, LINE_8  );
+		//rectangle( cropped_frame, this->detections[i], Scalar(0,0,255), 2, LINE_8  );
 		this->detections[i]+=Point(cropped_roi.x,cropped_roi.y);				
 	}
 	//string name2= to_string(this->num_frame)+"_detections_nms.png";
@@ -223,16 +223,16 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 
 void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 {
-	//cout << reference_roi << endl;
 	Mat cropped_frame,current_frame;
-	int x_shift=50;
-	int y_shift=50;
+	int x_shift=40;
+	int y_shift=40;
 	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
 	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
 	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);
 	int w_crop=(frame.cols-(cropped_roi.x+2*x_shift) >=0 )?  2*x_shift : frame.cols-cropped_roi.x;
 	int h_crop=(frame.rows-(cropped_roi.y+2*y_shift) >=0 )?  2*y_shift : frame.rows-cropped_roi.y;
 	cropped_roi+=Size(w_crop,h_crop);
+	cropped_roi = cropped_roi & Rect(0, 0, frame.cols, frame.rows);
 	reference_roi.x=MIN(x_shift,reference_roi.x);
 	reference_roi.y=MIN(y_shift,reference_roi.y);
 	cropped_frame=frame(cropped_roi);
@@ -306,7 +306,10 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	}
 	//cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
 	int num_iter;
-	if(this->num_frame>0) num_iter=20;
+	if(this->num_frame>0) {
+		num_iter=args.n_iterations*exp(-this->num_frame);
+		args.epsilon=MIN(0.99,args.epsilon+0.05);	
+	}
 	else num_iter=args.n_iterations;
 	this->logistic_regression.train(num_iter, args.epsilon, args.tolerance);
 }
@@ -352,17 +355,21 @@ VectorXd CPU_LR_HOGDetector::genHog(Mat &frame)
       }else{
         interpolation = INTER_AREA;
     }
-	Mat current_frame,mat_hog_features;
-	int channels = frame.channels();
-	cvtColor(frame, current_frame, COLOR_RGB2BGR);
-	resize(current_frame,current_frame,Size(args.hog_width, args.hog_height),0,0,interpolation);
-	
-	current_frame.convertTo( current_frame, CV_32FC(channels), 1.0/255.0); //to double
-	current_frame *= 255.;
-	piotr::fhogToCol(current_frame,mat_hog_features,8,0,0);
-	VectorXd hog_features=VectorXd::Zero(mat_hog_features.cols);
-	for (int j = 0; j < mat_hog_features.cols; j++){
-		hog_features(j) =mat_hog_features.at<float>(0,j);
+	Mat current_frame;
+	resize(frame,current_frame,Size(args.hog_width, args.hog_height),0,0,interpolation);
+	cv::cvtColor(current_frame, current_frame, CV_BGR2GRAY);
+    current_frame.convertTo(current_frame, CV_32FC1);
+	vector<Mat> mat_hog_features=FHoG::extract(current_frame, 2, args.cell_width, args.nbins);
+	int hog_channels=mat_hog_features.size();
+	int cidx=0;
+ 	VectorXd hog_features=VectorXd::Zero((args.nbins*3+5-1)*(args.hog_width/args.cell_width)*(args.hog_width/args.cell_width));
+	for (unsigned int ch = 0; ch < hog_channels; ++ch){
+		for (int i = 0; i < mat_hog_features[ch].rows; i++){   
+			for (int j = 0; j < mat_hog_features[ch].cols; j++){
+				hog_features(cidx) =mat_hog_features[ch].at<float>(i,j);
+				cidx++;
+			}
+		}
 	}
 	hog_features.normalize();
 	return hog_features;
@@ -376,21 +383,26 @@ VectorXd CPU_LR_HOGDetector::genRawPixels(Mat &frame)
       }else{
         interpolation = INTER_AREA;
     }
-  Mat current_frame,cieLabFrame;
-  int channels = frame.channels();
+  Mat current_frame;
   frame.copyTo(current_frame);
-  current_frame.convertTo( current_frame, CV_32FC(channels), 1.0/255.0); //to double
-  cvtColor(current_frame, current_frame, COLOR_BGR2RGB);
-  cieLabFrame = tools.RGBtoLAB(current_frame);
-  resize(cieLabFrame,cieLabFrame,Size(args.hog_width/2, args.hog_height/2),0,0,interpolation);
-  vector<Mat> frame_channels(channels);
-  split(cieLabFrame, frame_channels);
-  VectorXd rawPixelsFeatures(cieLabFrame.cols*cieLabFrame.rows*channels);
+  resize(current_frame,current_frame,Size(args.hog_width/2, args.hog_height/2),0,0,interpolation);
+  cvtColor(current_frame, current_frame, COLOR_BGR2Lab);
+  current_frame.convertTo( current_frame, CV_32FC1, 1. / 255., -0.5); //to double
+  Mat ch1(current_frame.size(), CV_32FC1);
+  Mat ch2(current_frame.size(), CV_32FC1);
+  Mat ch3(current_frame.size(), CV_32FC1);
+  vector<Mat> color_features = {ch1, ch2, ch3};
+  cv::split(current_frame, color_features);
+  split(current_frame, color_features);
+  //vector<Mat> cn_feat = CNFeat::extract(current_frame);
+  int channels = color_features.size();
+  //cout << channels << "," << cn_feat[0].cols << "," << cn_feat[0].rows << endl;
+  VectorXd rawPixelsFeatures(color_features[0].cols*color_features[0].rows*channels);
   int cidx=0;
   for (int ch = 0; ch < channels; ++ch){   
-      for(int c = 0; c < cieLabFrame.cols ; c++){
-        for(int r = 0; r < cieLabFrame.rows ; r++){
-            rawPixelsFeatures(cidx) = (double)frame_channels[ch].at<double>(r,c);
+      for(int c = 0; c < color_features[ch].cols ; c++){
+        for(int r = 0; r < color_features[ch].rows ; r++){
+            rawPixelsFeatures(cidx) = (double)color_features[ch].at<float>(r,c);
             cidx++;
         }
     }

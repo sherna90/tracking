@@ -156,8 +156,8 @@ void particle_filter::predict(){
                 && _width>0 && _height>0 ){
                 state.x_p=state.x;
                 state.y_p=state.y;
-                state.x=cvRound(2*_x-state.x_p+_dx);
-                state.y=cvRound(2*_y-state.y_p+_dy);
+                state.x=cvRound(_x+_dx);
+                state.y=cvRound(_y+_dy);
                 state.width_p=state.width;
                 state.height_p=state.height;       
                 state.width=cvRound(2*_width-state.width_p);
@@ -232,6 +232,7 @@ Rect particle_filter::estimate(Mat& image,bool draw=false){
     if(pt2.x<this->frame_size.width && pt1.x>=0 && pt2.y<this->frame_size.height && pt1.y>=0){
         if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 2, LINE_AA );
         estimate=Rect(pt1.x,pt1.y,_width,_height);
+        this->reference_roi=estimate;
     }
     //cout << " estimate x:" << estimate.x << ",y:" << estimate.y <<",w:" << estimate.width <<",h:" << estimate.height << endl;
     return estimate;

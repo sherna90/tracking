@@ -17,8 +17,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.hit_threshold = hit_threshold;
     args.hit_threshold_auto = false;
     args.win_width = args.width ;
-    args.test_stride_width = 5;
-    args.test_stride_height = 5;
+    args.test_stride_width = 15;
+    args.test_stride_height = 15;
     args.train_stride_width = 1;
     args.train_stride_height = 1;
     args.block_width = 16;

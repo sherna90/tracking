@@ -1,7 +1,7 @@
 #include "bernoulli_particle_filter.hpp"
 
 #ifndef PARAMS
-const float POS_STD = 1.0;
+const float POS_STD = 3.0;
 const float SCALE_STD = 0.1;
 const float OVERLAP_RATIO = 0.8;
 const float THRESHOLD = 1000;
@@ -19,7 +19,7 @@ const float PDF_C = 1.6e-4;
 const double LAMBDA_BC=20.4;
 
 const double GROUP_THRESHOLD = 0.4;
-const double HIT_THRESHOLD = 0.001;
+const double HIT_THRESHOLD = 0.1;
 
 //const int this->step_slide = 20;
 #endif

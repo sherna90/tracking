@@ -15,11 +15,12 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.bin_size = 8;
     args.overlap_threshold=0.9;
     args.p_accept = 0.99;
-    args.lambda = 0.1;
-    args.epsilon= 0.9;
-    args.tolerance = 1e-1;
+    args.lambda = 0.001;
+    args.alpha= 0.9;
+    args.step_size = 0.001;
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-    args.n_iterations = 1e2;//this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
+	args.n_iterations = 100;
+	//this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
 	if(USE_COLOR){
     	int channels = 3;
     	this->n_descriptors=(args.n_orients*3+5-1)*(args.hog_width/args.bin_size)*(args.hog_height/args.bin_size) + (this->args.hog_width/2)*(this->args.hog_height/2)*channels;
@@ -150,7 +151,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	Mat cropped_frame,current_frame;
 	int x_shift=40;
 	int y_shift=40;
-	int stride=5;
+	int stride=1;
 	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
 	cropped_roi.x=MIN(MAX(cropped_roi.x, 0), frame.cols);
 	cropped_roi.y=MIN(MAX(cropped_roi.y, 0), frame.rows);
@@ -179,7 +180,6 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 			double overlap=(double)intersection.area()/(double)reference_roi.area();
 			double uni_rand = (overlap > args.overlap_threshold) ? 1.0 : unif(this->generator);
 			Mat subImage = current_frame(current_window);
-			if(uni_rand > args.p_accept ){
 				VectorXd hogFeatures = this->genHog(subImage);
 				VectorXd temp;
 				if(USE_COLOR){
@@ -206,7 +206,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 				}
 				if(overlap > args.overlap_threshold) rectangle( current_frame, current_window, Scalar(255,255,255), 1, LINE_AA );
 				//else rectangle( current_frame, current_window, Scalar(0,0,0), 1, LINE_AA );
-			}
+			
 		}
 	}
 	VectorXd pdataNorm = positiveFeatures.rowwise().squaredNorm().array().sqrt();
@@ -219,8 +219,8 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	this->feature_values << positiveFeatures, negativeFeatures;
 	this->labels.resize(fRows);
 	this->labels << positiveLabels, negativeLabels;
-	//cout << "positive examples : " << (this->labels.array() > 0).count() << endl;
-	//cout << "negative examples : " << (this->labels.array() <= 0).count() << endl;
+	cout << "positive examples : " << (this->labels.array() > 0).count() << endl;
+	cout << "negative examples : " << (this->labels.array() <= 0).count() << endl;
 	rectangle( current_frame, reference_roi, Scalar(0,255,0), 2, LINE_AA );
 	imwrite("resized_image.png", current_frame);
 	if(!this->logistic_regression.initialized){
@@ -230,20 +230,15 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 		this->logistic_regression.setData(this->feature_values, this->labels);
 	}
 	//cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
-	int num_iter;
-	if(this->num_frame>0) {
-		num_iter=args.n_iterations*exp(-this->num_frame);
-		args.epsilon=MIN(0.99,args.epsilon+0.05);	
-	}
-	else num_iter=args.n_iterations;
-	this->logistic_regression.train(num_iter, args.epsilon, args.tolerance);
+	int num_batches=this->feature_values.rows()/100;
+	this->logistic_regression.train(num_batches*args.n_iterations,100,args.alpha, args.step_size);
 }
 
 
 void CPU_LR_HOGDetector::train()
 {
 	this->logistic_regression.init(this->feature_values, this->labels, args.lambda, false,false,true);
-	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
+	this->logistic_regression.train(args.n_iterations, args.alpha, args.step_size);
 	VectorXd weights = this->logistic_regression.getWeights();
 	VectorXd bias(1);
 	bias << this->logistic_regression.getBias();

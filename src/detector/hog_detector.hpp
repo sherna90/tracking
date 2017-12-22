@@ -31,8 +31,8 @@ struct Args {
     double overlap_threshold;
     double p_accept;
     double lambda;
-    double epsilon;
-    double tolerance;
+    double alpha;
+    double step_size;
     int n_iterations;
 } ;
 

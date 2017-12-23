@@ -18,29 +18,22 @@ using namespace cv;
 using namespace std;
 using namespace Eigen;
 
+
 struct Args {
-	bool make_gray = true;
-    bool resize_src = true;
-    int width, height;
-    int hog_width, hog_height;
-    double scale;
-    int nlevels;
+    bool make_gray;
+    bool resize_src;
+    int hog_width;
+    int hog_height;
     double gr_threshold;
     double hit_threshold;
-    bool hit_threshold_auto;
-    int win_width;
-    int test_stride_width, test_stride_height;
-    int train_stride_width, train_stride_height;
-    int block_width;
-    int block_stride_width, block_stride_height;
-    int cell_width;
-    int nbins;
-    bool gamma_corr;
+    int n_orients;
+    int bin_size;
     double overlap_threshold;
     double p_accept;
-    double lambda, epsilon, tolerance;
+    double lambda;
+    double alpha;
+    double step_size;
     int n_iterations;
-    int padding;
 } ;
 
 typedef struct Roi {

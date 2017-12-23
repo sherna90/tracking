@@ -5,48 +5,27 @@ const bool USE_COLOR=true;
 #endif
 
 void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
-    args.resize_src = true;
-    args.width = reference_roi.width;
-    args.height = reference_roi.height;
-    args.hog_width = 32;
-    args.hog_height = 32;
-    args.scale = 2;
-    args.nlevels = 1;
+	args.make_gray = true;
+    args.resize_src = false;
+    args.hog_width = 64;
+    args.hog_height = 128;
     args.gr_threshold = group_threshold;
     args.hit_threshold = hit_threshold;
-    args.hit_threshold_auto = false;
-    args.win_width = args.width ;
-    args.test_stride_width = 5;
-    args.test_stride_height = 5;
-    args.train_stride_width = 1;
-    args.train_stride_height = 1;
-    args.block_width = 16;
-    args.block_stride_width = 8;
-    args.block_stride_height = 8;
-    args.cell_width = 8;
-    args.nbins = 9;
-    args.overlap_threshold=0.8;
-    args.p_accept = 0.95;
-    args.lambda = 100.0;
-    args.epsilon= 0.5;
-    args.tolerance = 1e-1;
-    args.n_iterations = 1e3;
-    args.padding = 8;
-    //this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
-	Size win_stride(args.train_stride_width, args.train_stride_width);
-    Size win_size(args.hog_width, args.hog_height);
-    Size block_size(args.block_width, args.block_width);
-    Size block_stride(args.block_stride_width, args.block_stride_height);
-    Size cell_size(args.cell_width, args.cell_width);
+    args.n_orients = 9;
+    args.bin_size = 8;
+    args.overlap_threshold=0.5;
+    args.p_accept = 0.99;
+    args.lambda = 0.001;
+    args.alpha= 0.9;
+    args.step_size = 0.001;
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-    this->hog = HOGDescriptor(win_size, block_size, block_stride, cell_size, args.nbins);
-    if(USE_COLOR){
-    	//this->n_descriptors = args.hog_width/8 * args.hog_height/8 * (3*args.nbins+5) + H_BINS*S_BINS;
+	args.n_iterations = 1000;
+	//this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
+	if(USE_COLOR){
     	int channels = 3;
-    	this->n_descriptors=(args.nbins*3+5-1)*(args.hog_width/args.cell_width)*(args.hog_width/args.cell_width) + (this->args.hog_width/2)*(this->args.hog_height/2)*channels;
+    	this->n_descriptors=(args.n_orients*3+5-1)*(args.hog_width/args.bin_size)*(args.hog_height/args.bin_size) + (this->args.hog_width/2)*(this->args.hog_height/2)*channels;
     }
-    else this->n_descriptors = (args.nbins*3+5-1)*(args.hog_width/args.cell_width)*(args.hog_width/args.cell_width);
-    //else this->n_descriptors = args.hog_width/8 * args.hog_height/8 * (3*args.nbins+5);
+    else this->n_descriptors = (args.n_orients*3+5-1)*(args.hog_width/args.bin_size)*(args.hog_height/args.bin_size);
     this->generator.seed(seed1);
     this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
 	this->labels.resize(0);
@@ -80,7 +59,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	int w_crop=(current_frame.cols-(cropped_roi.x+2*x_shift) >=0 )?  2*x_shift : current_frame.cols-cropped_roi.x;
 	int h_crop=(current_frame.rows-(cropped_roi.y+2*y_shift) >=0 )?  2*y_shift : current_frame.rows-cropped_roi.y;
 	cropped_roi+=Size(w_crop,h_crop);
-	cropped_roi = cropped_roi & Rect(0, 0, current_frame.cols, current_frame.rows);
+/*	cropped_roi = cropped_roi & Rect(0, 0, current_frame.cols, current_frame.rows);
 	//reference_roi.x=MIN(x_shift,reference_roi.x);
 	//reference_roi.y=MIN(y_shift,reference_roi.y);
 	cropped_frame=current_frame(cropped_roi);
@@ -159,7 +138,59 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	imwrite(name2, cropped_frame); 
 	this->num_frame++; 
 	this->max_value=max_prob;
-	//exit(0);
+*/
+	current_frame=frame(cropped_roi);
+	vector<Rect> samples,raw_detections;
+    this->detections.clear();
+	setUseOptimized(true);
+    //setNumThreads(4);
+    Ptr<SelectiveSearchSegmentation> ss = createSelectiveSearchSegmentation();
+    ss->setBaseImage(current_frame);
+    ss->switchToSelectiveSearchFast();
+    ss->process(samples);
+    //this->feature_values=MatrixXd::Zero(samples.size(),this->n_descriptors); //
+	this->weights.clear();
+	double max_prob=0.0;
+	cout << "Region Proposals : "   << samples.size() << endl;
+	MatrixXd temp_features_matrix = MatrixXd::Zero(samples.size(),this->n_descriptors);
+		for(int i=0;i<samples.size();i++){
+			Rect current_window=samples[i];
+			Mat subImage = current_frame(current_window);
+			VectorXd hogFeatures = this->genHog(subImage);
+			VectorXd temp;
+			if(USE_COLOR){
+				VectorXd rawPixelsFeatures = this->genRawPixels(subImage);
+				temp.resize(hogFeatures.rows()+rawPixelsFeatures.rows());
+				temp << hogFeatures, rawPixelsFeatures;
+			}
+			else{
+				temp.resize(hogFeatures.rows());
+				temp << hogFeatures;
+			}
+			//temp.normalize();				
+			temp_features_matrix.row(i) = temp;	
+		}
+		VectorXd dataNorm = temp_features_matrix.rowwise().squaredNorm().array().sqrt();
+		temp_features_matrix = temp_features_matrix.array().colwise() / dataNorm.array();
+		VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
+		for (int i = 0; i < predict_prob.rows(); ++i)
+		{
+			if(predict_prob(i)>args.hit_threshold){
+				Rect current_window=samples[i];
+				//stringstream ss;
+	    		//ss << predict_prob(i);
+	    		max_prob=MAX(max_prob,predict_prob(i));
+				this->weights.push_back(predict_prob(i));
+				raw_detections.push_back(current_window);
+			}
+		}
+	if(this->args.gr_threshold > 0) {
+		nms2(raw_detections,this->weights,this->detections, args.gr_threshold, 1);
+	}
+	else{
+		this->detections=raw_detections;
+	}
+	this->num_frame++;
 	return this->detections;
 }
 
@@ -176,9 +207,7 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 	}
 	this->weights.clear();
 	double max_prob=0.0;
-	for (int k=0;k<args.nlevels;k++){
-		double scaleMult=pow(args.scale,k);
-		MatrixXd temp_features_matrix = MatrixXd::Zero(samples.size(),this->n_descriptors);
+	MatrixXd temp_features_matrix = MatrixXd::Zero(samples.size(),this->n_descriptors);
 		for(int i=0;i<samples.size();i++){
 			Rect current_window=samples[i];
 			if(args.resize_src){
@@ -218,45 +247,17 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 	    	//putText(current_frame, disp, Point(current_window.x+5, current_window.y+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
 			//rectangle( current_frame, current_window, Scalar(0,0,255), 1, LINE_8  );
 		}
-
-		//cout << "-----------------------" << endl;
-		//string name= to_string(this->num_frame)+"_particle_filter.png";
-		//imwrite(name, current_frame);
-		pyrDown( current_frame, current_frame, Size( cvCeil(current_frame.cols/args.scale) , cvCeil(current_frame.rows/args.scale)));
-	}
-	//cout << "-----------------------" << endl;
-	//cout << "Frame : " << this->num_frame << endl; 
-	//cout << "max prob: " << max_prob << endl;
 	this->num_frame++;
 	return this->weights;
 }
 
 void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 {
-	Mat cropped_frame,current_frame;
-	float scale_w=1.0f,scale_h=1.0f;
+	Mat current_frame;
 	frame.copyTo(current_frame);
-	if(args.resize_src){
-		scale_w=current_frame.cols/320.0f;
-		scale_h=current_frame.rows/240.0f;
-		resize(frame,current_frame,Size(320,240),0,0,INTER_LINEAR);
-		reference_roi.x=cvRound(reference_roi.x/scale_w);
-		reference_roi.y=cvRound(reference_roi.y/scale_h);
-		reference_roi.width=cvRound(reference_roi.width/scale_w);
-		reference_roi.height=cvRound(reference_roi.height/scale_h);
-	}
-	int x_shift=40;
-	int y_shift=40;
-	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
-	int w_crop=(frame.cols-(cropped_roi.x+2*x_shift) >=0 )?  2*x_shift : frame.cols-cropped_roi.x;
-	int h_crop=(frame.rows-(cropped_roi.y+2*y_shift) >=0 )?  2*y_shift : frame.rows-cropped_roi.y;
-	cropped_roi+=Size(w_crop,h_crop);
-	cropped_roi = cropped_roi & Rect(0, 0, current_frame.cols, current_frame.rows);
-	reference_roi.x=MIN(x_shift,reference_roi.x);
-	reference_roi.y=MIN(y_shift,reference_roi.y);
-	cropped_frame=current_frame(cropped_roi);
-	int num_rows=(cropped_frame.rows- floor(this->args.height/scale_w) + this->args.train_stride_height)/this->args.train_stride_height;
-	int num_cols=(cropped_frame.cols- floor(this->args.width/scale_h) + this->args.train_stride_width)/this->args.train_stride_width;
+	int stride=2;
+	int num_rows=(current_frame.rows- reference_roi.height + stride)/stride;
+	int num_cols=(current_frame.cols- reference_roi.width + stride)/stride;
 	this->detections.clear();
 	MatrixXd positiveFeatures = MatrixXd::Zero(0,this->n_descriptors);
 	MatrixXd negativeFeatures = MatrixXd::Zero(0,this->n_descriptors);
@@ -265,39 +266,41 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	uniform_real_distribution<double> unif(0.0,1.0);
 	for(int i=0;i<num_rows;i++){
 		for(int j=0;j<num_cols;j++){
-			int row=i*this->args.train_stride_height;
-			int col=j*this->args.train_stride_width;
-			Rect current_window(col,row,floor(this->args.width/scale_w),floor(this->args.height/scale_h));
-			cout << num_rows << "," << num_cols << "," << cropped_frame.size() << "," <<  current_window << endl;
-			Rect intersection = reference_roi & current_window;
-			double overlap=(double)intersection.area()/(double)reference_roi.area();
-			double uni_rand = (overlap > args.overlap_threshold) ? 1.0 : unif(this->generator);
-			Mat subImage = cropped_frame(current_window);
+			int row=i*stride;
+			int col=j*stride;
+			Rect current_window(col,row, reference_roi.width, reference_roi.height);
+			double Intersection = (double)(reference_roi & current_window).area();
+			double Union=(double)reference_roi.area()+(double)current_window.area()-Intersection;
+			double IoU=Intersection/Union;
+			double uni_rand = (IoU > args.overlap_threshold) ? 1.0 : unif(this->generator);
+			if(uni_rand>args.p_accept){
+			Mat subImage = current_frame(current_window);
 			VectorXd hogFeatures = this->genHog(subImage);
 			VectorXd temp;
-			if(USE_COLOR){
-				VectorXd rawPixelsFeatures = this->genRawPixels(subImage);
-				temp.resize(hogFeatures.rows()+rawPixelsFeatures.rows());
-				temp << hogFeatures, rawPixelsFeatures;
-			}
-			else{
-				temp.resize(hogFeatures.rows());//
-				temp << hogFeatures;//
-			}	
-			//temp.normalize();
-			if(overlap > args.overlap_threshold){
-				positiveFeatures.conservativeResize(positiveFeatures.rows() + 1, NoChange);
-				positiveFeatures.row(positiveFeatures.rows() - 1)=temp;
-				positiveLabels.conservativeResize(positiveLabels.size() + 1 );
-				positiveLabels(positiveLabels.size() - 1) = 1.0;
-				rectangle( cropped_frame, current_window, Scalar(0,0,0), 1, LINE_AA );
-			}
-			else if (overlap < 0.1 && uni_rand > args.p_accept){
-				negativeFeatures.conservativeResize(negativeFeatures.rows() + 1, NoChange);
-				negativeFeatures.row(negativeFeatures.rows() - 1)=temp;
-				negativeLabels.conservativeResize(negativeLabels.size() + 1 );
-				negativeLabels(negativeLabels.size() - 1) = 0.0;
-				rectangle( cropped_frame, current_window,Scalar(255,255,255) , 1, LINE_AA );
+				if(USE_COLOR){
+					VectorXd rawPixelsFeatures = this->genRawPixels(subImage);
+					temp.resize(hogFeatures.rows()+rawPixelsFeatures.rows());
+					temp << hogFeatures, rawPixelsFeatures;
+				}
+				else{
+					temp.resize(hogFeatures.rows());//
+					temp << hogFeatures;//
+				}	
+				//temp.normalize();
+				if(IoU > args.overlap_threshold){
+					positiveFeatures.conservativeResize(positiveFeatures.rows() + 1, NoChange);
+					positiveFeatures.row(positiveFeatures.rows() - 1)=temp;
+					positiveLabels.conservativeResize(positiveLabels.size() + 1 );
+					positiveLabels(positiveLabels.size() - 1) = 1.0;
+					rectangle( current_frame, current_window, Scalar(255,255,255), 1, LINE_AA );
+				}
+				else{
+					negativeFeatures.conservativeResize(negativeFeatures.rows() + 1, NoChange);
+					negativeFeatures.row(negativeFeatures.rows() - 1)=temp;
+					negativeLabels.conservativeResize(negativeLabels.size() + 1 );
+					negativeLabels(negativeLabels.size() - 1) = 0.0;
+				}
+				//else rectangle( current_frame, current_window, Scalar(0,0,0), 1, LINE_AA );
 			}
 		}
 	}
@@ -311,32 +314,26 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	this->feature_values << positiveFeatures, negativeFeatures;
 	this->labels.resize(fRows);
 	this->labels << positiveLabels, negativeLabels;
-	cout << "positive examples : " << (this->labels.array() > 0).count() << endl;
-	cout << "negative examples : " << (this->labels.array() <= 0).count() << endl;
-	rectangle( cropped_frame, reference_roi, Scalar(0,255,0), 2, LINE_AA );
-	imwrite("resized_image.png", cropped_frame);
+	//cout << "positive examples : " << (this->labels.array() > 0).count() << endl;
+	//cout << "negative examples : " << (this->labels.array() <= 0).count() << endl;
+	rectangle( current_frame, reference_roi, Scalar(0,255,0), 2, LINE_AA );
+	imwrite("resized_image.png", current_frame);
 	if(!this->logistic_regression.initialized){
 		this->logistic_regression.init(this->feature_values, this->labels, args.lambda,false,false,true);	
 	} 
 	else{
 		this->logistic_regression.setData(this->feature_values, this->labels);
 	}
-	//cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
-	int num_iter;
-	if(this->num_frame>0) {
-		num_iter=args.n_iterations*exp(-this->num_frame);
-		args.epsilon=MIN(0.99,args.epsilon+0.05);	
-	}
-	else num_iter=args.n_iterations;
-	this->logistic_regression.train(num_iter, args.epsilon, args.tolerance);
-	exit(0);
+	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
+	int num_batches=this->feature_values.rows()/100;
+	this->logistic_regression.train(num_batches*args.n_iterations,100,args.alpha, args.step_size);
 }
 
 
 void CPU_LR_HOGDetector::train()
 {
 	this->logistic_regression.init(this->feature_values, this->labels, args.lambda, false,false,true);
-	this->logistic_regression.train(args.n_iterations, args.epsilon, args.tolerance);
+	this->logistic_regression.train(args.n_iterations, args.alpha, args.step_size);
 	VectorXd weights = this->logistic_regression.getWeights();
 	VectorXd bias(1);
 	bias << this->logistic_regression.getBias();
@@ -350,21 +347,6 @@ void CPU_LR_HOGDetector::train()
 
 
 
-
-MatrixXd CPU_LR_HOGDetector::getFeatureValues(Mat &current_frame)
-{
-	vector<float> temp_features;
-	Size win_stride(args.test_stride_width, args.test_stride_height);
-	this->hog.compute(current_frame, temp_features, win_stride);
-	vector<double> features(temp_features.begin(), temp_features.end());
-	double* ptr = &features[0];
-	int rows = (int)(features.size()/this->hog.getDescriptorSize());
-	Map<MatrixXd> hogFeatures(ptr, rows, this->hog.getDescriptorSize());
-	//for (int k = 0; k < hogFeatures.rows(); ++k) hogFeatures.row(k).normalize();
-	return hogFeatures;
-}
-
-
 VectorXd CPU_LR_HOGDetector::genHog(Mat &frame)
 {	
 	int interpolation;
@@ -376,11 +358,12 @@ VectorXd CPU_LR_HOGDetector::genHog(Mat &frame)
 	Mat current_frame;
 	resize(frame,current_frame,Size(args.hog_width, args.hog_height),0,0,interpolation);
 	cv::cvtColor(current_frame, current_frame, CV_BGR2GRAY);
-    current_frame.convertTo(current_frame, CV_32FC1);
-	vector<Mat> mat_hog_features=FHoG::extract(current_frame, 2, args.cell_width, args.nbins);
+	current_frame.convertTo(current_frame, CV_32FC1);
+	//extract(const cv::Mat & img, int use_hog = 2, int bin_size = 4, int n_orients = 9, int soft_bin = -1, float clip = 0.2)
+	vector<Mat> mat_hog_features=FHoG::extract(current_frame, 2, args.bin_size, args.n_orients);
 	int hog_channels=mat_hog_features.size();
 	int cidx=0;
- 	VectorXd hog_features=VectorXd::Zero((args.nbins*3+5-1)*(args.hog_width/args.cell_width)*(args.hog_width/args.cell_width));
+	VectorXd hog_features=VectorXd::Zero((args.n_orients*3+5-1)*(args.hog_width/args.bin_size)*(args.hog_height/args.bin_size));
 	for (unsigned int ch = 0; ch < hog_channels; ++ch){
 		for (int i = 0; i < mat_hog_features[ch].rows; i++){   
 			for (int j = 0; j < mat_hog_features[ch].cols; j++){

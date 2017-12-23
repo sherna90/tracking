@@ -1,3 +1,11 @@
 build/
+<<<<<<< HEAD
+=======
+vot2014/
+vot2015/
+docs/
+resultados/
+src/vot-integration/build/
+>>>>>>> 3893a7478d9a99655625e919d02b521765b5cc56
 *.old
 backups/

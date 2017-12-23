@@ -1,9 +1,14 @@
 #ifndef CPU_LR_HOG_DETECTOR_H
 #define CPU_LR_HOG_DETECTOR_H
 #include "hog_detector.hpp"
+#include <opencv2/ximgproc/segmentation.hpp>
 #include "../likelihood/CPU_logistic_regression.hpp"
 #include "../libs/piotr_fhog/fhog.hpp"
-#include "../libs/cn/cnfeat.hpp"
+
+using namespace cv;
+using namespace std;
+using namespace Eigen;
+using namespace cv::ximgproc::segmentation;
 
 class CPU_LR_HOGDetector : public HOGDetector
 {
@@ -13,7 +18,6 @@ public:
 	vector<double> detect(Mat &frame,vector<Rect> samples);
 	void train(Mat &frame,Rect reference_roi);
 	void train();
-	MatrixXd getFeatureValues(Mat &current_frame);
 	VectorXd genHog(Mat &frame);
 	VectorXd genRawPixels(Mat &frame);
 	void loadModel(VectorXd weights,VectorXd featureMean, VectorXd featureStd, VectorXd featureMax, VectorXd featureMin, double bias);

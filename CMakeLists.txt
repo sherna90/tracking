@@ -21,7 +21,6 @@ include_directories( "src/DPP/" )
 include_directories( "/usr/include/eigen3/" )
 
 add_subdirectory("src/libs/piotr_fhog")
-add_subdirectory("src/libs/cn")
 
 
 
@@ -42,23 +41,8 @@ set(COMMON_SOURCES
 
 
 add_executable( bernoulli_pf src/test_bernoulli_particle_filter.cpp src/models/bernoulli_particle_filter.cpp  ${COMMON_SOURCES}) 
-target_link_libraries( bernoulli_pf ${OpenCV_LIBS} fhog cndata)
+target_link_libraries( bernoulli_pf ${OpenCV_LIBS} fhog )
 
 
 add_executable( particle_filter src/test_particle_filter.cpp src/models/particle_filter.cpp  ${COMMON_SOURCES} ) 
-target_link_libraries( particle_filter ${OpenCV_LIBS} fhog cndata)
-
-
-if(MAKE_HMC)
-	set(HMC_SOURCES
-		src/likelihood/hmc.cpp  
-		src/likelihood/CPU_hmc.cpp  
-		src/detector/CPU_HMC_hog_detector.cpp 
-	   )
-
-	add_executable( bernoulli_pf_HMC src/test_bernoulli_particle_filter_HMC.cpp src/models/bernoulli_particle_filter_HMC.cpp  ${COMMON_SOURCES} ${HMC_SOURCES}) 
-	target_link_libraries( bernoulli_pf_HMC ${OpenCV_LIBS} )
-
-	add_executable( particle_filter_HMC src/test_particle_filter_HMC.cpp src/models/particle_filter_HMC.cpp  ${COMMON_SOURCES} ${HMC_SOURCES}) 
-	target_link_libraries( particle_filter_HMC ${OpenCV_LIBS} )
-endif()
+target_link_libraries( particle_filter ${OpenCV_LIBS} fhog )

@@ -6,7 +6,7 @@
 #include "particle_filter.hpp"
 
 #ifndef PARAMS
-const float POS_STD=1.0;
+const float POS_STD=3.0;
 const float SCALE_STD=0.1;
 const float DT=1.0;
 const float THRESHOLD=1.0;
@@ -264,7 +264,7 @@ void particle_filter::update(Mat& image)
     for (size_t i = 0; i < this->states.size(); ++i){
             this->weights[i]+=log(tmp_weights[i]);
     }
-    if(max_value/max_prob<0.8) this->detector.train(current_frame,update_roi);
+    //if(max_value/max_prob<0.8) this->detector.train(current_frame,update_roi);
     max_prob=max_value;
     this->resample();
 

@@ -39,10 +39,13 @@ void TestBernoulliParticleFilter::run(){
 		}
 		else{
 			filter.predict();
+			//cout << "predict OK" << endl;
 			filter.update(current_frame);
-			//filter.draw_particles(current_frame, Scalar(0,255,255));
+			//cout << "update OK" << endl;
+			//filter.draw_particles(current_frame, Scalar(100,100,100));
 			rectangle( current_frame, ground_truth, Scalar(0,255,0), 2, LINE_AA );
 			Rect estimate = filter.estimate(current_frame, true);
+			//cout << "estimate OK" << endl;			
 			cout <<  estimate.x << "," << estimate.y << "," << estimate.width << "," << estimate.height << endl;
 			performance.calc(ground_truth, estimate);
 			/*if(r1 < 0.1) {

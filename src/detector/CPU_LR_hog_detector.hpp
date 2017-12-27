@@ -26,6 +26,8 @@ protected:
 	CPU_LogisticRegression logistic_regression;
 	int num_frame=0;
 	double max_value=1.0;
+	vector<Rect> sliding_window(Mat frame,Rect reference_roi,int stride);
+	vector<Rect> region_proposal(Mat frame);
 };
 
 #endif

@@ -79,9 +79,9 @@ MatrixXd DPP::get_similarity_term(MatrixXd &featureValues, MatrixXd &intersectio
 	 ****	S = w * S^c + (1 - w) * S^s
 	 ****/
 
-	MatrixXd Sc = squared_exponential_kernel(featureValues, 0, 0);
+	//MatrixXd Sc = squared_exponential_kernel(featureValues, 0, 0);
 	MatrixXd Ss = intersectionArea.array() / sqrtArea.array();
-	//MatrixXd Sc = featureValues * featureValues.adjoint();
+	MatrixXd Sc = featureValues * featureValues.adjoint();
 	MatrixXd S = mu * Ss.array() + (1 - mu) * Sc.array();
 	//MatrixXd S = featureValues * featureValues.adjoint();
 	return S;

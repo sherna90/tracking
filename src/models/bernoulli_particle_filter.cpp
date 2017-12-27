@@ -3,7 +3,6 @@
 #ifndef PARAMS
 const float POS_STD = 3.0;
 const float SCALE_STD = 0.1;
-const float OVERLAP_RATIO = 0.8;
 const float THRESHOLD = 1000;
 const int NEWBORN_PARTICLES = 0;
 
@@ -12,14 +11,14 @@ const float INITIAL_EXISTENCE_PROB = 0.99;
 const float BIRTH_PROB = 0.1;
 const float DETECTION_RATE = 0.9;
 const float CLUTTER_RATE = 1;
-const float POSITION_LIKELIHOOD_STD = 3.0;
+const float POSITION_LIKELIHOOD_STD = 10.0;
 const float LAMBDA_C= 20.0;
 const float PDF_C = 1.6e-4;
 
 const double LAMBDA_BC=20.4;
 
-const double GROUP_THRESHOLD = 0.3;
-const double HIT_THRESHOLD = 0.001;
+const double GROUP_THRESHOLD = 0.0;
+const double HIT_THRESHOLD = 0.3;
 
 //const int this->step_slide = 20;
 #endif
@@ -44,7 +43,9 @@ BernoulliParticleFilter::BernoulliParticleFilter(int n_particles, double lambda,
 	RowVectorXd theta_x_scale(2);
 	theta_x_scale << SCALE_STD,SCALE_STD;
 	this->theta_x.push_back(theta_x_scale);
-
+	this->lambda=lambda;
+	this->mu=mu;
+	this->epsilon=epsilon;
 	this->existence_prob = INITIAL_EXISTENCE_PROB;
 }
 
@@ -275,31 +276,28 @@ void BernoulliParticleFilter::update(const Mat& image){
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
 	int bottom = MIN(this->reference_roi.y + this->reference_roi.height, image.rows - 1);
 	Rect update_roi = Rect(left, top, right - left, bottom - top);
-	vector<Rect> samples;
-	for (size_t i = 0; i < this->states.size(); ++i){
-        	particle state = this->states[i];
-        	Rect current_state=Rect(state.x, state.y, state.width, state.height);
-        	samples.push_back(current_state);
+	vector<Rect> detections = this->detector.detect(current_frame,update_roi);
+	MatrixXd featureValues = this->detector.getFeatures();
+	vector<double> detection_weights=this->detector.getWeights();
+	double* ptr = &detection_weights[0];
+	Map<VectorXd> phi(ptr, detection_weights.size());
+	VectorXd penalty_weights=VectorXd::Zero(detections.size());
+	for(unsigned int i = 0; i< detections.size();i++){
+		Rect current_window=detections[i];
+		double IoU=0.0;
+		for(unsigned int j = 0; j< states.size();j++){
+			particle state=states[j];
+			Rect state_roi = Rect(state.x,state.y,state.width,state.height);
+			double Intersection = (double)(state_roi &  current_window).area();
+			double Union=(double)state_roi.area()+(double)current_window.area()-Intersection;
+			IoU+=Intersection/Union;			
+		}
+		IoU=IoU/(double)states.size();
+		penalty_weights(i) = exp(-1.0*(1-IoU));
 	}
-	this->observations = this->detector.detect(current_frame,update_roi);
-	/*if(this->observations.size()>0){
-		vector<double> detection_weights=this->detector.getWeights();
-		double max_prob= *max_element(detection_weights.begin(), detection_weights.end());
-		if (max_prob>0.5) this->detector.train(current_frame,update_roi);
-	}*/
-	/*//MatrixXd featureValues = this->detector.getFeatureValues();
-	//VectorXd phi = this->detector.getDetectionWeights();
-	//cout << phi.rows() << "," << featureValues.rows() << endl;
-	//VectorXd penalty_weights=VectorXd::Zero(this->preDetections.size());
-	//for(unsigned int i = 0; i<this->preDetections.size();i++){
-	//	Rect intersection = update_roi & this->preDetections[i];
-	//	penalty_weights(i) = (double)intersection.area()/update_roi.area();
-	//}
-   	//VectorXd qualityTerm;
-   	//this->observations = this->dpp.run(this->preDetections, phi,penalty_weights,featureValues, qualityTerm, this->lambda, this->mu, this->epsilon);
-	cout << this->observations.size()  << endl;*/
-	
-
+   	VectorXd qualityTerm;
+   	this->observations = this->dpp.run(detections, phi,penalty_weights,featureValues, this->lambda, this->mu, this->epsilon);
+	//cout << "detections : " <<detections.size()   << ", observations : " << this->observations.size()  << endl;
 	if (this->observations.size() > 0)
 	{
 		vector<double> tmp_weights;
@@ -308,7 +306,7 @@ void BernoulliParticleFilter::update(const Mat& image){
 		MatrixXd observations = MatrixXd::Zero(this->observations.size(), 4);
 		for (size_t i = 0; i < this->observations.size(); i++){
             observations.row(i) << this->observations[i].x, this->observations[i].y, this->observations[i].width, this->observations[i].height;
-            //rectangle( image, Point(this->observations[i].x, this->observations[i].y), Point(this->observations[i].x+this->observations[i].width, this->observations[i].y+this->observations[i].height), Scalar(0,255,255), 2, LINE_AA );
+            rectangle( image, Point(this->observations[i].x, this->observations[i].y), Point(this->observations[i].x+this->observations[i].width, this->observations[i].y+this->observations[i].height), Scalar(0,255,255), 2, LINE_AA );
       
         }
 
@@ -319,11 +317,11 @@ void BernoulliParticleFilter::update(const Mat& image){
         	particle state = this->states[i];
         	VectorXd mean(4);
         	mean << state.x, state.y, state.width, state.height;
-        	MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
+        	//MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
             MVNGaussian gaussian(mean, cov);
             //double weight = this->weights[i];
 
-            psi.row(i) = gaussian.log_likelihood(observations).array().exp();
+            psi.row(i) = gaussian.log_likelihood(observations);
         }
 
 
@@ -366,19 +364,29 @@ void BernoulliParticleFilter::draw_particles(Mat& image, Scalar color){
 void BernoulliParticleFilter::resample(){
 	uniform_real_distribution<double> unif_rnd(0.0,1.0);
 	int num_states = this->states.size();
-	vector<double> normalized_weights(this->weights.size());
+	vector<double> normalized_weights(num_states);
 	Scalar sum_weights = sum(this->weights);
-    for (size_t i = 0; i < this->weights.size(); i++) {
-        normalized_weights.at(i) =this->weights.at(i)/sum_weights[0];
+	vector<double> cumulative_sum(num_states);
+	double max_value = *max_element(this->weights.begin(), this->weights.end());
+	double sumexp=0.0f;
+    for (int i=0; i<n_particles; i++) {
+        sumexp+=exp(this->weights.at(i)-max_value);
     }
-    vector<double> cumulative_sum(num_states);
-    for (size_t i = 0; i < this->weights.size(); i++) {
-        if (i == 0) {
+    for (int i=0; i<n_particles; i++) {
+        normalized_weights.at(i) = exp(this->weights.at(i)-max_value-log(sumexp));
+	}
+	//max_value = *max_element(normalized_weights.begin(),normalized_weights.end());
+	//cout << "max prob : " << max_value << endl;
+    for (int i=0; i<n_particles; i++) {
+		//cout << " prob : " << normalized_weights.at(i) << ",";
+        //squared_normalized_weights.at(i)=normalized_weights.at(i)*normalized_weights.at(i);
+        if (i==0) {
             cumulative_sum.at(i) = normalized_weights.at(i);
         } else {
-            cumulative_sum.at(i) = cumulative_sum.at(i - 1) + normalized_weights.at(i);
+            cumulative_sum.at(i) = cumulative_sum.at(i-1) + normalized_weights.at(i);
         }
-    }
+    } 
+    
     vector<particle> new_states;
     vector<double> new_weights;
     for (int i = 0; i < this->n_particles; i++) {

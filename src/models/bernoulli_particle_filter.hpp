@@ -19,6 +19,7 @@
 #include "../likelihood/gaussian.hpp"
 #include "../likelihood/multivariate_gaussian.hpp"
 #include "../utils/utils.hpp"
+#include "../DPP/dpp.hpp"
 #include "../detector/CPU_LR_hog_detector.hpp"
 
 using namespace cv;
@@ -64,11 +65,12 @@ private:
 	Size frame_size;
 	mt19937 generator;
 	float ESS;
-	//vector<Rect> sampleBox; 
+	DPP dpp;
 	vector<Rect> observations;
 	double existence_prob, new_existence_prob;
 	CPU_LR_HOGDetector detector;
 	double max_prob=1.0;
+	double mu,lambda,epsilon;
 };
 
 #endif

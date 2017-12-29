@@ -7,8 +7,8 @@ const bool USE_COLOR=true;
 void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
 	args.make_gray = true;
     args.resize_src = false;
-    args.hog_width = 32;
-    args.hog_height = 32;
+    args.hog_width = 16;
+    args.hog_height = 16;
     args.gr_threshold = group_threshold;
     args.hit_threshold = hit_threshold;
     args.n_orients = 9;
@@ -16,8 +16,8 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.overlap_threshold=0.7;
     args.p_accept = 0.999;
     args.lambda = 0.01;
-    args.alpha= 0.9;
-    args.step_size = 0.001;
+    args.alpha= 0.99;
+    args.step_size = 0.01;
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
 	args.n_iterations = 1000;
 	//this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
@@ -40,30 +40,19 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	Mat cropped_frame,current_frame;
 	float scale_w,scale_h;
 	frame.copyTo(current_frame);
-	if(args.resize_src){
-		scale_w=current_frame.cols/320.0f;
-		scale_h=current_frame.rows/240.0f;
-		resize(current_frame,current_frame,Size(320,240),0,0,INTER_LINEAR);
-		reference_roi.x=cvRound(reference_roi.x/scale_w);
-		reference_roi.y=cvRound(reference_roi.y/scale_h);
-		reference_roi.width=cvRound(reference_roi.width/scale_w);
-		reference_roi.height=cvRound(reference_roi.height/scale_h);
-	}
-	else{
-		scale_w=1.0f;
-		scale_h=1.0f;	
-	}
 	int x_shift=40;
 	int y_shift=40;
-	Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
-	int w_crop=(current_frame.cols-(cropped_roi.x+2*x_shift) >=0 )?  2*x_shift : current_frame.cols-cropped_roi.x;
-	int h_crop=(current_frame.rows-(cropped_roi.y+2*y_shift) >=0 )?  2*y_shift : current_frame.rows-cropped_roi.y;
-	cropped_roi+=Size(w_crop,h_crop);
-	//current_frame=frame(cropped_roi);
+	//Rect cropped_roi=reference_roi+Point(-x_shift,-y_shift);
+	int x_crop=(reference_roi.x-x_shift>=0 ) ?  reference_roi.x-x_shift : 0;
+	int y_crop=(reference_roi.y-y_shift>=0 ) ?  reference_roi.y-y_shift : 0;
+	int w_crop=(current_frame.cols-(reference_roi.x+2*x_shift) >=0 )?  2*x_shift : current_frame.cols-reference_roi.x;
+	int h_crop=(current_frame.rows-(reference_roi.y+2*y_shift) >=0 )?  2*y_shift : current_frame.rows-reference_roi.y;
+	Rect cropped_roi=Rect(x_crop,y_crop,w_crop,h_crop);
+	current_frame=frame(cropped_roi);
 	vector<Rect> samples,raw_detections;
 	this->detections.clear();
-	//samples=region_proposal(current_frame);
-	samples=sliding_window(current_frame,reference_roi,10);
+	samples=region_proposal(current_frame);
+	//samples=sliding_window(current_frame,reference_roi,10);
 	this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
 	this->weights.clear();
 	double max_prob=0.0;
@@ -101,6 +90,7 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 				this->weights.push_back(predict_prob(i));
 				this->feature_values.conservativeResize(this->feature_values.rows() + 1, NoChange);
 				this->feature_values.row(this->feature_values.rows()-1) << temp_features_matrix.row(i);
+				current_window+=Point(reference_roi.x-x_shift,reference_roi.y-y_shift);
 				raw_detections.push_back(current_window);
 			}
 		}

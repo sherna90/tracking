@@ -47,34 +47,6 @@ imageGenerator::imageGenerator(string _firstFrameFilename, string _groundTruthFi
   readDetections(_detectionsFile);
 }
 
-imageGenerator::imageGenerator(string _firstFrameFilename, string _groundTruthFile, string _detFile){
-  frame_id = 0;
-  string FrameFilename,gtFilename;
-  FrameFilename = _firstFrameFilename;
-  gtFilename=_groundTruthFile;
-  Mat current_frame = imread(FrameFilename);
-  images.push_back(current_frame);
-  while(1){
-    getNextFilename(FrameFilename);
-    current_frame = imread(FrameFilename );
-    if(current_frame.empty()){
-      break;
-    }
-    else{
-      images.push_back(current_frame);
-    }
-  }
-  ifstream gt_file(gtFilename.c_str(), ios::in);
-  string line;
-  while (getline(gt_file, line)) ground_truth.push_back(line);
-  if(images.size() != ground_truth.size()){
-        cerr << "There is not the same quantity of images and ground-truth data" << endl;
-        cerr << "Maybe you typed wrong filenames" << endl;
-        exit(EXIT_FAILURE);
-  }
-  readDetections(_detFile);
-}
-
 Mat imageGenerator::getFrame(){
   Mat current_frame=images[frame_id].clone();
   return current_frame;
@@ -199,10 +171,13 @@ void imageGenerator::readDetections(string detFilename){
   }
 }
 
-/*vector<Rect> imageGenerator::getDetections(int frame_num){
-  return this->detections[frame_num];
+void imageGenerator::readGroundTruth(string gtFilename){
+ ifstream gt_file(gtFilename.c_str(), ios::in);
+  string line;
+  while (getline(gt_file, line)) ground_truth.push_back(line);
+  if(images.size() != ground_truth.size()){
+        cerr << "There is not the same quantity of images and ground-truth data" << endl;
+        cerr << "Maybe you typed wrong filenames" << endl;
+        exit(EXIT_FAILURE);
+  }
 }
-
-VectorXd imageGenerator::getDetectionWeights(int frame_num){
-  return this->detection_weights[frame_num];
-}*/

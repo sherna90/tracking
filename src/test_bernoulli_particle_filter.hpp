@@ -25,7 +25,6 @@ private:
 	double reinit_rate;
 	vector<Mat> images;
 	vector<VectorXd> detection_weights;
-	vector< vector<Rect> > detections;
 	vector<string> gt_vec;
 	vector< vector<Rect> > detections;
 };

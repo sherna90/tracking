@@ -30,7 +30,6 @@ public:
   vector< vector<Rect> > detections;
   Rect stringToRect(string str);
 private:
-  void readDetections(string str);
   void readGroundTruth(string str);
   int frame_id;
   void getNextFilename(string& filename);

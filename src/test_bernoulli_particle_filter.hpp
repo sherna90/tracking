@@ -8,13 +8,16 @@
 #include <time.h>
 #include <iostream>
 #include <cstdlib>
+#include <Eigen/Dense>
 
 using namespace std;
 using namespace cv;
+using namespace Eigen;
 
 class TestBernoulliParticleFilter{
 public:
-	TestBernoulliParticleFilter(string firstFrameFilename, string gtFilename, int num_particles, double lambda, double mu, double epsilon);
+	TestBernoulliParticleFilter(string firstFrameFilename, string gtFilename, string detFilename, 
+		int num_particles, double lambda, double mu, double epsilon);
 	void run();
 private:
 	int num_particles, num_frames;
@@ -22,6 +25,8 @@ private:
 	imageGenerator generator;
 	double reinit_rate;
 	vector<Mat> images;
+	vector<VectorXd> detection_weights;
+	vector< vector<Rect> > detections;
 	vector<string> gt_vec;
 };
 

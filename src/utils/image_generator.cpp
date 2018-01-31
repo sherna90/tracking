@@ -6,7 +6,6 @@ using namespace cv;
 imageGenerator::imageGenerator(){
 }
 
-
 imageGenerator::imageGenerator(string _firstFrameFilename, string _groundTruthFile){
   frame_id = 0;
   string FrameFilename,gtFilename;
@@ -32,6 +31,34 @@ imageGenerator::imageGenerator(string _firstFrameFilename, string _groundTruthFi
         cerr << "Maybe you typed wrong filenames" << endl;
         exit(EXIT_FAILURE);
   }
+}
+
+imageGenerator::imageGenerator(string _firstFrameFilename, string _groundTruthFile, string _detFile){
+  frame_id = 0;
+  string FrameFilename,gtFilename;
+  FrameFilename = _firstFrameFilename;
+  gtFilename=_groundTruthFile;
+  Mat current_frame = imread(FrameFilename);
+  images.push_back(current_frame);
+  while(1){
+    getNextFilename(FrameFilename);
+    current_frame = imread(FrameFilename );
+    if(current_frame.empty()){
+      break;
+    }
+    else{
+      images.push_back(current_frame);
+    }
+  }
+  ifstream gt_file(gtFilename.c_str(), ios::in);
+  string line;
+  while (getline(gt_file, line)) ground_truth.push_back(line);
+  if(images.size() != ground_truth.size()){
+        cerr << "There is not the same quantity of images and ground-truth data" << endl;
+        cerr << "Maybe you typed wrong filenames" << endl;
+        exit(EXIT_FAILURE);
+  }
+  readDetections(_detFile);
 }
 
 Mat imageGenerator::getFrame(){
@@ -119,3 +146,49 @@ Rect imageGenerator::stringToRect(string str){
     }
     return Rect(minx,miny,cvRound(maxx-minx),cvRound(maxy-miny));
 }
+
+void imageGenerator::readDetections(string detFilename){
+  ifstream dt_file(detFilename.c_str(), ios::in);
+  string line;
+  this->detections.resize(getDatasetSize());
+  this->detection_weights.resize(getDatasetSize());
+
+  vector<double> coords(4,0);
+  int frame_num;
+
+  while (getline(dt_file, line)) {
+    Rect rect;
+    size_t pos2 = line.find(",");
+    size_t pos1 = 0;
+    if(pos2 > pos1){
+      frame_num = stoi(line.substr(pos1, pos2)) - 1;
+      //pos1 = line.find(",",pos2 + 1);
+      //pos2 = line.find(",",pos1 + 1);
+      //coords[0] = stoi(line.substr(pos1 + 1, pos2 - pos1 - 1));
+      for(int j = 0; j < 4; j++){
+        pos1 = pos2;
+        pos2 = line.find(",", pos1 + 1);
+        coords[j] = stoi(line.substr(pos1 + 1,pos2 - pos1 - 1));
+      }
+      rect.x = coords[0];
+      rect.y = coords[1];
+      rect.width = coords[2];
+      rect.height = coords[3];
+      this->detections[frame_num].push_back(rect);
+      
+      pos1 = pos2;
+      pos2 = line.find(",", pos1 + 1);
+      this->detection_weights[frame_num].conservativeResize( this->detection_weights[frame_num].size() + 1 );
+      this->detection_weights[frame_num](this->detection_weights[frame_num].size() - 1) = stod(line.substr(pos1 + 1, pos2 - pos1 - 1));
+      //cout << frame_num << "," << rect.x << "," << rect.y << "," << rect.width << "," << rect.height << "," << stod(line.substr(pos1 + 1, pos2 - pos1 - 1)) << endl;
+    }
+  }
+}
+
+/*vector<Rect> imageGenerator::getDetections(int frame_num){
+  return this->detections[frame_num];
+}
+
+VectorXd imageGenerator::getDetectionWeights(int frame_num){
+  return this->detection_weights[frame_num];
+}*/

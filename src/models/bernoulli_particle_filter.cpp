@@ -17,7 +17,7 @@ const float PDF_C = 1.6e-4;
 
 const double LAMBDA_BC=20.4;
 
-const double GROUP_THRESHOLD = 0.1;
+const double GROUP_THRESHOLD = 0.0;
 const double HIT_THRESHOLD = 0.3;
 
 //const int this->step_slide = 20;
@@ -27,7 +27,7 @@ BernoulliParticleFilter::~BernoulliParticleFilter(){}
 
 BernoulliParticleFilter::BernoulliParticleFilter(){}
 
-BernoulliParticleFilter::BernoulliParticleFilter(int n_particles, double lambda, double mu, double epsilon){
+BernoulliParticleFilter::BernoulliParticleFilter(int n_particles){
 	this->n_particles = n_particles;
 	this->initialized = false;
 	this->states.clear();
@@ -43,9 +43,6 @@ BernoulliParticleFilter::BernoulliParticleFilter(int n_particles, double lambda,
 	RowVectorXd theta_x_scale(2);
 	theta_x_scale << SCALE_STD,SCALE_STD;
 	this->theta_x.push_back(theta_x_scale);
-	this->lambda=lambda;
-	this->mu=mu;
-	this->epsilon=epsilon;
 	this->existence_prob = INITIAL_EXISTENCE_PROB;
 }
 
@@ -265,7 +262,7 @@ void BernoulliParticleFilter::predict(){
 	//cout << "predicted!!!" << endl;
 }
 
-void BernoulliParticleFilter::update(const Mat& image){
+void BernoulliParticleFilter::update(const Mat& image,vector<Rect> detections){
 	Mat current_frame;
 	image.copyTo(current_frame);
 	//Mat current_frame_copy;
@@ -276,40 +273,18 @@ void BernoulliParticleFilter::update(const Mat& image){
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
 	int bottom = MIN(this->reference_roi.y + this->reference_roi.height, image.rows - 1);
 	Rect update_roi = Rect(left, top, right - left, bottom - top);
-	vector<Rect> detections = this->detector.detect(current_frame,update_roi);
-	if(GROUP_THRESHOLD==0){
-		MatrixXd featureValues = this->detector.getFeatures();
-		vector<double> detection_weights=this->detector.getWeights();
-		double* ptr = &detection_weights[0];
-		Map<VectorXd> phi(ptr, detection_weights.size());
-		VectorXd penalty_weights=VectorXd::Zero(detections.size());
-		for(unsigned int i = 0; i< detections.size();i++){
-			Rect current_window=detections[i];
-			double IoU=0.0;
-			for(unsigned int j = 0; j< states.size();j++){
-				particle state=states[j];
-				Rect state_roi = Rect(state.x,state.y,state.width,state.height);
-				double Intersection = (double)(state_roi &  current_window).area();
-				double Union=(double)state_roi.area()+(double)current_window.area()-Intersection;
-				IoU+=Intersection/Union;			
-			}
-			IoU=IoU/(double)states.size();
-			penalty_weights(i) = exp(-1.0*(1-IoU));
-		}
-		VectorXd qualityTerm;
-		this->observations = this->dpp.run(detections, phi,penalty_weights,featureValues, this->lambda, this->mu, this->epsilon);	
-	}
-	else{
-		this->observations=detections;
-	}
+	//vector<Rect> detections = this->detector.detect(current_frame,update_roi);
+	this->observations=detections;
 	//cout << "detections : " <<detections.size()   << ", observations : " << this->observations.size()  << endl;
 	if (this->observations.size() > 0)
 	{
+
 		vector<double> tmp_weights;
 		MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
-
 		MatrixXd observations = MatrixXd::Zero(this->observations.size(), 4);
 		for (size_t i = 0; i < this->observations.size(); i++){
+			cout << "detections : " <<detections[i]  << endl;
+	
             observations.row(i) << this->observations[i].x, this->observations[i].y, this->observations[i].width, this->observations[i].height;
             rectangle( image, Point(this->observations[i].x, this->observations[i].y), Point(this->observations[i].x+this->observations[i].width, this->observations[i].y+this->observations[i].height), Scalar(0,255,255), 2, LINE_AA );
       

@@ -5,10 +5,10 @@ const bool USE_COLOR=true;
 #endif
 
 void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
-	args.make_gray = true;
+	args.make_gray = false;
     args.resize_src = false;
-    args.hog_width = 16;
-    args.hog_height = 16;
+    args.hog_width = 32;
+    args.hog_height = 32;
     args.gr_threshold = group_threshold;
     args.hit_threshold = hit_threshold;
     args.n_orients = 9;
@@ -51,8 +51,8 @@ vector<Rect> CPU_LR_HOGDetector::detect(Mat &frame,Rect reference_roi)
 	current_frame=frame(cropped_roi);
 	vector<Rect> samples,raw_detections;
 	this->detections.clear();
-	samples=region_proposal(current_frame);
-	//samples=sliding_window(current_frame,reference_roi,10);
+	//samples=region_proposal(current_frame);
+	samples=sliding_window(current_frame,reference_roi,10);
 	this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
 	this->weights.clear();
 	double max_prob=0.0;
@@ -111,7 +111,6 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 	Mat current_frame;
 	frame.copyTo(current_frame);
 	float scale_w,scale_h;
-	frame.copyTo(current_frame);
 	if(args.resize_src){
 		scale_w=current_frame.cols/320.0f;
 		scale_h=current_frame.rows/240.0f;
@@ -221,10 +220,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	this->feature_values << positiveFeatures, negativeFeatures;
 	this->labels.resize(fRows);
 	this->labels << positiveLabels, negativeLabels;
-	cout << "positive examples : " << (this->labels.array() > 0).count() << endl;
-	cout << "negative examples : " << (this->labels.array() <= 0).count() << endl;
 	rectangle( current_frame, reference_roi, Scalar(0,255,0), 2, LINE_AA );
-	imwrite("resized_image.png", current_frame);
 	if(!this->logistic_regression.initialized){
 		this->logistic_regression.init(this->feature_values, this->labels, args.lambda,true,true,true);	
 	} 

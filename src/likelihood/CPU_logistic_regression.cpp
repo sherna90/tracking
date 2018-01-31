@@ -4,14 +4,13 @@ VectorXd CPU_LogisticRegression::train(int n_iter,int mini_batch,double alpha,do
 	VectorXd log_likelihood=VectorXd::Zero(n_iter);
 	int num_batches=this->rows/mini_batch;
 	VectorXd momemtum=VectorXd::Zero(this->dim);
-	cout << "     Epoch     |     Loss        |   Train accuracy  |       Test accuracy  " << endl;
 	for(int i=0;i<n_iter;i++){
 		this->preCompute(i,mini_batch);
 		log_likelihood(i)=-this->logPosterior(i,mini_batch);
 		VectorXd gradient=this->computeGradient(i,mini_batch);
 		//cout << this->weights.transpose().head(10) << endl;
 		//cout << gradient.transpose().head(10) << endl;
-		if (i % (n_iter/10) == 0) cout << "              " <<  i/num_batches << "               " << log_likelihood(i)  << "|  " << endl;
+		//if (i % (n_iter/10) == 0) cout << "              " <<  i/num_batches << "               " << log_likelihood(i)  << "|  " << endl;
 		momemtum*=alpha;
 		momemtum-=(1.0-alpha)*gradient;
 		this->weights+=momemtum*step_size;

@@ -14,7 +14,7 @@ using namespace cv;
 
 class TestBernoulliParticleFilter{
 public:
-	TestBernoulliParticleFilter(string firstFrameFilename, string gtFilename, int num_particles, double lambda, double mu, double epsilon);
+	TestBernoulliParticleFilter(string firstFrameFilename, string gtFilename,string dtFilename, int num_particles);
 	void run();
 private:
 	int num_particles, num_frames;
@@ -23,6 +23,7 @@ private:
 	double reinit_rate;
 	vector<Mat> images;
 	vector<string> gt_vec;
+	vector< vector<Rect> > detections;
 };
 
 #endif

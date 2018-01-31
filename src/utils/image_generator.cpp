@@ -24,14 +24,28 @@ imageGenerator::imageGenerator(string _firstFrameFilename, string _groundTruthFi
       images.push_back(current_frame);
     }
   }
-  ifstream gt_file(gtFilename.c_str(), ios::in);
-  string line;
-  while (getline(gt_file, line)) ground_truth.push_back(line);
-  if(images.size() != ground_truth.size()){
-        cerr << "There is not the same quantity of images and ground-truth data" << endl;
-        cerr << "Maybe you typed wrong filenames" << endl;
-        exit(EXIT_FAILURE);
+  readGroundTruth(_groundTruthFile);
+}
+
+imageGenerator::imageGenerator(string _firstFrameFilename, string _groundTruthFile, string _detectionsFile){
+  frame_id = 0;
+  string FrameFilename,gtFilename;
+  FrameFilename = _firstFrameFilename;
+  gtFilename=_groundTruthFile;
+  Mat current_frame = imread(FrameFilename);
+  images.push_back(current_frame);
+  while(1){
+    getNextFilename(FrameFilename);
+    current_frame = imread(FrameFilename );
+    if(current_frame.empty()){
+      break;
+    }
+    else{
+      images.push_back(current_frame);
+    }
   }
+  readGroundTruth(_groundTruthFile);
+  readDetections(_detectionsFile);
 }
 
 Mat imageGenerator::getFrame(){
@@ -118,4 +132,53 @@ Rect imageGenerator::stringToRect(string str){
         maxy = pt[0][i].y;
     }
     return Rect(minx,miny,cvRound(maxx-minx),cvRound(maxy-miny));
+}
+
+void imageGenerator::readDetections(string detFilename){
+  ifstream dt_file(detFilename.c_str(), ios::in);
+  string line;
+  this->detections.resize(getDatasetSize());
+  vector<double> coords(4,0);
+  int frame_num;
+  while (getline(dt_file, line)) {
+    Rect rect;
+    size_t pos2 = line.find(",");
+    size_t pos1 = 0;
+    if(pos2>pos1){
+      frame_num = stoi(line.substr(pos1, pos2)) - 1;
+      pos1 = line.find(",",pos2 + 1);
+      pos2 = line.find(",",pos1 + 1);
+      coords[0] = stoi(line.substr(pos1 + 1, pos2 - pos1 - 1));
+      for(int j = 1; j < 4; j++){
+        pos1 = pos2;
+        pos2 = line.find(",", pos1 + 1);
+        coords[j] = stoi(line.substr(pos1 + 1,pos2 - pos1 - 1));
+      }
+      rect.x = coords[0];
+      rect.y = coords[1];
+      rect.width = coords[2];
+      rect.height = coords[3];
+      this->detections[frame_num].push_back(rect);
+      
+      pos1 = pos2;
+      pos2 = line.find(",", pos1 + 1);
+      
+      for(int j = 0; j < 3; j++){
+        pos1 = pos2;
+        pos2 = line.find(",", pos1 + 1);
+      }
+    }
+  }
+}
+
+void imageGenerator::readGroundTruth(string gtFilename){
+  ifstream gt_file(gtFilename.c_str(), ios::in);
+  string line;
+  while (getline(gt_file, line)) ground_truth.push_back(line);
+  if(images.size() != ground_truth.size()){
+        cerr << "There is not the same quantity of images and ground-truth data" << endl;
+        cerr << "Maybe you typed wrong filenames" << endl;
+        exit(EXIT_FAILURE);
+  }
+
 }

@@ -44,12 +44,12 @@ public:
 	int n_particles;
 	~BernoulliParticleFilter();
 	BernoulliParticleFilter();
-	BernoulliParticleFilter(int n_particles, double lambda, double mu, double epsilon);
+	BernoulliParticleFilter(int n_particles);
 	bool is_initialized();
 	void initialize(const Mat& current_frame, const Rect ground_truth);
 	void reinitialize();
 	void predict();
-	void update(const Mat& image);
+	void update(const Mat& image,vector<Rect> detections);
 	void draw_particles(Mat& image, Scalar color = Scalar(0, 255, 255));
 	void resample();
 	Rect estimate(const Mat& image, bool draw = false);

@@ -7,6 +7,10 @@ TestBernoulliParticleFilter::TestBernoulliParticleFilter(string firstFrameFilena
 	this->gt_vec = generator.ground_truth;
 	this->detections = generator.detections;
 	this->images = generator.images;
+	this->detection_weights = generator.detection_weights;
+	this->lambda = lambda;
+	this->mu = mu;
+	this->epsilon = epsilon;
 }
 
 void TestBernoulliParticleFilter::run(){
@@ -19,14 +23,26 @@ void TestBernoulliParticleFilter::run(){
 	time(&start);
 	Performance performance;
 	namedWindow("Tracker");
-	/*VectorXd weights;
-	MatrixXd featureValues;
-	vector<Rect> dppResults, preDetections;*/
+	/*	MatrixXd featureValues;
+	vector<Rect> dppResults; */
+	
+	VectorXd current_weights;
+	vector<Rect> current_detections;
 
 	for(int k = 0; k < num_frames; ++k){
 		current_gt = this->gt_vec[k];
 		ground_truth = generator.stringToRect(current_gt);
 		current_frame = this->images[k].clone();
+
+		current_detections = this->detections[k];
+		current_weights = this->detection_weights[k];
+
+		for(size_t i = 0; i < current_detections.size(); i++){
+			Rect det = current_detections[i];
+			rectangle( current_frame, det, Scalar(255,255,255), 2, LINE_AA );
+			cout << k << "," << det.x << "," << det.y << "," << det.width << "," << det.height << "," << current_weights(i) << endl;
+		}
+
 
 	   	if(!filter.is_initialized())
 	   	{
@@ -35,7 +51,7 @@ void TestBernoulliParticleFilter::run(){
 		}
 		else{
 			filter.predict();
-			filter.update(current_frame,this->detections[k]);
+			filter.update(current_frame,current_detections);
 			rectangle( current_frame, ground_truth, Scalar(0,255,0), 2, LINE_AA );
 			Rect estimate = filter.estimate(current_frame, true);
 			cout <<  estimate.x << "," << estimate.y << "," << estimate.width << "," << estimate.height << endl;

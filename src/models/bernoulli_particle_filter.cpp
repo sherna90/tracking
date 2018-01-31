@@ -55,7 +55,6 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 
 	normal_distribution<double> position_random_x(0.0, this->theta_x.at(0)(0));
 	normal_distribution<double> position_random_y(0.0, this->theta_x.at(0)(1));
-
 	normal_distribution<double> negative_random_pos(0.0,20.0);
 
 	this->states.clear();
@@ -316,7 +315,7 @@ void BernoulliParticleFilter::update(const Mat& image,vector<Rect> detections){
         }
 		this->weights.swap(tmp_weights);
     	Scalar sum_weights = sum(this->weights);
-        this->existence_prob =  (this->new_existence_prob * sum_weights[0]) / ( ( (LAMBDA_C * PDF_C) * (1 - this->new_existence_prob) ) + ( this->new_existence_prob + sum_weights[0]) );
+        this->existence_prob = (this->new_existence_prob * sum_weights[0]) / ( ( (LAMBDA_C * PDF_C) * (1 - this->new_existence_prob) ) + ( this->new_existence_prob + sum_weights[0]) );
 	    if(this->existence_prob > 0.999) this->existence_prob = 0.999;
 		if(this->existence_prob < 0.001) this->existence_prob = 0.001;
 		double max_value = *max_element(this->weights.begin(), this->weights.end());

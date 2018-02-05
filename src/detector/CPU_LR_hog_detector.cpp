@@ -1,25 +1,25 @@
 #include "CPU_LR_hog_detector.hpp"
 
 #ifndef PARAMS
-const bool USE_COLOR=true;
+const bool USE_COLOR=false;
 #endif
 
 void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
 	args.make_gray = false;
     args.resize_src = false;
     args.hog_width = 32;
-    args.hog_height = 32;
+    args.hog_height = 64;
     args.gr_threshold = group_threshold;
     args.hit_threshold = hit_threshold;
     args.n_orients = 9;
     args.bin_size = 8;
     args.overlap_threshold=0.7;
-    args.p_accept = 0.999;
+    args.p_accept = 0.99;
     args.lambda = 0.01;
-    args.alpha= 0.99;
-    args.step_size = 0.01;
+    args.alpha= 0.9;
+    args.step_size = 0.001;
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-	args.n_iterations = 1000;
+	args.n_iterations = 100;
 	//this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
 	if(USE_COLOR){
     	int channels = 3;
@@ -111,11 +111,6 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 	Mat current_frame;
 	frame.copyTo(current_frame);
 	float scale_w,scale_h;
-	if(args.resize_src){
-		scale_w=current_frame.cols/320.0f;
-		scale_h=current_frame.rows/240.0f;
-		resize(frame,current_frame,Size(320,240),0,0,INTER_LINEAR);
-	}
 	this->weights.clear();
 	double max_prob=0.0;
 	MatrixXd temp_features_matrix = MatrixXd::Zero(samples.size(),this->n_descriptors);
@@ -148,15 +143,9 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 		for (int i = 0; i < predict_prob.rows(); ++i)
 		{
 			Rect current_window=samples[i];
-			stringstream ss;
-	    	ss << predict_prob(i);
 	    	max_prob=MAX(max_prob,predict_prob(i));
-			//this->feature_values.row(i)=temp_features_matrix.row(i);
+			this->feature_values.row(i)=temp_features_matrix.row(i);
 			this->weights.push_back(predict_prob(i));
-			//string disp = ss.str().substr(0,4);
-	    	//rectangle( current_frame, Point(current_window.x,current_window.y),Point(current_window.x+current_window.width,current_window.y+20), Scalar(0,0,255), -1, 8,0 );
-	    	//putText(current_frame, disp, Point(current_window.x+5, current_window.y+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
-			//rectangle( current_frame, current_window, Scalar(0,0,255), 1, LINE_8  );
 		}
 	this->num_frame++;
 	return this->weights;
@@ -192,7 +181,7 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 			else{
 				temp.resize(hogFeatures.rows());//
 				temp << hogFeatures;//
-			}	
+			}		
 			//temp.normalize();
 			if(IoU > args.overlap_threshold){
 				positiveFeatures.conservativeResize(positiveFeatures.rows() + 1, NoChange);
@@ -222,12 +211,13 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 	this->labels << positiveLabels, negativeLabels;
 	rectangle( current_frame, reference_roi, Scalar(0,255,0), 2, LINE_AA );
 	if(!this->logistic_regression.initialized){
-		this->logistic_regression.init(this->feature_values, this->labels, args.lambda,true,true,true);	
+		this->logistic_regression.init(this->feature_values, this->labels, args.lambda,false,false,false);	
 	} 
 	else{
 		this->logistic_regression.setData(this->feature_values, this->labels);
 	}
-	cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
+	//cout << "positive labels : " << positiveLabels.size() << "," << "newgative labels : " << negativeLabels.size() << endl;
+	//cout << this->feature_values.rows() << "," << this->feature_values.cols() << "," << this->labels.rows() << endl;
 	int num_batches=this->feature_values.rows()/100;
 	this->logistic_regression.train(num_batches*args.n_iterations,100,args.alpha, args.step_size);
 }

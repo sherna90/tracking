@@ -85,19 +85,30 @@ void imageGenerator::getNextFilename(string& fn){
     string suffix = fn.substr(index2);
     string frameNumberString = fn.substr(index+1, index2-index-1);
     istringstream iss(frameNumberString);
-    int frameNumber = 0;
+    int frameNumber = 1;
     iss >> frameNumber;
     ostringstream oss;
     oss << (frameNumber + 1);
-    string zeros ("000000000");
+    // VOT
+    //string zeros ("000000000");
+    // OTB
+    string zeros ("00000");
     string nextFrameNumberString = oss.str();
     string nextFrameFilename = prefix + zeros.substr(0,zeros.length()-1-nextFrameNumberString.length())+nextFrameNumberString + suffix;
     fn.assign(nextFrameFilename);
 }
 
-Rect imageGenerator::stringToRect(string str){
+Rect imageGenerator::stringToRect(string line){
     const int NUMBER=4;
-    Point pt[1][NUMBER];
+    vector<int> coords(4,0);
+    size_t pos1=0;
+    size_t pos2=line.find(",");
+    for (int i = 0; i < NUMBER; i++){
+        coords[i] = stoi(line.substr(pos1,pos2 - pos1));
+        pos1 = pos2+1;
+        pos2 = line.find(",", pos1 + 1);
+    }
+    /*Point pt[1][NUMBER];
     size_t index1=0;
     size_t index2=-1;
     for (int i = 0; i < NUMBER; i++){
@@ -130,7 +141,8 @@ Rect imageGenerator::stringToRect(string str){
       if(pt[0][i].y > maxy)
         maxy = pt[0][i].y;
     }
-    return Rect(minx,miny,cvRound(maxx-minx),cvRound(maxy-miny));
+    return Rect(minx,miny,cvRound(maxx-minx),cvRound(maxy-miny));*/
+    return Rect(coords[0],coords[1],coords[2],coords[3]);
 }
 
 void imageGenerator::readDetections(string detFilename){

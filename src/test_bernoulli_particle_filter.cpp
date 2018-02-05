@@ -37,29 +37,24 @@ void TestBernoulliParticleFilter::run(){
 		current_detections = this->detections[k];
 		current_weights = this->detection_weights[k];
 
-		for(size_t i = 0; i < current_detections.size(); i++){
-			Rect det = current_detections[i];
-			rectangle( current_frame, det, Scalar(255,255,255), 2, LINE_AA );
-			cout << k << "," << det.x << "," << det.y << "," << det.width << "," << det.height << "," << current_weights(i) << endl;
-		}
-
-
 	   	if(!filter.is_initialized())
 	   	{
 	   		filter.initialize(current_frame, ground_truth);
+			rectangle( current_frame, ground_truth, Scalar(0,255,0), 2, LINE_AA );
 	   		cout <<  ground_truth.x << "," << ground_truth.y << "," << ground_truth.width << "," << ground_truth.height << endl;
 		}
 		else{
 			filter.predict();
 			filter.update(current_frame,current_detections);
+			//filter.draw_particles(current_frame,Scalar(125,125,125));
 			rectangle( current_frame, ground_truth, Scalar(0,255,0), 2, LINE_AA );
 			Rect estimate = filter.estimate(current_frame, true);
 			cout <<  estimate.x << "," << estimate.y << "," << estimate.width << "," << estimate.height << endl;
 			performance.calc(ground_truth, estimate);
 		}
 		imshow("Tracker", current_frame);
-		//imwrite(to_string(k)+".png", current_frame );
-		waitKey(100);
+		imwrite(to_string(k)+".png", current_frame );
+		waitKey(10);
   	}
 	time(&end);
 	double sec = difftime (end, start);

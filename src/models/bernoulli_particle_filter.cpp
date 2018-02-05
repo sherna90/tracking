@@ -2,13 +2,13 @@
 
 #ifndef PARAMS
 const float POS_STD = 3.0;
-const float SCALE_STD = 0.1;
+const float SCALE_STD = 3.0;
 const float THRESHOLD = 1000;
 const int NEWBORN_PARTICLES = 0;
 
-const float SURVIVAL_PROB = 0.99;
+const float SURVIVAL_PROB = 1.0;
 const float INITIAL_EXISTENCE_PROB = 0.99;
-const float BIRTH_PROB = 0.1;
+const float BIRTH_PROB = 0.0;
 const float DETECTION_RATE = 0.9;
 const float CLUTTER_RATE = 1;
 const float POSITION_LIKELIHOOD_STD = 10.0;
@@ -125,8 +125,6 @@ void BernoulliParticleFilter::initialize(const Mat& current_frame, const Rect gr
 
 	Mat current_frame_copy;
 	current_frame.copyTo(current_frame_copy);
-	//Mat current_frame_copy;
-    //cvtColor(current_frame, current_frame_copy, CV_RGB2GRAY);
     this->detector.init(GROUP_THRESHOLD,HIT_THRESHOLD, this->reference_roi);
     this->detector.train(current_frame_copy, this->reference_roi);
     this->initialized = true;
@@ -272,43 +270,45 @@ void BernoulliParticleFilter::update(const Mat& image,vector<Rect> detections){
 	int right = MIN(this->reference_roi.x + this->reference_roi.width, image.cols - 1);
 	int bottom = MIN(this->reference_roi.y + this->reference_roi.height, image.rows - 1);
 	Rect update_roi = Rect(left, top, right - left, bottom - top);
-	//vector<Rect> detections = this->detector.detect(current_frame,update_roi);
 	this->observations=detections;
+	vector<double> detection_weights = this->detector.detect(current_frame,this->observations);
 	//cout << "detections : " <<detections.size()   << ", observations : " << this->observations.size()  << endl;
 	if (this->observations.size() > 0)
 	{
-
-		vector<double> tmp_weights;
-		MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
-		MatrixXd observations = MatrixXd::Zero(this->observations.size(), 4);
+		vector<double> location_weights;
 		for (size_t i = 0; i < this->observations.size(); i++){
-			cout << "detections : " <<detections[i]  << endl;
-	
-            observations.row(i) << this->observations[i].x, this->observations[i].y, this->observations[i].width, this->observations[i].height;
-            rectangle( image, Point(this->observations[i].x, this->observations[i].y), Point(this->observations[i].x+this->observations[i].width, this->observations[i].y+this->observations[i].height), Scalar(0,255,255), 2, LINE_AA );
-      
+			Rect new_det=this->observations[i];
+			double Intersection = (double)(update_roi & new_det).area();
+			double Union=(double)update_roi.area()+(double)new_det.area()-Intersection;
+			double detection_prob=exp(1.0*(-1.0+Intersection/Union));
+			location_weights.push_back(detection_prob);
+            stringstream ss;
+	    	ss << detection_weights[i];
+			string disp = ss.str().substr(0,8);
+	    	rectangle( image, Point(new_det.x,new_det.y),Point(new_det.x+new_det.width,new_det.y+20), Scalar(0,0,255), -1, 8,0 );
+	    	putText(image, disp, Point(new_det.x+5, new_det.y+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
+			rectangle( image, Point(new_det.x, new_det.y), Point(new_det.x+new_det.width, new_det.y+new_det.height), Scalar(0,0,255), 2, LINE_AA );
         }
 
         MatrixXd psi(this->states.size(), this->observations.size());
 
         for (size_t i = 0; i < this->states.size(); ++i)
         {
-        	particle state = this->states[i];
-        	VectorXd mean(4);
-        	mean << state.x, state.y, state.width, state.height;
-        	//MatrixXd cov = POSITION_LIKELIHOOD_STD * POSITION_LIKELIHOOD_STD * MatrixXd::Identity(4, 4);
-            MVNGaussian gaussian(mean, cov);
-            //double weight = this->weights[i];
-
-            psi.row(i) = gaussian.log_likelihood(observations);
+        	//particle state = this->states[i];
+			Rect state(this->states[i].x,this->states[i].y,this->states[i].width,this->states[i].height);
+			for (size_t j = 0; j < this->observations.size(); j++){
+				Rect new_det=this->observations[j];
+				double Intersection = (double)(state & new_det).area();
+				double Union=(double)state.area()+(double)new_det.area()-Intersection;
+				double birth_prob=location_weights[j]*exp(2.0*(-1.0+Intersection/Union));
+				psi(i,j)=birth_prob;
+			}
         }
-
-
         VectorXd tau = VectorXd::Zero(this->observations.size());
         tau = psi.colwise().sum();
         VectorXd eta = psi.colwise().sum();
-
-        for (size_t i = 0; i < this->weights.size(); ++i)
+		vector<double> tmp_weights;
+        for (size_t i = 0; i < this->states.size(); ++i)
         {
             double weight = this->weights[i];
             tmp_weights.push_back(weight * (1 - DETECTION_RATE) + psi.row(i).sum()/( LAMBDA_C * PDF_C));
@@ -321,7 +321,7 @@ void BernoulliParticleFilter::update(const Mat& image,vector<Rect> detections){
 		double max_value = *max_element(this->weights.begin(), this->weights.end());
 		//if(max_value/max_prob<0.8) this->detector.train(current_frame,update_roi);
     	max_prob=max_value;
-        resample();
+		resample();
         tmp_weights.clear();
 	}
 	//this->reference_hist=float(1-1./8.)*this->reference_hist.array()+float(1./8.)*this->featureValues.row(0).array();
@@ -348,11 +348,14 @@ void BernoulliParticleFilter::resample(){
 	vector<double> cumulative_sum(num_states);
 	double max_value = *max_element(this->weights.begin(), this->weights.end());
 	double sumexp=0.0f;
+	vector<double> log_weights;
     for (int i=0; i<n_particles; i++) {
-        sumexp+=exp(this->weights.at(i)-max_value);
+		double lw=log(this->weights.at(i));
+		log_weights.push_back(lw);
+        sumexp+=exp(lw-log(max_value));
     }
     for (int i=0; i<n_particles; i++) {
-        normalized_weights.at(i) = exp(this->weights.at(i)-max_value-log(sumexp));
+        normalized_weights.at(i) = exp(log_weights[i]-log(max_value)-log(sumexp));
 	}
 	//max_value = *max_element(normalized_weights.begin(),normalized_weights.end());
 	//cout << "max prob : " << max_value << endl;
@@ -425,7 +428,7 @@ Rect BernoulliParticleFilter::estimate(const Mat& image, bool draw){
     	&& (pt1.x >= 0)
     	&& (pt2.y < this->frame_size.height)
     	&& (pt1.y >= 0)){
-        if(draw) rectangle( image, pt1,pt2, Scalar(0,0,255), 2, LINE_AA );
+        if(draw) rectangle( image, pt1,pt2, Scalar(255,0,255), 2, LINE_AA );
         estimate = Rect(pt1.x,pt1.y,_width,_height);
     }
 

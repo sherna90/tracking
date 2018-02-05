@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "cmath": "cpp",
+        "complex": "cpp",
+        "*.cuh": "cpp",
+        "iosfwd": "cpp",
+        "sstream": "cpp",
+        "chrono": "cpp",
+        "*.tcc": "cpp"
+    }
+}

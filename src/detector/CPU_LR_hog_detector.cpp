@@ -1,14 +1,14 @@
 #include "CPU_LR_hog_detector.hpp"
 
 #ifndef PARAMS
-const bool USE_COLOR=false;
+const bool USE_COLOR=true;
 #endif
 
 void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect reference_roi){
 	args.make_gray = false;
     args.resize_src = false;
     args.hog_width = 32;
-    args.hog_height = 64;
+    args.hog_height = 32;
     args.gr_threshold = group_threshold;
     args.hit_threshold = hit_threshold;
     args.n_orients = 9;
@@ -19,15 +19,15 @@ void CPU_LR_HOGDetector::init(double group_threshold, double hit_threshold,Rect 
     args.alpha= 0.9;
     args.step_size = 0.001;
     unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
-	args.n_iterations = 100;
+	args.n_iterations = 10;
 	//this->n_descriptors = (args.width/args.cell_width-1)*(args.height/args.cell_width-1)*args.nbins*(args.block_width*args.block_width/(args.cell_width*args.cell_width));
 	if(USE_COLOR){
     	int channels = 3;
     	this->n_descriptors=(args.n_orients*3+5-1)*(args.hog_width/args.bin_size)*(args.hog_height/args.bin_size) + (this->args.hog_width/2)*(this->args.hog_height/2)*channels;
     }
     else this->n_descriptors = (args.n_orients*3+5-1)*(args.hog_width/args.bin_size)*(args.hog_height/args.bin_size);
-    this->generator.seed(seed1);
     this->feature_values=MatrixXd::Zero(0,this->n_descriptors);
+	this->features=VectorXd::Zero(this->n_descriptors);
 	this->labels.resize(0);
 	this->num_frame=0;
 	this->max_value=1.0;
@@ -113,6 +113,7 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 	float scale_w,scale_h;
 	this->weights.clear();
 	double max_prob=0.0;
+	this->feature_values = MatrixXd::Zero(samples.size(),this->n_descriptors);
 	MatrixXd temp_features_matrix = MatrixXd::Zero(samples.size(),this->n_descriptors);
 		for(int i=0;i<samples.size();i++){
 			Rect current_window=samples[i];
@@ -142,8 +143,6 @@ vector<double> CPU_LR_HOGDetector::detect(Mat &frame, vector<Rect> samples)
 		VectorXd predict_prob = this->logistic_regression.predict(temp_features_matrix, true);
 		for (int i = 0; i < predict_prob.rows(); ++i)
 		{
-			Rect current_window=samples[i];
-	    	max_prob=MAX(max_prob,predict_prob(i));
 			this->feature_values.row(i)=temp_features_matrix.row(i);
 			this->weights.push_back(predict_prob(i));
 		}
@@ -155,6 +154,19 @@ void CPU_LR_HOGDetector::train(Mat &frame,Rect reference_roi)
 {
 	Mat current_frame;
 	frame.copyTo(current_frame);
+	Mat cropImage = current_frame(reference_roi);
+	VectorXd  hogFeatures = this->genHog(cropImage);
+	VectorXd temp_features;
+	if(USE_COLOR){
+		VectorXd rawPixelsFeatures = this->genRawPixels(cropImage);
+		temp_features.resize(hogFeatures.rows()+rawPixelsFeatures.rows());
+		temp_features << hogFeatures, rawPixelsFeatures;
+	}
+	else{
+		temp_features.resize(hogFeatures.rows());//
+		temp_features << hogFeatures;//
+	}
+	this->features=temp_features.transpose();
 	vector<Rect> samples;
 	int stride=1;
 	MatrixXd positiveFeatures = MatrixXd::Zero(0,this->n_descriptors);

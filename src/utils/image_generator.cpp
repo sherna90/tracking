@@ -108,17 +108,20 @@ Rect imageGenerator::stringToRect(string line){
         pos1 = pos2+1;
         pos2 = line.find(",", pos1 + 1);
     }
-    /*Point pt[1][NUMBER];
+    return Rect(coords[0],coords[1],coords[2],coords[3]);
+    /*const int NUMBER=4;
+    vector<int> coords(4,0);
+    Point pt[1][NUMBER];
     size_t index1=0;
     size_t index2=-1;
     for (int i = 0; i < NUMBER; i++){
-        index1=str.find(",",index2+1);
-        string str_x1 = str.substr(index2+1, index1-index2-1);
+        index1=line.find(",",index2+1);
+        string str_x1 = line.substr(index2+1, index1-index2-1);
         istringstream iss(str_x1);
         int x1 = 0;
         iss >> x1;
-        index2=str.find(",",index1+1);
-        string str_y1 = str.substr(index1+1, index2-index1-1);
+        index2=line.find(",",index1+1);
+        string str_y1 = line.substr(index1+1, index2-index1-1);
         istringstream iss2(str_y1);
         int y1 = 0;
         iss2 >> y1;
@@ -142,7 +145,6 @@ Rect imageGenerator::stringToRect(string line){
         maxy = pt[0][i].y;
     }
     return Rect(minx,miny,cvRound(maxx-minx),cvRound(maxy-miny));*/
-    return Rect(coords[0],coords[1],coords[2],coords[3]);
 }
 
 void imageGenerator::readDetections(string detFilename){

@@ -40,7 +40,7 @@ void TestParticleFilter::run(){
   time_t start, end;
   time(&start);
   Performance performance;
-  namedWindow("Tracker");
+  //namedWindow("Tracker");
   for(int k=0;k <num_frames;++k){
     current_gt=gt_vec[k];
     ground_truth=generator.stringToRect(current_gt);
@@ -60,8 +60,8 @@ void TestParticleFilter::run(){
         double r1 = performance.calc(ground_truth, estimate);
         //cout  << "ESS : " << filter.getESS() << "ratio : " << r1 << endl;
     }
-    imshow("Tracker",current_frame);
-    waitKey(1);
+    //imshow("Tracker",current_frame);
+    //waitKey(1);
   }
   time(&end);
   double sec = difftime (end, start);

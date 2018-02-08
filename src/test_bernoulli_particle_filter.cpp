@@ -22,7 +22,7 @@ void TestBernoulliParticleFilter::run(){
 	time_t start, end;
 	time(&start);
 	Performance performance;
-	namedWindow("Tracker");
+	//namedWindow("Tracker");
 	/*	MatrixXd featureValues;
 	vector<Rect> dppResults; */
 	
@@ -52,9 +52,9 @@ void TestBernoulliParticleFilter::run(){
 			cout <<  estimate.x << "," << estimate.y << "," << estimate.width << "," << estimate.height << endl;
 			performance.calc(ground_truth, estimate);
 		}
-		imshow("Tracker", current_frame);
-		imwrite(to_string(k)+".png", current_frame );
-		waitKey(10);
+		//imshow("Tracker", current_frame);
+		//imwrite(to_string(k)+".png", current_frame );
+		//waitKey(100);
   	}
 	time(&end);
 	double sec = difftime (end, start);

@@ -13,6 +13,7 @@ using namespace cv::ximgproc::segmentation;
 class CPU_LR_HOGDetector : public HOGDetector
 {
 public:
+	VectorXd features;
 	void init(double group_threshold, double hit_threshold,Rect reference_roi);
 	vector<Rect> detect(Mat &frame,Rect reference_roi);
 	vector<double> detect(Mat &frame,vector<Rect> samples);

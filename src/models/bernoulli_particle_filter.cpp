@@ -272,18 +272,28 @@ void BernoulliParticleFilter::update(const Mat& image,vector<Rect> detections){
 	Rect update_roi = Rect(left, top, right - left, bottom - top);
 	this->observations=detections;
 	vector<double> detection_weights = this->detector.detect(current_frame,this->observations);
-	//cout << "detections : " <<detections.size()   << ", observations : " << this->observations.size()  << endl;
+	MatrixXd observed_features=this->detector.getFeatures();
+	VectorXd target_features=this->detector.features;
 	if (this->observations.size() > 0)
 	{
 		vector<double> location_weights;
+		Point2f pointTracked(update_roi.x + update_roi.width/2, update_roi.y + update_roi.height/2);
+		Point2f scaleTracked(update_roi.width, update_roi.height);
 		for (size_t i = 0; i < this->observations.size(); i++){
 			Rect new_det=this->observations[i];
+			double diagonal = sqrt( pow(image.rows,2) + pow(image.cols,2));
+			double area = image.rows * image.cols;
+			Point2f pointEstimated(new_det.x + new_det.width/2,new_det.y + new_det.height/2);
+			Point2f scaleEstimated( new_det.width,new_det.height);
 			double Intersection = (double)(update_roi & new_det).area();
 			double Union=(double)update_roi.area()+(double)new_det.area()-Intersection;
-			double detection_prob=exp(1.0*(-1.0+Intersection/Union));
+			double detection_prob=exp(2.0*(-1.0+Intersection/Union));
+			//double detection_prob = exp(-1.0 * norm(pointTracked - pointEstimated)/diagonal);
+			//detection_prob*=exp(-1.0 * norm(scaleTracked - scaleEstimated)/area);
+			double feature_cost = exp(-1.0*(target_features.transpose() - observed_features.row(i)).squaredNorm()); 
 			location_weights.push_back(detection_prob);
             stringstream ss;
-	    	ss << detection_weights[i];
+	    	ss << location_weights[i];
 			string disp = ss.str().substr(0,8);
 	    	rectangle( image, Point(new_det.x,new_det.y),Point(new_det.x+new_det.width,new_det.y+20), Scalar(0,0,255), -1, 8,0 );
 	    	putText(image, disp, Point(new_det.x+5, new_det.y+12), FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255),1);
@@ -318,7 +328,7 @@ void BernoulliParticleFilter::update(const Mat& image,vector<Rect> detections){
         this->existence_prob = (this->new_existence_prob * sum_weights[0]) / ( ( (LAMBDA_C * PDF_C) * (1 - this->new_existence_prob) ) + ( this->new_existence_prob + sum_weights[0]) );
 	    if(this->existence_prob > 0.999) this->existence_prob = 0.999;
 		if(this->existence_prob < 0.001) this->existence_prob = 0.001;
-		double max_value = *max_element(this->weights.begin(), this->weights.end());
+		double max_value = *max_element(location_weights.begin(), location_weights.end());
 		//if(max_value/max_prob<0.8) this->detector.train(current_frame,update_roi);
     	max_prob=max_value;
 		resample();
@@ -428,7 +438,7 @@ Rect BernoulliParticleFilter::estimate(const Mat& image, bool draw){
     	&& (pt1.x >= 0)
     	&& (pt2.y < this->frame_size.height)
     	&& (pt1.y >= 0)){
-        if(draw) rectangle( image, pt1,pt2, Scalar(255,0,255), 2, LINE_AA );
+        if(draw) rectangle( image, pt1,pt2, Scalar(255,0,0), 2, LINE_AA );
         estimate = Rect(pt1.x,pt1.y,_width,_height);
     }
 

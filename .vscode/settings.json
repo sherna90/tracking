@@ -6,6 +6,12 @@
         "iosfwd": "cpp",
         "sstream": "cpp",
         "chrono": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "array": "cpp",
+        "slist": "cpp",
+        "initializer_list": "cpp",
+        "iostream": "cpp",
+        "bitset": "cpp",
+        "utility": "cpp"
     }
 }
